@@ -1,0 +1,172 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - VLCrave Express</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" href="./img/icon.png" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="css/login.css" />
+</head>
+<body>
+
+  <div class="login-box">
+    <img src="./img/icon.png" alt="Logo" class="login-logo" />
+    <h2>Masuk Akun</h2>
+
+    <div id="step-login">
+      <input type="email" id="login-email" placeholder="Email" required />
+      <input type="password" id="login-password" placeholder="Password" required />
+      <button id="login-btn">Masuk</button>
+      <div class="login-links">
+        <a href="reset.html">Lupa Password?</a>
+      </div>
+    </div>
+
+    <div id="step-pin" style="display: none;">
+      <input type="password" id="pin-input" maxlength="6" placeholder="Masukkan PIN 6 digit" required />
+      <button id="pin-submit-btn">Verifikasi PIN</button>
+    </div>
+
+    <p id="login-msg"></p>
+
+    <div class="login-footer">
+      Belum punya akun? <a href="register.html">Daftar</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-messaging.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAfBzoX9kUwUTWfQYT6QLndd_mP03__8Wo",
+      authDomain: "vlcrave-express.firebaseapp.com",
+      projectId: "vlcrave-express",
+      storageBucket: "vlcrave-express.appspot.com",
+      messagingSenderId: "609330453287",
+      appId: "1:609330453287:web:5280b9ec5c0d435518e702"
+    };
+
+    const vapidKey = "BLonv1vVmUKPHiz3xqDyJ_8a9QhiuDugvCMnK9HYKgd6NlytGPNCVuFuuBOqQQKbSw7NK0ASxAGr_LUVs1PsY0Q";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const messaging = getMessaging(app);
+
+    const loginBtn = document.getElementById("login-btn");
+    const pinBtn = document.getElementById("pin-submit-btn");
+    const msg = document.getElementById("login-msg");
+
+    let currentUserUID = null;
+
+    async function simpanTokenKeSemuaRole(uid, token) {
+      const userRef = doc(db, "users", uid);
+      const userSnap = await getDoc(userRef);
+      if (!userSnap.exists()) return;
+
+      const userData = userSnap.data();
+      const role = (userData.role || "").toLowerCase();
+
+      await setDoc(userRef, { fcmToken: token }, { merge: true });
+
+      if (role === "driver") {
+        const q = query(collection(db, "driver"), where("idDriver", "==", uid));
+        const snap = await getDocs(q);
+        snap.forEach(docSnap => {
+          setDoc(doc(db, "driver", docSnap.id), { fcmToken: token }, { merge: true });
+        });
+      }
+
+      if (role === "seller" || role === "toko") {
+        const q = query(collection(db, "toko"), where("userId", "==", uid));
+        const snap = await getDocs(q);
+        snap.forEach(docSnap => {
+          setDoc(doc(db, "toko", docSnap.id), { fcmToken: token }, { merge: true });
+        });
+      }
+    }
+
+    async function simpanTokenFCM(uid) {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          msg.innerText = "❌ Notifikasi ditolak.";
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+
+        if (token) {
+          await simpanTokenKeSemuaRole(uid, token);
+          console.log("✅ Token FCM disimpan:", token);
+        } else {
+          msg.innerText = "❌ Token tidak tersedia.";
+        }
+      } catch (err) {
+        console.error("❌ Gagal simpan token:", err);
+        msg.innerText = "❌ Gagal simpan token: " + err.message;
+      }
+    }
+
+    loginBtn.addEventListener("click", async () => {
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+
+      if (!email || !password) {
+        msg.innerText = "❌ Email dan password wajib diisi.";
+        return;
+      }
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        currentUserUID = userCredential.user.uid;
+        msg.innerText = "✅ Login berhasil. Silakan verifikasi PIN.";
+        document.getElementById("step-login").style.display = "none";
+        document.getElementById("step-pin").style.display = "block";
+      } catch (error) {
+        msg.innerText = "❌ " + error.message;
+      }
+    });
+
+    pinBtn.addEventListener("click", async () => {
+      const pinInput = document.getElementById("pin-input").value.trim();
+
+      if (pinInput.length !== 6) {
+        msg.innerText = "❌ PIN harus 6 digit.";
+        return;
+      }
+
+      try {
+        const userDoc = await getDoc(doc(db, "users", currentUserUID));
+        if (!userDoc.exists()) {
+          msg.innerText = "❌ Data user tidak ditemukan.";
+          return;
+        }
+
+        const userData = userDoc.data();
+        const storedPin = userData.pin?.toString().padStart(6, "0");
+
+        if (pinInput === storedPin) {
+          msg.innerText = "✅ PIN benar. Mengalihkan...";
+          await simpanTokenFCM(currentUserUID);
+          setTimeout(() => window.location.href = "index.html", 500);
+        } else {
+          msg.innerText = "❌ PIN salah.";
+        }
+      } catch (error) {
+        msg.innerText = "❌ " + error.message;
+      }
+    });
+  </script>
+
+</body>
+</html>
