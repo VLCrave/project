@@ -279,24 +279,6 @@ if (page === 'productlist') {
     <div class="productlist-wrapper bg-gray-50 min-h-screen safe-area-bottom">
       <section class="py-4 sm:py-6">
         <div class="container mx-auto px-4">
-          <!-- Header Section -->
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
-            <div class="w-full sm:w-auto">
-              <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Restoran Terdekat</h2>
-              <p class="text-gray-600 mt-1 text-sm sm:text-base">Temukan makanan terbaik di sekitarmu</p>
-            </div>
-            <div class="flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-between sm:justify-start">
-              <div class="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg border border-gray-300 flex-1 sm:flex-none justify-center">
-                <i class="fa-solid fa-filter text-gray-500 text-sm"></i>
-                <span class="text-gray-700 font-medium text-sm">Filter</span>
-              </div>
-              <div class="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg border border-gray-300 flex-1 sm:flex-none justify-center">
-                <i class="fa-solid fa-arrow-down-wide-short text-gray-500 text-sm"></i>
-                <span class="text-gray-700 font-medium text-sm">Urutkan</span>
-              </div>
-            </div>
-          </div>
-
           <!-- Products Grid -->
           <div id="produk-container" class="produk-list-container grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"></div>
 
@@ -3841,7 +3823,623 @@ if (page === "setting-rekening") {
 
 if (page === "permintaan-deposit") {
   const container = document.getElementById("page-container");
-  container.innerHTML = `<p>⏳ Memuat permintaan deposit...</p>`;
+  
+  // Inject CSS langsung ke dalam page
+  const style = document.createElement('style');
+  style.textContent = `
+    /* Reset dan Base Styles */
+    .deposit-loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem;
+      min-height: 400px;
+    }
+    
+    .deposit-loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      animation: deposit-crv-spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    
+    .deposit-loading-text {
+      color: #6b7280;
+      font-size: 0.875rem;
+      text-align: center;
+    }
+    
+    @keyframes deposit-crv-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Main Container */
+    .deposit-crv-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+      background: #f8fafc;
+      min-height: 100vh;
+    }
+    
+    /* Header Section - Mobile First */
+    .deposit-crv-header {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .deposit-crv-title-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    
+    @media (min-width: 768px) {
+      .deposit-crv-title-section {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: left;
+        align-items: center;
+      }
+    }
+    
+    .deposit-crv-icon {
+      font-size: 2.5rem;
+    }
+    
+    .deposit-crv-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+    }
+    
+    .deposit-crv-badge {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Stats Grid - Responsive */
+    .deposit-crv-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+    
+    @media (max-width: 640px) {
+      .deposit-crv-stats {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+      }
+    }
+    
+    .deposit-crv-stat-card {
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+    
+    .deposit-crv-stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .deposit-crv-stat-number {
+      display: block;
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #1e40af;
+      margin-bottom: 0.25rem;
+    }
+    
+    .deposit-crv-stat-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Content Layout */
+    .deposit-crv-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    /* Section Styles */
+    .deposit-crv-section {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .deposit-crv-section-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    
+    @media (min-width: 640px) {
+      .deposit-crv-section-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+    
+    .deposit-crv-section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+    }
+    
+    .deposit-crv-section-count {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    /* Grid Layout - Responsive */
+    .deposit-crv-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    @media (min-width: 640px) {
+      .deposit-crv-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .deposit-crv-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+    
+    /* Card Styles */
+    .deposit-crv-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 1.25rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .deposit-crv-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    }
+    
+    .deposit-crv-card:hover {
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      transform: translateY(-4px);
+    }
+    
+    .deposit-crv-card-expired {
+      opacity: 0.8;
+      background: #fef2f2;
+    }
+    
+    .deposit-crv-card-expired::before {
+      background: linear-gradient(90deg, #6b7280, #9ca3af);
+    }
+    
+    /* Card Header */
+    .deposit-crv-card-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    @media (min-width: 480px) {
+      .deposit-crv-card-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+    }
+    
+    .deposit-crv-id {
+      font-weight: 700;
+      color: #1e40af;
+      font-size: 0.875rem;
+      background: #eff6ff;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+    
+    /* Status Badges */
+    .deposit-crv-status {
+      padding: 0.375rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-align: center;
+      min-width: 100px;
+    }
+    
+    .deposit-crv-status-waiting {
+      background: #fffbeb;
+      color: #d97706;
+      border: 1px solid #fed7aa;
+    }
+    
+    .deposit-crv-status-confirmed {
+      background: #f0f9ff;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+    
+    .deposit-crv-status-rejected {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    
+    .deposit-crv-status-completed {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    
+    .deposit-crv-status-expired {
+      background: #f3f4f6;
+      color: #6b7280;
+      border: 1px solid #d1d5db;
+    }
+    
+    /* Card Body */
+    .deposit-crv-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .deposit-crv-info-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .deposit-crv-info-group label {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .deposit-crv-value {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 0.875rem;
+    }
+    
+    /* Info Row - Responsive */
+    .deposit-crv-info-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    
+    @media (min-width: 480px) {
+      .deposit-crv-info-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .deposit-crv-info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .deposit-crv-badge-method {
+      background: #f8fafc;
+      color: #475569;
+      padding: 0.375rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .deposit-crv-amount {
+      font-weight: 700;
+      color: #1f2937;
+      font-size: 0.875rem;
+    }
+    
+    /* Total Section */
+    .deposit-crv-total {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid #bae6fd;
+      text-align: center;
+    }
+    
+    .deposit-crv-total label {
+      font-size: 0.75rem;
+      color: #0369a1;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .deposit-crv-total-amount {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0369a1;
+      margin-top: 0.25rem;
+    }
+    
+    /* Notes Section */
+    .deposit-crv-notes {
+      background: #fafafa;
+      padding: 0.875rem;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .deposit-crv-notes label {
+      font-size: 0.75rem;
+      color: #6b7280;
+      font-weight: 600;
+    }
+    
+    .deposit-crv-notes-text {
+      margin: 0.5rem 0 0 0;
+      font-size: 0.875rem;
+      color: #374151;
+      line-height: 1.4;
+    }
+    
+    /* Card Footer - Responsive */
+    .deposit-crv-card-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #f1f5f9;
+    }
+    
+    @media (min-width: 480px) {
+      .deposit-crv-card-footer {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+    
+    .deposit-crv-time {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+    
+    /* Action Buttons - Responsive */
+    .deposit-crv-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    @media (max-width: 480px) {
+      .deposit-crv-actions {
+        width: 100%;
+      }
+      
+      .deposit-crv-btn {
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+      }
+    }
+    
+    .deposit-crv-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .deposit-crv-btn-confirm {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    }
+    
+    .deposit-crv-btn-confirm:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+    }
+    
+    .deposit-crv-btn-cancel {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+    }
+    
+    .deposit-crv-btn-cancel:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+    }
+    
+    .deposit-crv-btn-complete {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    }
+    
+    .deposit-crv-btn-complete:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    }
+    
+    /* Empty States */
+    .deposit-crv-empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+      text-align: center;
+    }
+    
+    .deposit-crv-empty-main {
+      background: white;
+      border-radius: 16px;
+      padding: 4rem 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .deposit-crv-empty-icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.7;
+    }
+    
+    .deposit-crv-empty-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #374151;
+      margin: 0 0 0.75rem 0;
+    }
+    
+    .deposit-crv-empty-text {
+      color: #6b7280;
+      margin: 0;
+      font-size: 1rem;
+    }
+    
+    /* Footer */
+    .deposit-crv-footer {
+      display: flex;
+      justify-content: center;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e5e7eb;
+    }
+    
+    .deposit-crv-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, #6b7280, #4b5563);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .deposit-crv-back-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Mobile Optimizations */
+    @media (max-width: 640px) {
+      .deposit-crv-container {
+        padding: 0.75rem;
+      }
+      
+      .deposit-crv-header,
+      .deposit-crv-section {
+        padding: 1.25rem;
+        border-radius: 12px;
+      }
+      
+      .deposit-crv-card {
+        padding: 1rem;
+      }
+      
+      .deposit-crv-title {
+        font-size: 1.25rem;
+      }
+      
+      .deposit-crv-stat-number {
+        font-size: 1.5rem;
+      }
+    }
+    
+    /* Touch Improvements for Mobile */
+    @media (max-width: 768px) {
+      .deposit-crv-btn {
+        padding: 0.75rem 1rem;
+        min-height: 44px;
+      }
+      
+      .deposit-crv-card {
+        min-height: auto;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Loading state
+  container.innerHTML = `
+    <div class="deposit-loading-container">
+      <div class="deposit-loading-spinner"></div>
+      <p class="deposit-loading-text">Memuat permintaan deposit...</p>
+    </div>
+  `;
 
   const db = firebase.firestore();
   const allDeposits = await db.collection("topup_request").orderBy("timestamp", "desc").get();
@@ -3859,55 +4457,137 @@ if (page === "permintaan-deposit") {
   });
 
   let html = `
-    <div class="permintaan-deposit-container">
-      <h2>💰 Daftar Permintaan Deposit</h2>
-      <div class="deposit-list">
+    <div class="deposit-crv-container">
+      <div class="deposit-crv-header">
+        <div class="deposit-crv-title-section">
+          <div>
+            <i class="deposit-crv-icon">💳</i>
+            <h1 class="deposit-crv-title">Manajemen Deposit</h1>
+          </div>
+          <span class="deposit-crv-badge">${allDeposits.size} Permintaan</span>
+        </div>
+        <div class="deposit-crv-stats">
+          <div class="deposit-crv-stat-card">
+            <span class="deposit-crv-stat-number">${userList.length}</span>
+            <span class="deposit-crv-stat-label">User</span>
+          </div>
+          <div class="deposit-crv-stat-card">
+            <span class="deposit-crv-stat-number">${driverList.length}</span>
+            <span class="deposit-crv-stat-label">Driver</span>
+          </div>
+          <div class="deposit-crv-stat-card">
+            <span class="deposit-crv-stat-number">${sellerList.length}</span>
+            <span class="deposit-crv-stat-label">Seller</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="deposit-crv-content">
   `;
 
   function renderDepositList(list, roleLabel, idField) {
-    if (list.length === 0) return `<p style="text-align:center;"><em>Tidak ada permintaan dari ${roleLabel}.</em></p>`;
+    if (list.length === 0) return `
+      <div class="deposit-crv-empty-state">
+        <i class="deposit-crv-empty-icon">📭</i>
+        <p class="deposit-crv-empty-text">Tidak ada permintaan dari ${roleLabel}</p>
+      </div>
+    `;
 
     return `
-      <h3>${roleLabel}</h3>
-      ${list.map(item => {
-        const d = item.data;
-        const waktu = d.timestamp?.toDate?.().toLocaleString("id-ID") || "-";
-        const isExpired = d.expiredAt && d.expiredAt.toMillis() < Date.now();
-        const status = isExpired && d.status === "Menunggu" ? "Dibatalkan (Expired)" : d.status;
-        const idTransaksi = `DP-${item.id.substring(0, 4).toUpperCase()}`;
+      <div class="deposit-crv-section">
+        <div class="deposit-crv-section-header">
+          <h2 class="deposit-crv-section-title">${roleLabel}</h2>
+          <span class="deposit-crv-section-count">${list.length} permintaan</span>
+        </div>
+        <div class="deposit-crv-grid">
+          ${list.map(item => {
+            const d = item.data;
+            const waktu = d.timestamp?.toDate?.().toLocaleString("id-ID") || "-";
+            const isExpired = d.expiredAt && d.expiredAt.toMillis() < Date.now();
+            const status = isExpired && d.status === "Menunggu" ? "Dibatalkan (Expired)" : d.status;
+            const idTransaksi = `DP-${item.id.substring(0, 4).toUpperCase()}`;
+            
+            const statusClass = status === "Menunggu" ? "deposit-crv-status-waiting" : 
+                             status === "Dikonfirmasi" ? "deposit-crv-status-confirmed" :
+                             status === "Ditolak" ? "deposit-crv-status-rejected" :
+                             status === "Selesai" ? "deposit-crv-status-completed" : "deposit-crv-status-expired";
 
-        return `
-          <div class="deposit-card deposit-card-deposit-admin">
-            <p><strong>ID Transaksi:</strong> ${idTransaksi}</p>
-            <p><strong>ID ${roleLabel}:</strong> ${d[idField] || "-"}</p>
-            <p><strong>Metode:</strong> ${d.metode || "-"}</p>
-            <p><strong>Nominal:</strong> Rp${(d.jumlah || 0).toLocaleString("id-ID")}</p>
-            <p><strong>Total:</strong> Rp${(d.total || 0).toLocaleString("id-ID")}</p>
-            <p><strong>Catatan:</strong> ${d.catatan || "-"}</p>
-            <p><strong>Status:</strong> ${status}</p>
-            <p><small>🕒 ${waktu}</small></p>
-            ${
-              d.status === "Menunggu" && !isExpired ? `
-                <div class="deposit-action-deposit-admin">
-                  <button class="btn-mini" onclick="${
-  d.role === 'user'
-    ? `konfirmasiTopupUser('${item.id}', '${d.userId}', ${d.total})`
-    : d.role === 'driver'
-    ? `konfirmasiTopupDriver('${item.id}', '${d.idDriver}', ${d.total})`
-    : `konfirmasiTopupToko('${item.id}', '${d.idToko}', ${d.total})`
-}">✅ Konfirmasi</button>
-
+            return `
+              <div class="deposit-crv-card ${isExpired ? 'deposit-crv-card-expired' : ''}">
+                <div class="deposit-crv-card-header">
+                  <div class="deposit-crv-id">${idTransaksi}</div>
+                  <div class="deposit-crv-status ${statusClass}">${status}</div>
                 </div>
-              ` : (d.status === "Dikonfirmasi" || d.status === "Ditolak") ? `
-                <div class="deposit-action-deposit-admin">
-                  <button class="btn-mini" onclick="batalkanTopup('${item.id}')">🗑 Batalkan</button>
-                  ${d.status !== "Selesai" ? `<button class="btn-mini" onclick="selesaikanTopup('${item.id}')">✔️ Selesai</button>` : ""}
+                
+                <div class="deposit-crv-card-body">
+                  <div class="deposit-crv-info-group">
+                    <label>ID ${roleLabel}</label>
+                    <span class="deposit-crv-value">${d[idField] || "-"}</span>
+                  </div>
+                  
+                  <div class="deposit-crv-info-row">
+                    <div class="deposit-crv-info-item">
+                      <label>Metode</label>
+                      <span class="deposit-crv-badge-method">${d.metode || "-"}</span>
+                    </div>
+                    <div class="deposit-crv-info-item">
+                      <label>Nominal</label>
+                      <span class="deposit-crv-amount">Rp${(d.jumlah || 0).toLocaleString("id-ID")}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="deposit-crv-total">
+                    <label>Total Deposit</label>
+                    <span class="deposit-crv-total-amount">Rp${(d.total || 0).toLocaleString("id-ID")}</span>
+                  </div>
+                  
+                  ${d.catatan ? `
+                    <div class="deposit-crv-notes">
+                      <label>Catatan</label>
+                      <p class="deposit-crv-notes-text">${d.catatan}</p>
+                    </div>
+                  ` : ''}
                 </div>
-              ` : ""
-            }
-          </div>
-        `;
-      }).join("")}
+                
+                <div class="deposit-crv-card-footer">
+                  <div class="deposit-crv-time">
+                    <i>🕒</i>
+                    <span>${waktu}</span>
+                  </div>
+                  
+                  ${d.status === "Menunggu" && !isExpired ? `
+                    <div class="deposit-crv-actions">
+                      <button class="deposit-crv-btn deposit-crv-btn-confirm" onclick="${
+                        d.role === 'user' 
+                          ? `konfirmasiTopupUser('${item.id}', '${d.userId}', ${d.total})`
+                          : d.role === 'driver'
+                          ? `konfirmasiTopupDriver('${item.id}', '${d.idDriver}', ${d.total})`
+                          : `konfirmasiTopupToko('${item.id}', '${d.idToko}', ${d.total})`
+                      }">
+                        <i>✅</i>
+                        Konfirmasi
+                      </button>
+                    </div>
+                  ` : (d.status === "Dikonfirmasi" || d.status === "Ditolak") ? `
+                    <div class="deposit-crv-actions">
+                      <button class="deposit-crv-btn deposit-crv-btn-cancel" onclick="batalkanTopup('${item.id}')">
+                        <i>🗑</i>
+                        Batalkan
+                      </button>
+                      ${d.status !== "Selesai" ? `
+                        <button class="deposit-crv-btn deposit-crv-btn-complete" onclick="selesaikanTopup('${item.id}')">
+                          <i>✔️</i>
+                          Selesai
+                        </button>
+                      ` : ""}
+                    </div>
+                  ` : ""}
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
     `;
   }
 
@@ -3916,18 +4596,29 @@ if (page === "permintaan-deposit") {
   html += renderDepositList(sellerList, "Seller", "idToko");
 
   if (userList.length === 0 && driverList.length === 0 && sellerList.length === 0) {
-    html += `<p style="text-align:center;"><em>Tidak ada permintaan deposit.</em></p>`;
+    html += `
+      <div class="deposit-crv-empty-state deposit-crv-empty-main">
+        <i class="deposit-crv-empty-icon">💸</i>
+        <h3 class="deposit-crv-empty-title">Tidak Ada Permintaan Deposit</h3>
+        <p class="deposit-crv-empty-text">Belum ada permintaan deposit yang masuk</p>
+      </div>
+    `;
   }
 
   html += `
       </div>
-      <center><button class="btn-mini" onclick="loadContent('admin-user')">⬅️ Kembali</button></center>
+      
+      <div class="deposit-crv-footer">
+        <button class="deposit-crv-back-btn" onclick="loadContent('admin-user')">
+          <i>←</i>
+          Kembali ke Dashboard
+        </button>
+      </div>
     </div>
   `;
 
   container.innerHTML = html;
 }
-
 
 
 
@@ -5017,8 +5708,7 @@ else if (page === "seller-dashboard") {
               </div>
               <span class="font-semibold text-gray-900">Top Up Saldo</span>
             </button>
-            
-            <button onclick="lihatRiwayatPesanan()" class="bg-white hover:bg-gray-50 border border-gray-300 rounded-xl p-4 text-center transition-all duration-200 transform hover:scale-105 shadow-sm">
+<button onclick="loadContent('riwayat-pesanan-seller')" class="bg-white hover:bg-gray-50 border border-gray-300 rounded-xl p-4 text-center transition-all duration-200 transform hover:scale-105 shadow-sm">
               <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                 <i class="fas fa-history text-purple-600 text-xl"></i>
               </div>
@@ -5281,48 +5971,843 @@ else if (page === "laporan-seller-admin") {
 
 else if (page === "riwayat-pesanan-seller") {
   const container = document.getElementById("page-container");
-  container.innerHTML = `
-    <h2>📜 Riwayat Pesanan Selesai</h2>
-    <div id="info-saldo" class="info-box-modern">💰 Saldo Toko Saat Ini: <strong id="saldo-terakhir">Memuat...</strong></div>
-    <div id="filter-riwayat">
-      <input type="text" id="filterInput" placeholder="🔍 Cari Order ID / Nama Customer..." />
-    </div>
-    <div id="riwayat-container"><p>🔄 Memuat data...</p></div>
-    <style>
-      #info-saldo {
-        background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        font-size: 1.1rem;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  
+  // Inject Gofood-like CSS dengan tombol bantuan di setiap card
+  const style = document.createElement('style');
+  style.textContent = `
+    .riwayat-gf-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 16px;
+      background: #f8f9fa;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .riwayat-gf-header {
+      background: white;
+      padding: 20px 16px;
+      margin-bottom: 16px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    
+    .riwayat-gf-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .riwayat-gf-help-btn {
+      background: linear-gradient(135deg, #FF6B35, #FFA726);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 6px rgba(255, 107, 53, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .riwayat-gf-help-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(255, 107, 53, 0.4);
+    }
+    
+    .riwayat-gf-help-btn-header {
+      position: absolute;
+      top: 20px;
+      right: 16px;
+      padding: 8px 16px;
+      font-size: 12px;
+    }
+    
+    .riwayat-gf-help-btn-card {
+      margin-top: 8px;
+      align-self: flex-start;
+    }
+    
+    .riwayat-gf-help-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    
+    .riwayat-gf-help-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    
+    .riwayat-gf-help-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #666;
+    }
+    
+    .riwayat-gf-help-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .riwayat-gf-help-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .riwayat-gf-help-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 3px solid #FF6B35;
+    }
+    
+    .riwayat-gf-help-icon {
+      font-size: 16px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    
+    .riwayat-gf-help-text {
+      font-size: 14px;
+      color: #333;
+      line-height: 1.4;
+    }
+    
+    .riwayat-gf-help-contact {
+      background: linear-gradient(135deg, #fff3e0, #ffecb3);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #ffd54f;
+    }
+    
+    .riwayat-gf-help-contact-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e65100;
+      margin: 0 0 8px 0;
+    }
+    
+    .riwayat-gf-help-contact-info {
+      font-size: 13px;
+      color: #333;
+      margin: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .riwayat-gf-report-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    
+    .riwayat-gf-report-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      position: relative;
+    }
+    
+    .riwayat-gf-report-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .riwayat-gf-report-order {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border-left: 3px solid #FF6B35;
+    }
+    
+    .riwayat-gf-report-order-id {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    
+    .riwayat-gf-report-order-detail {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .riwayat-gf-report-textarea {
+      width: 100%;
+      height: 120px;
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      margin-bottom: 16px;
+    }
+    
+    .riwayat-gf-report-textarea:focus {
+      outline: none;
+      border-color: #FF6B35;
+    }
+    
+    .riwayat-gf-report-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    
+    .riwayat-gf-report-cancel {
+      padding: 10px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      color: #666;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    .riwayat-gf-report-submit {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #FF6B35, #FFA726);
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(255, 107, 53, 0.3);
+    }
+    
+    .riwayat-gf-saldo-card {
+      background: linear-gradient(135deg, #00aa13, #00c853);
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .riwayat-gf-saldo-label {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 4px;
+    }
+    
+    .riwayat-gf-saldo-amount {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+    }
+    
+    .riwayat-gf-search-box {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .riwayat-gf-search-input {
+      width: 100%;
+      padding: 12px 16px 12px 40px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #f5f5f5;
+    }
+    
+    .riwayat-gf-search-input:focus {
+      outline: none;
+      background: white;
+      border-color: #00aa13;
+    }
+    
+    .riwayat-gf-search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+    }
+    
+    .riwayat-gf-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .riwayat-gf-stat-card {
+      background: white;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .riwayat-gf-stat-number {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      color: #00aa13;
+      margin-bottom: 4px;
+    }
+    
+    .riwayat-gf-stat-label {
+      font-size: 11px;
+      color: #666;
+      font-weight: 500;
+    }
+    
+    .riwayat-gf-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .riwayat-gf-item {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-left: 4px solid #00aa13;
+      position: relative;
+    }
+    
+    .riwayat-gf-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .riwayat-gf-order-id {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .riwayat-gf-customer {
+      font-size: 13px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .riwayat-gf-method-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+    }
+    
+    .riwayat-gf-method-saldo {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    
+    .riwayat-gf-method-cod {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+    
+    .riwayat-gf-amounts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .riwayat-gf-amount-item {
+      text-align: center;
+    }
+    
+    .riwayat-gf-amount-label {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    
+    .riwayat-gf-amount-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .riwayat-gf-subtotal {
+      color: #1a1a1a;
+    }
+    
+    .riwayat-gf-potongan {
+      color: #d32f2f;
+    }
+    
+    .riwayat-gf-diterima {
+      color: #00aa13;
+    }
+    
+    .riwayat-gf-mutasi {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      border-left: 3px solid #2196f3;
+    }
+    
+    .riwayat-gf-mutasi-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .riwayat-gf-mutasi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    
+    .riwayat-gf-mutasi-item {
+      text-align: center;
+    }
+    
+    .riwayat-gf-mutasi-label {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 2px;
+    }
+    
+    .riwayat-gf-mutasi-value {
+      font-size: 11px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    
+    .riwayat-gf-mutasi-positive {
+      color: #00aa13;
+    }
+    
+    .riwayat-gf-mutasi-negative {
+      color: #d32f2f;
+    }
+    
+    .riwayat-gf-time {
+      font-size: 11px;
+      color: #999;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .riwayat-gf-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+    
+    .riwayat-gf-empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    .riwayat-gf-empty-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+      color: #333;
+    }
+    
+    .riwayat-gf-empty-text {
+      font-size: 14px;
+      margin: 0;
+      color: #666;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .riwayat-gf-container {
+        padding: 12px;
       }
-      #filter-riwayat {
-        margin-bottom: 15px;
+      
+      .riwayat-gf-header {
+        padding: 16px 12px;
       }
-      #filter-riwayat input {
-        padding: 8px 12px;
-        width: 100%;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        font-size: 1rem;
+      
+      .riwayat-gf-help-btn-header {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin-bottom: 12px;
+        align-self: flex-start;
       }
-      .pesanan-item {
-        border: 1px solid #ddd;
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 15px;
-        background: #fafafa;
+      
+      .riwayat-gf-stats {
+        grid-template-columns: repeat(3, 1fr);
       }
-      .mutasi {
-        background: #fff;
-        padding: 10px;
-        border-left: 4px solid #2196f3;
-        margin-top: 10px;
-        font-size: 0.95rem;
+      
+      .riwayat-gf-amounts {
+        grid-template-columns: 1fr;
+        gap: 6px;
       }
-    </style>
+      
+      .riwayat-gf-mutasi-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+      
+      .riwayat-gf-item-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .riwayat-gf-stats {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .riwayat-gf-saldo-amount {
+        font-size: 20px;
+      }
+      
+      .riwayat-gf-help-content,
+      .riwayat-gf-report-content {
+        margin: 20px;
+        padding: 20px;
+      }
+    }
   `;
+  document.head.appendChild(style);
+
+ // Fungsi untuk modal bantuan umum
+const showHelpModal = () => {
+  const modal = document.createElement('div');
+  modal.className = 'riwayat-gf-help-modal';
+  modal.innerHTML = `
+    <div class="riwayat-gf-help-content">
+      <button class="riwayat-gf-help-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      
+      <h3 class="riwayat-gf-help-title">
+        <span>❓</span>
+        Bantuan & Laporan Masalah
+      </h3>
+      
+      <div class="riwayat-gf-help-list">
+        <div class="riwayat-gf-help-item">
+          <span class="riwayat-gf-help-icon">💡</span>
+          <div class="riwayat-gf-help-text">
+            <strong>Cara membaca riwayat:</strong> Setiap kartu menunjukkan pesanan selesai dengan detail pendapatan dan mutasi saldo.
+          </div>
+        </div>
+        
+        <div class="riwayat-gf-help-item">
+          <span class="riwayat-gf-help-icon">🔍</span>
+          <div class="riwayat-gf-help-text">
+            <strong>Pencarian:</strong> Gunakan kolom search untuk mencari berdasarkan Order ID atau nama customer.
+          </div>
+        </div>
+        
+        <div class="riwayat-gf-help-item">
+          <span class="riwayat-gf-help-icon">💰</span>
+          <div class="riwayat-gf-help-text">
+            <strong>Potongan 5%:</strong> Berlaku untuk pembayaran dengan saldo. COD tidak ada potongan.
+          </div>
+        </div>
+      </div>
+      
+      <div class="riwayat-gf-help-contact">
+        <h4 class="riwayat-gf-help-contact-title">Butuh Bantuan Lebih Lanjut?</h4>
+        <div class="riwayat-gf-help-contact-info">
+          <span>📧</span> Email: support@vlcrave.com
+        </div>
+        <div class="riwayat-gf-help-contact-info">
+          <span>📞</span> Telepon: (021) 1234-5678
+        </div>
+        <div class="riwayat-gf-help-contact-info">
+          <span>💬</span> WhatsApp: +62 812-3456-7890
+        </div>
+        <div class="riwayat-gf-help-contact-info">
+          <span>🕒</span> Senin - Jumat, 09:00 - 18:00 WIB
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+};
+
+// Fungsi untuk modal laporan per transaksi
+const showReportModal = (orderData) => {
+  // Pastikan orderData adalah object, bukan string
+  const data = typeof orderData === 'string' ? JSON.parse(orderData) : orderData;
+  
+  const modal = document.createElement('div');
+  modal.className = 'riwayat-gf-report-modal';
+  modal.innerHTML = `
+    <div class="riwayat-gf-report-content">
+      <button class="riwayat-gf-help-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      
+      <h3 class="riwayat-gf-report-title">
+        <span>🚩</span>
+        Laporkan Masalah
+      </h3>
+      
+      <div class="riwayat-gf-report-order">
+        <div class="riwayat-gf-report-order-id">${data.idPesanan}</div>
+        <div class="riwayat-gf-report-order-detail">
+          Customer: ${data.namaCustomer} • ${new Date(data.waktu).toLocaleDateString('id-ID')}
+        </div>
+      </div>
+      
+      <textarea 
+        class="riwayat-gf-report-textarea" 
+        placeholder="Jelaskan masalah yang Anda alami dengan transaksi ini...&#10;&#10;Contoh:&#10;- Saldo tidak sesuai&#10;- Potongan tidak tepat&#10;- Data transaksi bermasalah"
+      ></textarea>
+      
+      <div class="riwayat-gf-report-actions">
+        <button class="riwayat-gf-report-cancel" onclick="this.parentElement.parentElement.parentElement.remove()">
+          Batal
+        </button>
+        <button class="riwayat-gf-report-submit" onclick="handleReportSubmit('${data.idPesanan}', this, '${JSON.stringify(data).replace(/'/g, "\\'")}')">
+          Kirim Laporan
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+};
+
+// Fungsi handleReportSubmit yang diperbarui
+const handleReportSubmit = (orderId, button, orderDataJson) => {
+  const modal = button.closest('.riwayat-gf-report-modal');
+  const textarea = modal.querySelector('.riwayat-gf-report-textarea');
+  const reportText = textarea.value.trim();
+  
+  if (!reportText) {
+    alert('Harap isi deskripsi masalah terlebih dahulu.');
+    return;
+  }
+  
+  // Parse orderData dari JSON string ke object
+  const orderData = JSON.parse(orderDataJson);
+  
+  // Disable button dan tampilkan loading
+  button.disabled = true;
+  button.innerHTML = 'Mengirim...';
+  
+  // Simpan ke Firebase Firestore
+  saveReportToFirestore(orderId, reportText, orderData, button, modal);
+};
+
+// Fungsi untuk menyimpan laporan ke Firestore
+const saveReportToFirestore = async (orderId, reportText, orderData, button, modal) => {
+  try {
+    const db = firebase.firestore();
+    const user = firebase.auth().currentUser;
+    
+    // Data laporan untuk disimpan
+    const reportData = {
+      orderId: orderId,
+      userId: user.uid,
+      userEmail: user.email,
+      reportText: reportText,
+      orderData: {
+        idPesanan: orderData.idPesanan,
+        namaCustomer: orderData.namaCustomer,
+        subtotal: orderData.subtotal,
+        potongan: orderData.potongan,
+        diterima: orderData.diterima,
+        metode: orderData.metode,
+        waktu: new Date(orderData.waktu), // Convert ke Date object
+        saldoSebelum: orderData.saldoSebelum,
+        saldoSetelah: orderData.saldoSetelah
+      },
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      type: 'riwayat_transaksi_seller'
+    };
+    
+    // Simpan ke collection 'laporan_masalah'
+    await db.collection('laporan_masalah').add(reportData);
+    
+    // Update UI sukses
+    button.innerHTML = '✅ Terkirim';
+    
+    setTimeout(() => {
+      modal.remove();
+      showSuccessNotification('Laporan berhasil dikirim! Tim support akan menghubungi Anda dalam 1x24 jam.');
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Error saving report to Firestore:', error);
+    
+    // Fallback: tampilkan opsi WhatsApp
+    button.innerHTML = '❌ Gagal, Kirim via WhatsApp?';
+    button.style.background = '#dc2626';
+    button.onclick = () => {
+      sendWhatsAppReport(orderId, reportText, orderData);
+      modal.remove();
+    };
+  }
+};
+
+// Fungsi fallback ke WhatsApp
+const sendWhatsAppReport = (orderId, reportText, orderData) => {
+  const phoneNumber = '6285709458101'; // Ganti dengan nomor support VLCrave
+  const message = `🚩 LAPORAN MASALAH - VLCrave Express\n\nOrder ID: ${orderId}\nCustomer: ${orderData.namaCustomer}\nTotal: Rp ${orderData.subtotal.toLocaleString('id-ID')}\nMetode: ${orderData.metode.toUpperCase()}\n\nMasalah: ${reportText}\n\nDari: ${firebase.auth().currentUser.email}`;
+  
+  const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
+};
+
+// Fungsi notifikasi sukses
+const showSuccessNotification = (message) => {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1001;
+    font-weight: 600;
+    max-width: 300px;
+  `;
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 5000);
+};
+
+  container.innerHTML = `
+    <div class="riwayat-gf-container">
+      <div class="riwayat-gf-header">
+        <h1 class="riwayat-gf-title">
+          <span>📊</span>
+          Riwayat Transaksi
+        </h1>
+        
+        <button class="riwayat-gf-help-btn riwayat-gf-help-btn-header" onclick="showHelpModal()">
+          <span>❓</span>
+          Bantuan
+        </button>
+        
+        <div class="riwayat-gf-saldo-card">
+          <div class="riwayat-gf-saldo-label">Saldo Toko</div>
+          <div class="riwayat-gf-saldo-amount" id="saldo-terakhir">Memuat...</div>
+        </div>
+      </div>
+      
+      <div class="riwayat-gf-search-box">
+        <div style="position: relative;">
+          <span class="riwayat-gf-search-icon">🔍</span>
+          <input 
+            type="text" 
+            id="filterInput" 
+            class="riwayat-gf-search-input" 
+            placeholder="Cari order ID atau nama customer..." 
+          />
+        </div>
+      </div>
+      
+      <div id="riwayat-container">
+        <div class="riwayat-gf-empty">
+          <div class="riwayat-gf-empty-icon">⏳</div>
+          <p class="riwayat-gf-empty-text">Memuat data riwayat...</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Expose functions ke global scope
+window.showHelpModal = showHelpModal;
+window.showReportModal = showReportModal;
+window.handleReportSubmit = handleReportSubmit;
+window.saveReportToFirestore = saveReportToFirestore;
+window.sendWhatsAppReport = sendWhatsAppReport;
+window.showSuccessNotification = showSuccessNotification;
 
   const db = firebase.firestore();
   const user = firebase.auth().currentUser;
@@ -5334,7 +6819,13 @@ else if (page === "riwayat-pesanan-seller") {
       .limit(1).get();
 
     if (tokoQuery.empty) {
-      document.getElementById("riwayat-container").innerHTML = `<p style="color:red;">⚠️ Toko tidak ditemukan.</p>`;
+      document.getElementById("riwayat-container").innerHTML = `
+        <div class="riwayat-gf-empty">
+          <div class="riwayat-gf-empty-icon">⚠️</div>
+          <h3 class="riwayat-gf-empty-title">Toko Tidak Ditemukan</h3>
+          <p class="riwayat-gf-empty-text">Data toko tidak ditemukan untuk akun Anda</p>
+        </div>
+      `;
       return;
     }
 
@@ -5398,38 +6889,136 @@ else if (page === "riwayat-pesanan-seller") {
       saldoSimulasi = trx.saldoSebelum;
     }
 
+    // Hitung statistik
+    const totalPendapatan = hasil.reduce((sum, item) => sum + item.diterima, 0);
+    const totalTransaksi = hasil.length;
+    const rataRataPesanan = totalTransaksi > 0 ? Math.round(totalPendapatan / totalTransaksi) : 0;
+
     const tampilkan = (data) => {
       const container = document.getElementById("riwayat-container");
       if (!data.length) {
-        container.innerHTML = "<p>Belum ada pesanan yang selesai.</p>";
+        container.innerHTML = `
+          <div class="riwayat-gf-empty">
+            <div class="riwayat-gf-empty-icon">📭</div>
+            <h3 class="riwayat-gf-empty-title">Belum Ada Transaksi</h3>
+            <p class="riwayat-gf-empty-text">Belum ada pesanan yang selesai</p>
+          </div>
+        `;
         return;
       }
 
-      let html = "<ul>";
+      let html = `
+        <div class="riwayat-gf-stats">
+          <div class="riwayat-gf-stat-card">
+            <span class="riwayat-gf-stat-number">${data.length}</span>
+            <span class="riwayat-gf-stat-label">Total</span>
+          </div>
+          <div class="riwayat-gf-stat-card">
+            <span class="riwayat-gf-stat-number">Rp ${totalPendapatan.toLocaleString("id-ID")}</span>
+            <span class="riwayat-gf-stat-label">Pendapatan</span>
+          </div>
+          <div class="riwayat-gf-stat-card">
+            <span class="riwayat-gf-stat-number">Rp ${rataRataPesanan.toLocaleString("id-ID")}</span>
+            <span class="riwayat-gf-stat-label">Rata-rata</span>
+          </div>
+        </div>
+        
+        <div class="riwayat-gf-list">
+      `;
+
       for (const d of data) {
+        const methodClass = d.metode === "saldo" ? "riwayat-gf-method-saldo" : "riwayat-gf-method-cod";
+        const methodIcon = d.metode === "saldo" ? "💳" : "💰";
+        
         html += `
-          <li class="pesanan-item">
-            <p><strong>ID Pesanan:</strong> ${d.idPesanan}</p>
-            <p><strong>Customer:</strong> ${d.namaCustomer}</p>
-            <p><strong>Subtotal:</strong> Rp ${d.subtotal.toLocaleString("id-ID")}</p>
-            <p><strong>Potongan (5%):</strong> Rp ${d.potongan.toLocaleString("id-ID")} (${d.metode.toUpperCase()})</p>
-            <p><strong>Penghasilan Bersih:</strong> Rp ${d.diterima.toLocaleString("id-ID")}</p>
-            <p><strong>Metode Pembayaran:</strong> ${d.metode.toUpperCase()}</p>
-            <p><strong>Selesai:</strong> ${d.waktu.toLocaleString("id-ID", {
-              weekday: "short", day: "2-digit", month: "short", year: "numeric",
-              hour: "2-digit", minute: "2-digit"
-            })}</p>
-            <div class="mutasi">
-              🔄 <strong>Saldo Sebelum:</strong> Rp ${d.saldoSebelum.toLocaleString("id-ID")}<br>
-              ${d.metode === "saldo" 
-                ? `📥 + Rp ${d.diterima.toLocaleString("id-ID")} (Masuk)` 
-                : `📤 - Rp ${d.potongan.toLocaleString("id-ID")} (Potongan COD)`}<br>
-              💳 <strong>Saldo Setelah:</strong> Rp ${d.saldoSetelah.toLocaleString("id-ID")}
+          <div class="riwayat-gf-item">
+            <div class="riwayat-gf-item-header">
+              <div class="riwayat-gf-order-id">${d.idPesanan}</div>
+              <div class="riwayat-gf-customer">
+                <span>👤</span>
+                ${d.namaCustomer}
+              </div>
+              <div class="riwayat-gf-method-badge ${methodClass}">
+                ${d.metode.toUpperCase()}
+              </div>
             </div>
-          </li>
+            
+            <div class="riwayat-gf-amounts">
+              <div class="riwayat-gf-amount-item">
+                <div class="riwayat-gf-amount-label">Subtotal</div>
+                <div class="riwayat-gf-amount-value riwayat-gf-subtotal">
+                  Rp ${d.subtotal.toLocaleString("id-ID")}
+                </div>
+              </div>
+              
+              <div class="riwayat-gf-amount-item">
+                <div class="riwayat-gf-amount-label">Potongan</div>
+                <div class="riwayat-gf-amount-value riwayat-gf-potongan">
+                  - Rp ${d.potongan.toLocaleString("id-ID")}
+                </div>
+              </div>
+              
+              <div class="riwayat-gf-amount-item">
+                <div class="riwayat-gf-amount-label">Bersih</div>
+                <div class="riwayat-gf-amount-value riwayat-gf-diterima">
+                  Rp ${d.diterima.toLocaleString("id-ID")}
+                </div>
+              </div>
+            </div>
+            
+            <div class="riwayat-gf-mutasi">
+              <div class="riwayat-gf-mutasi-title">
+                <span>🔄</span>
+                Mutasi Saldo
+              </div>
+              <div class="riwayat-gf-mutasi-grid">
+                <div class="riwayat-gf-mutasi-item">
+                  <div class="riwayat-gf-mutasi-label">Sebelum</div>
+                  <div class="riwayat-gf-mutasi-value">
+                    Rp ${d.saldoSebelum.toLocaleString("id-ID")}
+                  </div>
+                </div>
+                
+                <div class="riwayat-gf-mutasi-item">
+                  <div class="riwayat-gf-mutasi-label">Transaksi</div>
+                  <div class="riwayat-gf-mutasi-value ${
+                    d.metode === "saldo" ? "riwayat-gf-mutasi-positive" : "riwayat-gf-mutasi-negative"
+                  }">
+                    ${d.metode === "saldo" ? "+" : "-"} Rp ${(
+                      d.metode === "saldo" ? d.diterima : d.potongan
+                    ).toLocaleString("id-ID")}
+                  </div>
+                </div>
+                
+                <div class="riwayat-gf-mutasi-item">
+                  <div class="riwayat-gf-mutasi-label">Setelah</div>
+                  <div class="riwayat-gf-mutasi-value">
+                    Rp ${d.saldoSetelah.toLocaleString("id-ID")}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="riwayat-gf-time">
+              <span>🕒</span>
+              ${d.waktu.toLocaleString("id-ID", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+              })}
+            </div>
+            
+            <button class="riwayat-gf-help-btn riwayat-gf-help-btn-card" onclick="showReportModal(${JSON.stringify(d).replace(/"/g, '&quot;')})">
+              <span>🚩</span>
+              Laporkan Masalah
+            </button>
+          </div>
         `;
       }
-      html += "</ul>";
+      
+      html += `</div>`;
       container.innerHTML = html;
     };
 
@@ -5445,12 +7034,15 @@ else if (page === "riwayat-pesanan-seller") {
     });
 
   } catch (e) {
-    document.getElementById("riwayat-container").innerHTML = `<p style="color:red;">❌ ${e.message}</p>`;
+    document.getElementById("riwayat-container").innerHTML = `
+      <div class="riwayat-gf-empty">
+        <div class="riwayat-gf-empty-icon">❌</div>
+        <h3 class="riwayat-gf-empty-title">Terjadi Kesalahan</h3>
+        <p class="riwayat-gf-empty-text">${e.message}</p>
+      </div>
+    `;
   }
 }
-
-
-
 
 else if (page === "kategori-ojek") {
   const container = document.getElementById("page-container");
@@ -5548,11 +7140,1105 @@ else if (page === "laporan-driver-admin") {
 
 ///  BATAS  ////
 
+async function tampilkanPopupDetail(produk) {
+  const db = firebase.firestore();
+  
+  // Validasi cepat
+  if (!produk.id) {
+    showNotification('error', '❌ Produk tidak valid');
+    return;
+  }
+
+  try {
+    // Load data secara parallel tanpa loading screen
+    const [addonsSnap, ratingSnap] = await Promise.all([
+      db.collection("produk").doc(produk.id).collection("addons").get().catch(() => ({ docs: [] })),
+      db.collection("produk").doc(produk.id).collection("rating").orderBy("waktu", "desc").limit(3).get().catch(() => ({ docs: [] }))
+    ]);
+
+    // Proses data dengan cepat
+    const addons = addonsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    let totalRating = 0;
+    let totalUlasan = 0;
+    const daftarUlasan = [];
+    
+    ratingSnap.docs.forEach(doc => {
+      const data = doc.data();
+      const rating = parseInt(data.rating || 0);
+      if (!isNaN(rating)) {
+        totalRating += rating;
+        totalUlasan++;
+        if (daftarUlasan.length < 3) {
+          daftarUlasan.push({
+            rating,
+            komentar: data.ulasan || data.komentar || "-",
+            nama: data.nama || "Pelanggan",
+            waktu: data.waktu?.toDate?.() || new Date()
+          });
+        }
+      }
+    });
+
+    const rataRata = totalUlasan > 0 ? (totalRating / totalUlasan) : 0;
+    const hargaUtama = produk.hargaDiskon && produk.hargaDiskon < produk.harga ? produk.hargaDiskon : produk.harga;
+    const hasDiscount = produk.hargaDiskon && produk.hargaDiskon < produk.harga;
+    const discountPercent = hasDiscount ? Math.round(((produk.harga - hargaUtama) / produk.harga) * 100) : 0;
+
+    // Buat popup langsung tanpa loading
+    const popupHTML = `
+      <div class="vlcr-delivery-modal" id="vlcr-delivery-modal">
+        <div class="vlcr-modal-content">
+          <!-- Header -->
+          <div class="vlcr-modal-header">
+            <button class="vlcr-close" onclick="closeProductModal()">
+              <i class="fas fa-times"></i>
+            </button>
+            <div class="vlcr-product-badges">
+              ${hasDiscount ? `
+                <span class="vlcr-badge vlcr-discount">
+                  <i class="fas fa-tag"></i>
+                  ${discountPercent}% OFF
+                </span>
+              ` : ''}
+              ${produk.estimasi <= 15 ? `
+                <span class="vlcr-badge vlcr-fast">
+                  <i class="fas fa-bolt"></i>
+                  Cepat
+                </span>
+              ` : ''}
+              ${produk.isBestseller ? `
+                <span class="vlcr-badge vlcr-bestseller">
+                  <i class="fas fa-crown"></i>
+                  Terlaris
+                </span>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Gambar Produk -->
+          <div class="vlcr-product-image-section">
+            <img src="${produk.urlGambar || './img/toko-pict.png'}" 
+                 alt="${produk.namaProduk}" 
+                 class="vlcr-product-img"
+                 loading="lazy"
+                 onerror="this.src='./img/toko-pict.png'">
+          </div>
+
+          <!-- Informasi Utama -->
+          <div class="vlcr-product-main">
+            <h1 class="vlcr-product-title">${produk.namaProduk}</h1>
+            
+            <div class="vlcr-product-meta">
+              <span class="vlcr-meta-item">
+                <i class="fas fa-clock vlcr-meta-icon"></i>
+                ${produk.estimasi || 15} menit
+              </span>
+              <span class="vlcr-meta-item">
+                <div class="vlcr-star-rating-small">
+                  <i class="fas fa-star vlcr-star-filled"></i>
+                  <span>${rataRata.toFixed(1)}</span>
+                  <span class="vlcr-rating-count">(${totalUlasan})</span>
+                </div>
+              </span>
+              <span class="vlcr-meta-item">
+                <i class="fas fa-box vlcr-meta-icon"></i>
+                ${produk.stok || 10}+ tersedia
+              </span>
+            </div>
+
+            <div class="vlcr-pricing">
+              ${hasDiscount ? `
+                <div class="vlcr-price-old">Rp ${produk.harga.toLocaleString()}</div>
+                <div class="vlcr-price-new">Rp ${hargaUtama.toLocaleString()}</div>
+              ` : `
+                <div class="vlcr-price-single">Rp ${hargaUtama.toLocaleString()}</div>
+              `}
+            </div>
+
+            <div class="vlcr-description">
+              <p>${produk.deskripsi || 'Siap dikirim dengan cepat ke lokasi Anda.'}</p>
+            </div>
+          </div>
+
+          <!-- Add-ons (jika ada) -->
+          ${addons.length > 0 ? `
+            <div class="vlcr-addons-section">
+              <div class="vlcr-section-header">
+                <h3><i class="fas fa-plus-circle vlcr-section-icon"></i>Pilihan Tambahan</h3>
+                <span class="vlcr-section-badge">${addons.length} pilihan</span>
+              </div>
+              <div class="vlcr-addons-grid">
+                ${addons.map(addon => `
+                  <label class="vlcr-addon-option">
+                    <input type="checkbox" 
+                           class="vlcr-addon-checkbox"
+                           data-harga="${addon.harga}"
+                           data-nama="${addon.nama}">
+                    <div class="vlcr-addon-content">
+                      <div class="vlcr-addon-checkbox-custom">
+                        <i class="fas fa-check"></i>
+                      </div>
+                      <div class="vlcr-addon-details">
+                        <span class="vlcr-addon-name">${addon.nama}</span>
+                        <span class="vlcr-addon-price">+Rp ${addon.harga.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div class="vlcr-no-addons">
+              <i class="fas fa-plus-circle vlcr-no-addons-icon"></i>
+              <p>Tidak ada pilihan tambahan</p>
+            </div>
+          `}
+
+          <!-- Ulasan (jika ada) -->
+          ${totalUlasan > 0 ? `
+            <div class="vlcr-reviews-section">
+              <div class="vlcr-section-header">
+                <h3><i class="fas fa-comment-dots vlcr-section-icon"></i>Ulasan Pelanggan</h3>
+                <span class="vlcr-rating-badge">
+                  <i class="fas fa-star vlcr-star-filled"></i>
+                  ${rataRata.toFixed(1)}
+                </span>
+              </div>
+              <div class="vlcr-reviews-list">
+                ${daftarUlasan.map(review => `
+                  <div class="vlcr-review-item">
+                    <div class="vlcr-review-header">
+                      <div class="vlcr-review-stars">
+                        ${Array.from({length: 5}, (_, i) => `
+                          <i class="fas fa-star ${i < review.rating ? 'vlcr-star-filled' : 'vlcr-star-empty'}"></i>
+                        `).join('')}
+                      </div>
+                      <span class="vlcr-review-date">${review.waktu.toLocaleDateString('id-ID')}</span>
+                    </div>
+                    <p class="vlcr-review-text">"${review.komentar}"</p>
+                    <span class="vlcr-reviewer">- ${review.nama}</span>
+                  </div>
+                `).join('')}
+              </div>
+              ${totalUlasan > 3 ? `
+                <button class="vlcr-see-all-reviews" onclick="showAllReviews('${produk.id}')">
+                  Lihat semua ${totalUlasan} ulasan <i class="fas fa-chevron-right"></i>
+                </button>
+              ` : ''}
+            </div>
+          ` : `
+            <div class="vlcr-no-reviews">
+              <i class="fas fa-star vlcr-no-reviews-icon"></i>
+              <p>Belum ada ulasan untuk produk ini</p>
+              <small>Jadilah yang pertama memberikan ulasan</small>
+            </div>
+          `}
+
+          <!-- Footer Action -->
+          <div class="vlcr-modal-footer">
+            <div class="vlcr-quantity-control">
+              <button class="vlcr-qty-btn" onclick="decreaseQuantity()">
+                <i class="fas fa-minus"></i>
+              </button>
+              <span class="vlcr-qty-display" id="vlcr-qty">1</span>
+              <button class="vlcr-qty-btn" onclick="increaseQuantity()">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+            
+            <button class="vlcr-add-cart-btn" onclick="addToCartWithAddons(${JSON.stringify(produk).replace(/"/g, '&quot;')}, ${JSON.stringify(addons).replace(/"/g, '&quot;')})">
+              <div class="vlcr-btn-content">
+                <i class="fas fa-shopping-cart vlcr-btn-icon"></i>
+              </div>
+              <span class="vlcr-btn-price">Rp <span id="vlcr-total-price">${hargaUtama.toLocaleString()}</span></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Inject modal
+    const existingModal = document.getElementById('vlcr-delivery-modal');
+    if (existingModal) existingModal.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', popupHTML);
+    
+    // Setup event listeners
+    setupModalEvents(hargaUtama);
+    
+    // Show modal langsung tanpa delay
+    setTimeout(() => {
+      const modal = document.getElementById('vlcr-delivery-modal');
+      if (modal) modal.classList.add('vlcr-show');
+    }, 10);
+
+  } catch (error) {
+    console.error('Error:', error);
+    showNotification('error', '⚠️ Gagal memuat detail produk. Silakan coba lagi.');
+  }
+}
+
+// Fungsi bantuan untuk modal
+function setupModalEvents(basePrice) {
+  // Addon selection
+  document.querySelectorAll('.vlcr-addon-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', () => calculateTotalPrice(basePrice));
+  });
+
+  // Close modal when clicking outside
+  const modal = document.getElementById('vlcr-delivery-modal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeProductModal();
+      }
+    });
+  }
+
+  // ESC key to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeProductModal();
+    }
+  });
+}
+
+function calculateTotalPrice(basePrice) {
+  let total = parseInt(basePrice);
+  const qty = parseInt(document.getElementById('vlcr-qty').textContent) || 1;
+  
+  // Hitung addons
+  document.querySelectorAll('.vlcr-addon-checkbox:checked').forEach(checkbox => {
+    total += parseInt(checkbox.dataset.harga);
+  });
+  
+  const totalPrice = total * qty;
+  document.getElementById('vlcr-total-price').textContent = totalPrice.toLocaleString();
+}
+
+function increaseQuantity() {
+  const qtyElement = document.getElementById('vlcr-qty');
+  let qty = parseInt(qtyElement.textContent) || 1;
+  if (qty < 20) {
+    qtyElement.textContent = qty + 1;
+    const basePrice = getBasePrice();
+    calculateTotalPrice(basePrice);
+  }
+}
+
+function decreaseQuantity() {
+  const qtyElement = document.getElementById('vlcr-qty');
+  let qty = parseInt(qtyElement.textContent) || 1;
+  if (qty > 1) {
+    qtyElement.textContent = qty - 1;
+    const basePrice = getBasePrice();
+    calculateTotalPrice(basePrice);
+  }
+}
+
+function getBasePrice() {
+  const priceElement = document.querySelector('.vlcr-price-new, .vlcr-price-single');
+  return priceElement ? parseInt(priceElement.textContent.replace(/[^\d]/g, '')) : 0;
+}
+
+function closeProductModal() {
+  const modal = document.getElementById('vlcr-delivery-modal');
+  if (modal) {
+    modal.classList.remove('vlcr-show');
+    setTimeout(() => {
+      if (document.body.contains(modal)) {
+        modal.remove();
+      }
+    }, 300);
+  }
+}
+
+function addToCartWithAddons(produk, addons) {
+  const qty = parseInt(document.getElementById('vlcr-qty').textContent) || 1;
+  const selectedAddons = [];
+  
+  document.querySelectorAll('.vlcr-addon-checkbox:checked').forEach(checkbox => {
+    selectedAddons.push({
+      nama: checkbox.dataset.nama,
+      harga: parseInt(checkbox.dataset.harga)
+    });
+  });
+
+  // Panggil fungsi tambah ke keranjang
+  tambahKeKeranjangDenganAddon(produk, addons, qty, selectedAddons);
+  closeProductModal();
+}
+
+function showAllReviews(productId) {
+  console.log('Show all reviews for:', productId);
+  // Implement view all reviews functionality
+  showNotification('info', `Menampilkan semua ulasan untuk produk ${productId}`);
+}
+
 // Helper function untuk notification
 function showNotification(type, message) {
-  // Implementation for showing toast notification
-  console.log(`[${type.toUpperCase()}] ${message}`);
+  // Create simple toast notification
+  const toast = document.createElement('div');
+  toast.className = `vlcr-toast vlcr-toast-${type}`;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'error' ? '#f44336' : type === 'success' ? '#4CAF50' : '#2196F3'};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 10001;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+  toast.innerHTML = `
+    <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+    <span>${message}</span>
+  `;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.transform = 'translateX(0)';
+  }, 10);
+  
+  setTimeout(() => {
+    toast.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
 }
+
+// Pastikan semua fungsi tersedia di global scope
+window.closeProductModal = closeProductModal;
+window.increaseQuantity = increaseQuantity;
+window.decreaseQuantity = decreaseQuantity;
+window.addToCartWithAddons = addToCartWithAddons;
+window.showAllReviews = showAllReviews;
+window.showNotification = showNotification;
+
+// CSS Lengkap untuk modal
+if (!document.getElementById('vlcr-delivery-styles')) {
+  const deliveryStyles = document.createElement('style');
+  deliveryStyles.id = 'vlcr-delivery-styles';
+  deliveryStyles.textContent = `
+    /* Modal Delivery - Modern & Clean */
+    .vlcr-delivery-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .vlcr-delivery-modal.vlcr-show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .vlcr-modal-content {
+      background: white;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 440px;
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+
+    .vlcr-show .vlcr-modal-content {
+      transform: translateY(0);
+    }
+
+    /* Header */
+    .vlcr-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 20px 24px 0;
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 10;
+      border-radius: 20px 20px 0 0;
+    }
+
+    .vlcr-close {
+      background: #f8f9fa;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      transition: all 0.2s ease;
+    }
+
+    .vlcr-close:hover {
+      background: #e9ecef;
+      color: #ff6f00;
+      transform: rotate(90deg);
+    }
+
+    .vlcr-product-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Badges dengan Icon */
+    .vlcr-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .vlcr-badge i {
+      font-size: 10px;
+    }
+
+    .vlcr-discount {
+      background: linear-gradient(135deg, #ff6f00, #ff8f00);
+      color: white;
+    }
+
+    .vlcr-fast {
+      background: linear-gradient(135deg, #00c853, #64dd17);
+      color: white;
+    }
+
+    .vlcr-bestseller {
+      background: linear-gradient(135deg, #ffd600, #ffab00);
+      color: white;
+    }
+
+    /* Gambar Produk */
+    .vlcr-product-image-section {
+      padding: 0 24px;
+    }
+
+    .vlcr-product-img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 16px;
+    }
+
+    /* Informasi Utama */
+    .vlcr-product-main {
+      padding: 20px 24px;
+    }
+
+    .vlcr-product-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0 0 16px 0;
+      line-height: 1.3;
+    }
+
+    .vlcr-product-meta {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .vlcr-meta-item {
+      display: flex;
+      align-items: center;
+      color: #666;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .vlcr-meta-icon {
+      margin-right: 4px;
+      font-size: 0.8rem;
+      color: #ff6f00;
+    }
+
+    /* Star Rating */
+    .vlcr-star-rating-small {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .vlcr-star-filled {
+      color: #ff6f00;
+      font-size: 0.8rem;
+    }
+
+    .vlcr-star-empty {
+      color: #ddd;
+      font-size: 0.8rem;
+    }
+
+    .vlcr-rating-count {
+      color: #666;
+      font-size: 0.75rem;
+    }
+
+    /* Pricing */
+    .vlcr-pricing {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .vlcr-price-old {
+      color: #999;
+      text-decoration: line-through;
+      font-size: 0.95rem;
+    }
+
+    .vlcr-price-new {
+      color: #ff6f00;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .vlcr-price-single {
+      color: #ff6f00;
+      font-size: 1.4rem;
+      font-weight: 700;
+    }
+
+    .vlcr-description {
+      color: #666;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    /* Section Headers */
+    .vlcr-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .vlcr-section-header h3 {
+      display: flex;
+      align-items: center;
+      margin: 0;
+      font-size: 1.1rem;
+      color: #333;
+    }
+
+    .vlcr-section-icon {
+      margin-right: 8px;
+      color: #ff6f00;
+      font-size: 0.9em;
+    }
+
+    .vlcr-section-badge {
+      background: #f0f0f0;
+      color: #666;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .vlcr-rating-badge {
+      background: #fff3e0;
+      color: #ff6f00;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* Add-ons */
+    .vlcr-addons-section {
+      padding: 20px 24px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .vlcr-addons-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .vlcr-addon-option {
+      display: flex;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid #e8e8e8;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .vlcr-addon-option:hover {
+      border-color: #ff6f00;
+      background: #fffaf5;
+    }
+
+    /* Custom Checkbox */
+    .vlcr-addon-checkbox {
+      display: none;
+    }
+
+    .vlcr-addon-checkbox-custom {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .vlcr-addon-checkbox-custom i {
+      color: white;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .vlcr-addon-checkbox:checked + .vlcr-addon-content .vlcr-addon-checkbox-custom {
+      background: #ff6f00;
+      border-color: #ff6f00;
+    }
+
+    .vlcr-addon-checkbox:checked + .vlcr-addon-content .vlcr-addon-checkbox-custom i {
+      opacity: 1;
+    }
+
+    .vlcr-addon-details {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .vlcr-addon-name {
+      color: #333;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    .vlcr-addon-price {
+      color: #ff6f00;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    /* No Add-ons State */
+    .vlcr-no-addons {
+      padding: 40px 24px;
+      text-align: center;
+      color: #999;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .vlcr-no-addons-icon {
+      font-size: 2rem;
+      color: #ddd;
+      margin-bottom: 12px;
+    }
+
+    .vlcr-no-addons p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    /* Reviews */
+    .vlcr-reviews-section {
+      padding: 20px 24px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .vlcr-reviews-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .vlcr-review-item {
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border-left: 4px solid #ff6f00;
+    }
+
+    .vlcr-review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .vlcr-review-stars {
+      display: flex;
+      gap: 2px;
+    }
+
+    .vlcr-review-date {
+      color: #999;
+      font-size: 0.8rem;
+    }
+
+    .vlcr-review-text {
+      color: #555;
+      font-style: italic;
+      margin: 0 0 8px 0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .vlcr-reviewer {
+      color: #888;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .vlcr-see-all-reviews {
+      width: 100%;
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      color: #666;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .vlcr-see-all-reviews:hover {
+      background: #e9ecef;
+      border-color: #ff6f00;
+      color: #ff6f00;
+    }
+
+    /* No Reviews State */
+    .vlcr-no-reviews {
+      padding: 40px 24px;
+      text-align: center;
+      color: #999;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .vlcr-no-reviews-icon {
+      font-size: 2rem;
+      color: #ddd;
+      margin-bottom: 12px;
+    }
+
+    .vlcr-no-reviews p {
+      margin: 0 0 8px 0;
+      font-size: 0.95rem;
+    }
+
+    .vlcr-no-reviews small {
+      font-size: 0.85rem;
+      color: #bbb;
+    }
+
+    /* Footer */
+    .vlcr-modal-footer {
+      position: sticky;
+      bottom: 0;
+      background: white;
+      padding: 20px 24px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-radius: 0 0 20px 20px;
+    }
+
+    .vlcr-quantity-control {
+      display: flex;
+      align-items: center;
+      border: 1px solid #e8e8e8;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #f8f9fa;
+    }
+
+    .vlcr-qty-btn {
+      background: #f8f9fa;
+      border: none;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.2s ease;
+    }
+
+    .vlcr-qty-btn:hover {
+      background: #e9ecef;
+      color: #ff6f00;
+    }
+
+    .vlcr-qty-btn:active {
+      transform: scale(0.95);
+    }
+
+    .vlcr-qty-display {
+      padding: 0 16px;
+      font-weight: 600;
+      min-width: 24px;
+      text-align: center;
+      color: #333;
+    }
+
+    .vlcr-add-cart-btn {
+      flex: 1;
+      background: linear-gradient(135deg, #ff6f00, #ff8f00);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(255, 111, 0, 0.3);
+    }
+
+    .vlcr-add-cart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 111, 0, 0.4);
+    }
+
+    .vlcr-add-cart-btn:active {
+      transform: translateY(0);
+    }
+
+    .vlcr-btn-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vlcr-btn-icon {
+      font-size: 1.1rem;
+    }
+
+    .vlcr-btn-text {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .vlcr-btn-price {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    /* Scrollbar */
+    .vlcr-modal-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .vlcr-modal-content::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    .vlcr-modal-content::-webkit-scrollbar-thumb {
+      background: #ff6f00;
+      border-radius: 3px;
+    }
+
+    .vlcr-modal-content::-webkit-scrollbar-thumb:hover {
+      background: #e65c00;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .vlcr-delivery-modal {
+        padding: 10px;
+      }
+      
+      .vlcr-modal-content {
+        max-height: 90vh;
+        border-radius: 16px;
+      }
+      
+      .vlcr-product-img {
+        height: 180px;
+      }
+      
+      .vlcr-modal-header {
+        padding: 16px 20px 0;
+      }
+      
+      .vlcr-product-main {
+        padding: 16px 20px;
+      }
+      
+      .vlcr-addons-section,
+      .vlcr-reviews-section {
+        padding: 16px 20px;
+      }
+      
+      .vlcr-modal-footer {
+        padding: 16px 20px;
+      }
+      
+      .vlcr-product-meta {
+        gap: 12px;
+      }
+      
+      .vlcr-meta-item {
+        font-size: 0.8rem;
+      }
+      
+      .vlcr-add-cart-btn {
+        padding: 14px 16px;
+      }
+      
+      .vlcr-btn-text {
+        font-size: 0.9rem;
+      }
+    }
+
+    /* Animation for modal appearance */
+    @keyframes vlcr-modal-appear {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .vlcr-modal-content {
+      animation: vlcr-modal-appear 0.3s ease-out;
+    }
+  `;
+  document.head.appendChild(deliveryStyles);
+}
+
+// Enhanced tambahKeKeranjangDenganAddon function
+async function tambahKeKeranjangDenganAddon(produk, addons = [], quantity = 1, selectedAddons = []) {
+  try {
+    // Show loading state on button
+    const addButton = document.querySelector('.vlcr-add-cart-btn');
+    if (addButton) {
+      const originalHTML = addButton.innerHTML;
+      addButton.innerHTML = `
+        <div class="vlcr-btn-content">
+          <span class="vlcr-btn-text">Menambahkan...</span>
+        </div>
+        <span class="vlcr-btn-price">Rp <span id="vlcr-total-price">${document.getElementById('vlcr-total-price')?.textContent || '0'}</span></span>
+      `;
+      addButton.disabled = true;
+    }
+
+    const checkboxes = document.querySelectorAll(".addon-checkbox, .vlcr-addon-checkbox");
+    const addonTerpilih = selectedAddons.length > 0 ? selectedAddons : [];
+    let totalAddon = 0;
+
+    // If no selectedAddons provided, get from checkboxes
+    if (selectedAddons.length === 0) {
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          const hargaAddon = parseInt(cb.dataset.harga || "0");
+          addonTerpilih.push({
+            nama: cb.dataset.nama,
+            harga: hargaAddon
+          });
+          totalAddon += hargaAddon;
+        }
+      });
+    } else {
+      totalAddon = selectedAddons.reduce((sum, addon) => sum + addon.harga, 0);
+    }
+
+    // Ambil catatan
+    const catatanElem = document.querySelector(".popup-text-detail-produk textarea, .vlcr-modal-content textarea, [data-catatan]");
+    const catatan = catatanElem ? catatanElem.value.trim() : "";
+
+    // Pastikan fungsi tambahKeKeranjang tersedia
+    if (typeof tambahKeKeranjang !== "function") {
+      throw new Error("Fungsi tambahKeKeranjang tidak ditemukan.");
+    }
+
+    // Kirim data ke fungsi tambahKeKeranjang
+    await tambahKeKeranjang(produk, addonTerpilih, catatan, quantity);
+    
+    // Show success notification
+    showNotification('success', '✅ Produk berhasil ditambahkan ke keranjang!');
+    
+    // Update cart badge if function exists
+    if (typeof updateCartBadge === 'function') {
+      updateCartBadge();
+    }
+
+  } catch (err) {
+    console.error("❌ Gagal proses keranjang:", err.message || err);
+    showNotification('error', '❌ Gagal menambahkan ke keranjang.');
+  } finally {
+    // Restore button state
+    const addButton = document.querySelector('.vlcr-add-cart-btn');
+    if (addButton) {
+      addButton.disabled = false;
+      addButton.innerHTML = `
+        <div class="vlcr-btn-content">
+          <i class="fas fa-shopping-cart vlcr-btn-icon"></i>
+        </div>
+        <span class="vlcr-btn-price">Rp <span id="vlcr-total-price">${document.getElementById('vlcr-total-price')?.textContent || '0'}</span></span>
+      `;
+    }
+  }
+}
+
+// Make sure the enhanced function is available globally
+window.tambahKeKeranjangDenganAddon = tambahKeKeranjangDenganAddon;
 
 async function konfirmasiTopupUser(id, userId, total) {
   const db = firebase.firestore();
@@ -9197,16 +11883,398 @@ async function bukaModalPesan(idTokoDoc) {
 
 
 async function lihatLogPesananSeller(idPesanan, idToko) {
-  const modal = document.getElementById("modal-detail");
-  const modalContent = modal?.querySelector(".modal-content");
+  // Buat modal khusus untuk pesanan seller
+  let modal = document.getElementById("vlcs-modal-pesanan");
+  
+  // Jika modal belum ada, buat baru
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'vlcs-modal-pesanan';
+    modal.className = 'vlcs-modal';
+    modal.innerHTML = `
+      <div class="vlcs-modal-content">
+        <div class="vlcs-modal-header">
+          <h2 class="vlcs-modal-title">
+            <i class="fas fa-receipt"></i>
+            Detail Pesanan
+          </h2>
+          <button class="vlcs-modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="vlcs-modal-body" id="vlcs-modal-body">
+          <!-- Content akan diisi dinamis -->
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
 
-  if (!modal || !modalContent) {
-    console.error("Modal atau modal-content tidak ditemukan.");
-    return;
+    // Tambah CSS untuk modal khusus
+    if (!document.getElementById('vlcs-modal-styles')) {
+      const style = document.createElement('style');
+      style.id = 'vlcs-modal-styles';
+      style.textContent = `
+        /* VLCS Modal Styles - Khusus untuk Seller Pesanan */
+        .vlcs-modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(10px);
+          z-index: 10000;
+          align-items: center;
+          justify-content: center;
+          animation: vlcs-modal-fadeIn 0.3s ease-out;
+          padding: 20px;
+          box-sizing: border-box;
+        }
+
+        @keyframes vlcs-modal-fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .vlcs-modal-content {
+          background: white;
+          border-radius: 24px;
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+          width: 100%;
+          max-width: 480px;
+          max-height: 90vh;
+          overflow: hidden;
+          animation: vlcs-modal-slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          position: relative;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes vlcs-modal-slideUp {
+          from { 
+            opacity: 0;
+            transform: translateY(60px) scale(0.95);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .vlcs-modal-header {
+          padding: 24px 28px 20px;
+          border-bottom: 1px solid #f0f0f0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          position: relative;
+        }
+
+        .vlcs-modal-title {
+          font-size: 22px;
+          font-weight: 700;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .vlcs-modal-close {
+          position: absolute;
+          top: 24px;
+          right: 24px;
+          background: rgba(255, 255, 255, 0.15);
+          border: none;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          color: white;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          backdrop-filter: blur(10px);
+          font-size: 16px;
+        }
+
+        .vlcs-modal-close:hover {
+          background: rgba(255, 255, 255, 0.25);
+          transform: rotate(90deg) scale(1.1);
+        }
+
+        .vlcs-modal-body {
+          padding: 0;
+          max-height: calc(90vh - 100px);
+          overflow-y: auto;
+          background: #fafbfc;
+        }
+
+        /* Loading State */
+        .vlcs-modal-loading {
+          padding: 60px 40px;
+          text-align: center;
+          color: #666;
+        }
+
+        .vlcs-loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid #f3f3f3;
+          border-top: 3px solid #667eea;
+          border-radius: 50%;
+          animation: vlcs-spin 1s linear infinite;
+          margin: 0 auto 20px;
+        }
+
+        @keyframes vlcs-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* Section Styles */
+        .vlcs-section {
+          padding: 24px 28px;
+          border-bottom: 1px solid #f0f0f0;
+          background: white;
+        }
+
+        .vlcs-section:last-child {
+          border-bottom: none;
+        }
+
+        .vlcs-section-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 16px;
+          color: #667eea;
+          font-size: 15px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .vlcs-section-content {
+          font-size: 15px;
+          color: #333;
+          line-height: 1.5;
+        }
+
+        /* Order Info Grid */
+        .vlcs-order-info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .vlcs-info-item {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .vlcs-info-label {
+          font-size: 12px;
+          color: #888;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        .vlcs-info-value {
+          font-size: 14px;
+          color: #333;
+          font-weight: 600;
+          font-family: 'Courier New', monospace;
+        }
+
+        /* Product List */
+        .vlcs-product-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .vlcs-product-item {
+          display: flex;
+          justify-content: between;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 16px;
+          background: #f8f9fa;
+          border-radius: 12px;
+          border-left: 4px solid #667eea;
+        }
+
+        .vlcs-product-info {
+          flex: 1;
+        }
+
+        .vlcs-product-name {
+          font-weight: 600;
+          color: #333;
+          margin-bottom: 4px;
+          font-size: 14px;
+        }
+
+        .vlcs-product-meta {
+          font-size: 13px;
+          color: #666;
+          display: flex;
+          gap: 12px;
+        }
+
+        .vlcs-product-price {
+          font-weight: 700;
+          color: #667eea;
+          font-size: 14px;
+          white-space: nowrap;
+        }
+
+        /* Price Summary */
+        .vlcs-price-summary {
+          background: linear-gradient(135deg, #f8f9ff, #f0f2ff);
+          border-radius: 16px;
+          padding: 20px;
+          margin: 20px 0;
+        }
+
+        .vlcs-price-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          font-size: 14px;
+        }
+
+        .vlcs-price-row:last-child {
+          border-top: 1px solid #e0e0e0;
+          margin-top: 8px;
+          padding-top: 12px;
+          font-weight: 700;
+          font-size: 16px;
+          color: #667eea;
+        }
+
+        .vlcs-price-label {
+          color: #666;
+        }
+
+        .vlcs-price-value {
+          font-weight: 600;
+          color: #333;
+        }
+
+        /* Action Buttons */
+        .vlcs-modal-actions {
+          padding: 20px 28px;
+          background: white;
+          border-top: 1px solid #f0f0f0;
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+        }
+
+        .vlcs-btn {
+          padding: 12px 24px;
+          border: none;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: inherit;
+        }
+
+        .vlcs-btn-secondary {
+          background: #f8f9fa;
+          color: #666;
+          border: 1px solid #e0e0e0;
+        }
+
+        .vlcs-btn-secondary:hover {
+          background: #e9ecef;
+          transform: translateY(-1px);
+        }
+
+        .vlcs-btn-primary {
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: white;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .vlcs-btn-primary:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+          .vlcs-modal {
+            padding: 10px;
+          }
+          
+          .vlcs-modal-content {
+            max-width: 100%;
+            border-radius: 20px;
+          }
+          
+          .vlcs-modal-header {
+            padding: 20px 24px 16px;
+          }
+          
+          .vlcs-section {
+            padding: 20px 24px;
+          }
+          
+          .vlcs-order-info {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          
+          .vlcs-modal-actions {
+            flex-direction: column;
+          }
+          
+          .vlcs-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Event listener untuk close modal
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.closest('.vlcs-modal-close')) {
+        modal.style.display = 'none';
+      }
+    });
+
+    // Close modal dengan ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') {
+        modal.style.display = 'none';
+      }
+    });
   }
 
-  modal.style.display = "flex";
-  modalContent.innerHTML = `<p>⏳ Memuat data pesanan untuk toko ini...</p>`;
+  const modalBody = document.getElementById('vlcs-modal-body');
+  
+  // Tampilkan modal
+  modal.style.display = 'flex';
+  modalBody.innerHTML = `
+    <div class="vlcs-modal-loading">
+      <div class="vlcs-loading-spinner"></div>
+      <p>Memuat detail pesanan...</p>
+    </div>
+  `;
 
   const db = firebase.firestore();
 
@@ -9219,82 +12287,171 @@ async function lihatLogPesananSeller(idPesanan, idToko) {
       .get();
 
     if (snap.empty) {
-      modalContent.innerHTML = `<p style="color:red;">❌ Data tidak ditemukan untuk toko ini.</p>`;
+      modalBody.innerHTML = `
+        <div class="vlcs-section" style="text-align: center; padding: 60px 40px;">
+          <i class="fas fa-search" style="font-size: 48px; color: #ccc; margin-bottom: 16px;"></i>
+          <h3 style="color: #666; margin-bottom: 8px;">Data Tidak Ditemukan</h3>
+          <p style="color: #888; font-size: 14px;">Tidak ada data pesanan untuk toko ini</p>
+        </div>
+      `;
       return;
     }
 
     const pesanan = snap.docs[0].data();
     const produkList = pesanan.produk || [];
-    const catatanPembeli = pesanan.catatan || "-";
-    const metodePengiriman = pesanan.pengiriman || "-";
+    const catatanPembeli = pesanan.catatan || "Tidak ada catatan";
+    const metodePengiriman = pesanan.pengiriman || "Standar";
+    const statusPesanan = pesanan.status || "Diproses";
 
-    let daftarProdukHTML = "<p>Tidak ada produk.</p>";
     let subtotalProduk = 0;
     let totalOngkir = 0;
 
+    // Generate product list HTML
+    let produkHTML = '';
     if (produkList.length > 0) {
-      daftarProdukHTML = "<ul style='padding-left:16px;'>";
-      produkList.forEach((item, i) => {
-        const nama = item.nama || "-";
+      produkHTML = produkList.map((item, index) => {
+        const nama = item.nama || "Produk";
         const qty = item.qty || 1;
         const harga = item.harga || 0;
         const total = harga * qty;
         subtotalProduk += total;
         totalOngkir += item.ongkir || 0;
 
-        daftarProdukHTML += `
-          <li style="margin-bottom: 5px;">
-            <b>${i + 1}. ${nama}</b><br>
-            <span style="font-size:14px;">x${qty} - Rp${total.toLocaleString("id-ID")}</span>
-          </li>`;
-      });
-      daftarProdukHTML += "</ul>";
+        return `
+          <div class="vlcs-product-item">
+            <div class="vlcs-product-info">
+              <div class="vlcs-product-name">${index + 1}. ${nama}</div>
+              <div class="vlcs-product-meta">
+                <span>Qty: ${qty}</span>
+                <span>@ Rp ${harga.toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+            <div class="vlcs-product-price">
+              Rp ${total.toLocaleString('id-ID')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      produkHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: #888;">
+          <i class="fas fa-shopping-basket" style="font-size: 32px; margin-bottom: 12px;"></i>
+          <p>Tidak ada produk dalam pesanan ini</p>
+        </div>
+      `;
     }
 
     const totalBiaya = subtotalProduk + totalOngkir;
 
-    modalContent.innerHTML = `
-      <div style="font-family: 'Arial', sans-serif; padding: 10px; line-height: 1.4;">
-        <h2 style="font-size: 20px; margin: 0;">🧾 Detail Pesanan</h2>
-        <hr style="border: 1px solid #ddd; margin: 10px 0;">
-        
-        <p><strong>Order ID:</strong> ${idPesanan}</p>
-        <p><strong>ID Toko:</strong> ${idToko}</p>
-
-        <h3 style="margin: 10px 0; font-size: 16px;">📦 Daftar Produk:</h3>
-        ${daftarProdukHTML}
-
-        <h3 style="margin: 10px 0; font-size: 16px;">📝 Catatan Pembeli:</h3>
-        <p style="font-size:14px;">${catatanPembeli}</p>
-
-        <h3 style="margin: 10px 0; font-size: 16px;">💵 Subtotal Produk:</h3>
-        <p style="font-size:14px;">Rp ${subtotalProduk.toLocaleString("id-ID")}</p>
-
-        <h3 style="margin: 10px 0; font-size: 16px;">🚚 Total Ongkir:</h3>
-        <p style="font-size:14px;">Rp ${totalOngkir.toLocaleString("id-ID")}</p>
-
-        <h3 style="margin: 10px 0; font-size: 16px;">💳 Total Biaya:</h3>
-        <p style="font-size:16px; font-weight: bold;">Rp ${totalBiaya.toLocaleString("id-ID")}</p>
-
-        <h3 style="margin: 10px 0; font-size: 16px;">🚚 Metode Pengiriman:</h3>
-        <p style="font-size:14px;">${metodePengiriman}</p>
-
-        <div style="text-align:right; margin-top: 20px;">
-          <button onclick="document.getElementById('modal-detail').style.display='none'" 
-                  style="padding:6px 12px; background:#888; color:#fff; border:none; border-radius:6px; font-size:14px;">Tutup</button>
-          <button onclick="printStruk('${idPesanan}', '${idToko}')" 
-                  style="padding:6px 12px; background:#4CAF50; color:#fff; border:none; border-radius:6px; font-size:14px;">🖨️ Print Struk</button>
+    // Render modal content
+    modalBody.innerHTML = `
+      <!-- Order Information -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-info-circle"></i>
+          <span>Informasi Pesanan</span>
         </div>
-      </div>`;
+        <div class="vlcs-order-info">
+          <div class="vlcs-info-item">
+            <span class="vlcs-info-label">Order ID</span>
+            <span class="vlcs-info-value">${idPesanan}</span>
+          </div>
+          <div class="vlcs-info-item">
+            <span class="vlcs-info-label">ID Toko</span>
+            <span class="vlcs-info-value">${idToko}</span>
+          </div>
+          <div class="vlcs-info-item">
+            <span class="vlcs-info-label">Status</span>
+            <span class="vlcs-info-value" style="color: #667eea;">${statusPesanan}</span>
+          </div>
+          <div class="vlcs-info-item">
+            <span class="vlcs-info-label">Pengiriman</span>
+            <span class="vlcs-info-value">${metodePengiriman}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product List -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-list-ul"></i>
+          <span>Daftar Produk</span>
+        </div>
+        <div class="vlcs-product-list">
+          ${produkHTML}
+        </div>
+      </div>
+
+      <!-- Customer Note -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-sticky-note"></i>
+          <span>Catatan Pembeli</span>
+        </div>
+        <div class="vlcs-section-content">
+          <div style="background: #f8f9fa; padding: 16px; border-radius: 12px; border-left: 4px solid #667eea;">
+            ${catatanPembeli}
+          </div>
+        </div>
+      </div>
+
+      <!-- Price Summary -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-calculator"></i>
+          <span>Ringkasan Pembayaran</span>
+        </div>
+        <div class="vlcs-price-summary">
+          <div class="vlcs-price-row">
+            <span class="vlcs-price-label">Subtotal Produk</span>
+            <span class="vlcs-price-value">Rp ${subtotalProduk.toLocaleString('id-ID')}</span>
+          </div>
+          <div class="vlcs-price-row">
+            <span class="vlcs-price-label">Total Ongkos Kirim</span>
+            <span class="vlcs-price-value">Rp ${totalOngkir.toLocaleString('id-ID')}</span>
+          </div>
+          <div class="vlcs-price-row">
+            <span class="vlcs-price-label">Total Biaya</span>
+            <span class="vlcs-price-value">Rp ${totalBiaya.toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="vlcs-modal-actions">
+        <button class="vlcs-btn vlcs-btn-secondary" onclick="document.getElementById('vlcs-modal-pesanan').style.display='none'">
+          <i class="fas fa-times"></i>
+          Tutup
+        </button>
+        <button class="vlcs-btn vlcs-btn-primary" onclick="printStruk('${idPesanan}', '${idToko}')">
+          <i class="fas fa-print"></i>
+          Print Struk
+        </button>
+      </div>
+    `;
+
   } catch (err) {
-    console.error("❌ Error:", err);
-    modalContent.innerHTML = `<p style="color:red;">❌ Gagal memuat pesanan: ${err.message}</p>`;
+    console.error("Error:", err);
+    modalBody.innerHTML = `
+      <div class="vlcs-section" style="text-align: center; padding: 60px 40px;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff6b6b; margin-bottom: 16px;"></i>
+        <h3 style="color: #ff6b6b; margin-bottom: 8px;">Terjadi Kesalahan</h3>
+        <p style="color: #888; font-size: 14px; margin-bottom: 20px;">${err.message}</p>
+        <button class="vlcs-btn vlcs-btn-secondary" onclick="document.getElementById('vlcs-modal-pesanan').style.display='none'">
+          <i class="fas fa-times"></i>
+          Tutup
+        </button>
+      </div>
+    `;
   }
 }
 
-
-
-
+// Fungsi placeholder untuk print struk
+function printStruk(idPesanan, idToko) {
+  console.log("Print struk untuk:", idPesanan, idToko);
+  // Implementasi print struk bisa ditambahkan di sini
+  alert(`Fitur print struk untuk pesanan ${idPesanan} akan segera tersedia!`);
+}
 
 
 async function printStruk(idPesanan) {
@@ -10947,18 +14104,509 @@ function hitungJarak(lat1, lon1, lat2, lon2) {
 }
 
 async function bukaDetailPesananDriver(docId) {
-  const container = document.querySelector("#modal-detail .modal-content");
-  const db = firebase.firestore();
+  // Buat modal khusus untuk driver
+  let modal = document.getElementById("vlcs-modal-driver");
+  
+  // Jika modal belum ada, buat baru
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'vlcs-modal-driver';
+    modal.className = 'vlcs-modal';
+    modal.innerHTML = `
+      <div class="vlcs-modal-content">
+        <div class="vlcs-modal-header">
+          <h2 class="vlcs-modal-title">
+            <i class="fas fa-shipping-fast"></i>
+            Detail Pengantaran
+          </h2>
+          <button class="vlcs-modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="vlcs-modal-body" id="vlcs-modal-driver-body">
+          <!-- Content akan diisi dinamis -->
+        </div>
+        <div class="vlcs-modal-footer" id="vlcs-modal-footer">
+          <!-- Footer dengan tombol aksi -->
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
 
+    // Tambah CSS khusus untuk modal driver dengan sticky footer
+    if (!document.getElementById('vlcs-modal-driver-styles')) {
+      const style = document.createElement('style');
+      style.id = 'vlcs-modal-driver-styles';
+      style.textContent = `
+        /* VLCS Modal Styles dengan Sticky Footer */
+        .vlcs-modal {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(12px);
+          z-index: 99999;
+          align-items: center;
+          justify-content: center;
+          animation: vlcs-modal-fadeIn 0.3s ease-out;
+          padding: 20px;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+
+        @keyframes vlcs-modal-fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .vlcs-modal-content {
+          background: white;
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          width: 100%;
+          max-width: 450px;
+          max-height: 90vh;
+          overflow: hidden;
+          animation: vlcs-modal-slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+
+        @keyframes vlcs-modal-slideUp {
+          from { 
+            opacity: 0;
+            transform: translateY(60px) scale(0.95);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .vlcs-modal-header {
+          padding: 20px 24px;
+          border-bottom: 1px solid #f0f0f0;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          position: relative;
+          flex-shrink: 0;
+        }
+
+        .vlcs-modal-title {
+          font-size: 18px;
+          font-weight: 700;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .vlcs-modal-close {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          background: rgba(255, 255, 255, 0.15);
+          border: none;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          color: white;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+          font-size: 14px;
+        }
+
+        .vlcs-modal-close:hover {
+          background: rgba(255, 255, 255, 0.25);
+          transform: rotate(90deg);
+        }
+
+        .vlcs-modal-body {
+          padding: 0;
+          flex: 1;
+          overflow-y: auto;
+          background: #fafbfc;
+          max-height: calc(90vh - 140px);
+        }
+
+        .vlcs-modal-footer {
+          padding: 16px 24px;
+          border-top: 1px solid #f0f0f0;
+          background: white;
+          flex-shrink: 0;
+          position: sticky;
+          bottom: 0;
+        }
+
+        /* Loading State */
+        .vlcs-modal-loading {
+          padding: 40px 24px;
+          text-align: center;
+          color: #666;
+        }
+
+        .vlcs-loading-spinner {
+          width: 32px;
+          height: 32px;
+          border: 3px solid #f3f3f3;
+          border-top: 3px solid #667eea;
+          border-radius: 50%;
+          animation: vlcs-spin 1s linear infinite;
+          margin: 0 auto 16px;
+        }
+
+        @keyframes vlcs-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* Minimalis Section Styles */
+        .vlcs-section {
+          padding: 16px 20px;
+          border-bottom: 1px solid #f0f0f0;
+          background: white;
+        }
+
+        .vlcs-section:last-child {
+          border-bottom: none;
+        }
+
+        .vlcs-section-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+          color: #667eea;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .vlcs-section-content {
+          font-size: 14px;
+          color: #333;
+          line-height: 1.4;
+        }
+
+        /* Sticky Map Section */
+        .vlcs-sticky-map {
+          position: sticky;
+          top: 0;
+          z-index: 10;
+          background: white;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .vlcs-modal-driver-map {
+          height: 200px;
+          border-radius: 0;
+          overflow: hidden;
+        }
+
+        .vlcs-map-actions {
+          padding: 12px 20px;
+          background: white;
+          display: flex;
+          gap: 8px;
+          border-top: 1px solid #f0f0f0;
+        }
+
+        /* Status Badge */
+        .vlcs-status-badge {
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: white;
+          padding: 12px 16px;
+          border-radius: 12px;
+          margin: 16px 20px;
+          text-align: center;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        /* Info Grid Minimalis */
+        .vlcs-info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin: 12px 0;
+        }
+
+        .vlcs-info-item {
+          background: #f8f9fa;
+          padding: 12px;
+          border-radius: 8px;
+          text-align: center;
+        }
+
+        .vlcs-info-label {
+          font-size: 11px;
+          color: #666;
+          margin-bottom: 4px;
+          font-weight: 500;
+        }
+
+        .vlcs-info-value {
+          font-size: 13px;
+          color: #333;
+          font-weight: 600;
+        }
+
+        /* Product List Minimalis */
+        .vlcs-product-list {
+          margin: 0;
+          padding-left: 16px;
+        }
+
+        .vlcs-product-item {
+          margin-bottom: 8px;
+          font-size: 13px;
+          color: #555;
+          line-height: 1.3;
+        }
+
+        /* Steps Log Minimalis */
+        .vlcs-steps-log {
+          background: #f8f9fa;
+          border-radius: 8px;
+          padding: 12px;
+          margin: 12px 0;
+        }
+
+        .vlcs-steps-list {
+          margin: 0;
+          padding-left: 16px;
+          font-size: 12px;
+          color: #666;
+        }
+
+        .vlcs-steps-list li {
+          margin-bottom: 6px;
+          line-height: 1.3;
+        }
+
+        /* Action Buttons */
+        .vlcs-action-btn {
+          width: 100%;
+          padding: 14px 20px;
+          border: none;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .vlcs-action-btn-primary {
+          background: linear-gradient(135deg, #00b894, #00d4a3);
+          color: white;
+          box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+        }
+
+        .vlcs-action-btn-primary:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(0, 184, 148, 0.4);
+        }
+
+        .vlcs-action-btn-secondary {
+          background: #f8f9fa;
+          color: #666;
+          border: 1px solid #e0e0e0;
+        }
+
+        .vlcs-action-btn-secondary:hover {
+          background: #e9ecef;
+        }
+
+        /* Real-time Info */
+        .vlcs-realtime-info {
+          background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+          color: #2d3436;
+          padding: 10px 16px;
+          border-radius: 8px;
+          margin: 12px 20px;
+          text-align: center;
+          font-weight: 600;
+          font-size: 12px;
+        }
+
+        /* Payment Details Styles */
+        .vlcs-payment-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        .vlcs-payment-item:last-child {
+          border-bottom: none;
+        }
+
+        .vlcs-payment-label {
+          font-size: 13px;
+          color: #666;
+        }
+
+        .vlcs-payment-value {
+          font-size: 13px;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .vlcs-payment-total {
+          background: #e8f5e8;
+          border-radius: 8px;
+          padding: 12px;
+          margin-top: 8px;
+        }
+
+        .vlcs-payment-total .vlcs-payment-label {
+          color: #2e7d32;
+          font-weight: 700;
+        }
+
+        .vlcs-payment-total .vlcs-payment-value {
+          color: #2e7d32;
+          font-weight: 700;
+          font-size: 14px;
+        }
+
+        .vlcs-payment-negative {
+          color: #e53935 !important;
+        }
+
+        .vlcs-payment-positive {
+          color: #00b894 !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+          .vlcs-modal {
+            padding: 10px;
+          }
+          
+          .vlcs-modal-content {
+            max-width: 100%;
+            border-radius: 16px;
+          }
+          
+          .vlcs-modal-header {
+            padding: 16px 20px;
+          }
+          
+          .vlcs-section {
+            padding: 14px 16px;
+          }
+          
+          .vlcs-info-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+          }
+          
+          .vlcs-modal-driver-map {
+            height: 180px;
+          }
+        }
+
+        /* Scrollbar Styling */
+        .vlcs-modal-body::-webkit-scrollbar {
+          width: 4px;
+        }
+
+	/* Tombol Bantuan Admin */
+.vlcs-help-btn {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3) !important;
+}
+
+.vlcs-help-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4) !important;
+}
+
+        .vlcs-modal-body::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+
+        .vlcs-modal-body::-webkit-scrollbar-thumb {
+          background: #667eea;
+          border-radius: 2px;
+        }
+
+        /* Prevent body scroll when modal is open */
+        body.vlcs-modal-open {
+          overflow: hidden;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Event listener untuk close modal
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.closest('.vlcs-modal-close')) {
+        closeDriverModal();
+      }
+    });
+
+    // Close modal dengan ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') {
+        closeDriverModal();
+      }
+    });
+  }
+
+  const modalBody = document.getElementById('vlcs-modal-driver-body');
+  const modalFooter = document.getElementById('vlcs-modal-footer');
+  
+  // Validasi input
   if (!docId || typeof docId !== "string") {
-    container.innerHTML = `<p style="color:red;">❌ ID Dokumen tidak valid.</p>`;
+    modalBody.innerHTML = `
+      <div class="vlcs-section" style="text-align: center; padding: 40px 20px;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 32px; color: #ff6b6b; margin-bottom: 12px;"></i>
+        <h3 style="color: #ff6b6b; margin-bottom: 8px; font-size: 16px;">ID Tidak Valid</h3>
+        <p style="color: #888; font-size: 13px;">ID dokumen tidak valid</p>
+      </div>
+    `;
+    modalFooter.innerHTML = '';
+    showDriverModal();
     return;
   }
+
+  // Tampilkan loading
+  showDriverModal();
+  modalBody.innerHTML = `
+    <div class="vlcs-modal-loading">
+      <div class="vlcs-loading-spinner"></div>
+      <p>Memuat detail pengantaran...</p>
+    </div>
+  `;
+  modalFooter.innerHTML = '';
+
+  const db = firebase.firestore();
 
   try {
     const pesananDoc = await db.collection("pesanan").doc(docId).get();
     if (!pesananDoc.exists) {
-      container.innerHTML = `<p style="color:red;">❌ Pesanan tidak ditemukan (ID: ${docId}).</p>`;
+      modalBody.innerHTML = `
+        <div class="vlcs-section" style="text-align: center; padding: 40px 20px;">
+          <i class="fas fa-search" style="font-size: 32px; color: #ccc; margin-bottom: 12px;"></i>
+          <h3 style="color: #666; margin-bottom: 8px; font-size: 16px;">Pesanan Tidak Ditemukan</h3>
+          <p style="color: #888; font-size: 13px;">ID: ${docId}</p>
+        </div>
+      `;
       return;
     }
 
@@ -10970,7 +14618,13 @@ async function bukaDetailPesananDriver(docId) {
       .limit(1).get();
 
     if (driverSnap.empty) {
-      container.innerHTML = `<p style="color:red;">❌ Belum ada driver yang menerima pesanan ini.</p>`;
+      modalBody.innerHTML = `
+        <div class="vlcs-section" style="text-align: center; padding: 40px 20px;">
+          <i class="fas fa-user-slash" style="font-size: 32px; color: #ccc; margin-bottom: 12px;"></i>
+          <h3 style="color: #666; margin-bottom: 8px; font-size: 16px;">Belum Ada Driver</h3>
+          <p style="color: #888; font-size: 13px;">Belum ada driver yang menerima pesanan ini</p>
+        </div>
+      `;
       return;
     }
 
@@ -10978,27 +14632,56 @@ async function bukaDetailPesananDriver(docId) {
     const driverData = driverDoc.data();
     const driverDocId = driverDoc.id;
 
+    // Hitung nominal bersih untuk driver
+    const subtotalProduk = Number(driverData.subtotalProduk || 0);
+    const totalOngkir = Number(driverData.totalOngkir || 0);
+    const metodePembayaran = (data.metode || "").toLowerCase();
+
+    // Hitung potongan dan nominal bersih
+    const potonganDriverOngkir = Math.round(totalOngkir * 0.05); // 5% potongan ongkir
+    const biayaLayanan = Math.round((subtotalProduk + totalOngkir) * 0.01); // 1% biaya layanan
+    const totalPotonganDriver = potonganDriverOngkir + biayaLayanan;
+    
+    // Untuk metode priority delivery
+    const metodePengiriman = (data.metodePengiriman || "").toLowerCase();
+    let tambahanPriority = 0;
+    let nominalBersihDriver = totalOngkir - totalPotonganDriver;
+    
+    if (metodePengiriman === "priority") {
+      tambahanPriority = 1000;
+      nominalBersihDriver += tambahanPriority;
+    }
+
     const statusStepMap = {
-      "Menunggu Pesanan": "⏳ Menunggu Pesanan",
-      "Pickup Pesanan": "📦 Pickup Pesanan",
-      "Menuju Customer": "🛵 Menuju Customer",
-      "Pesanan Diterima": "✅ Pesanan Diterima",
-      "Selesai": "✅ Selesaikan Pesanan"
+      "Menunggu Pesanan": { icon: "⏳", label: "Menunggu Pesanan" },
+      "Pickup Pesanan": { icon: "📦", label: "Pickup Pesanan" },
+      "Menuju Customer": { icon: "🛵", label: "Menuju Customer" },
+      "Pesanan Diterima": { icon: "✅", label: "Pesanan Diterima" },
+      "Selesai": { icon: "🎉", label: "Selesaikan Pesanan" }
     };
 
     const urutanStatus = Object.keys(statusStepMap);
     const currentIndex = urutanStatus.indexOf(driverData.status);
     const nextStatus = urutanStatus[currentIndex + 1];
 
-    let tombolStatus = "";
+    // Generate tombol status untuk footer
+    let footerContent = '';
     if (nextStatus) {
-      tombolStatus = `
-        <div class="btn-group">
-          <button class="btn-next-status"
-            onclick="updateStatusDriver('${driverDocId}', '${nextStatus}', '${idPesanan}')">
-            ${statusStepMap[nextStatus]}
-          </button>
-        </div>`;
+      const nextStep = statusStepMap[nextStatus];
+      footerContent = `
+        <button class="vlcs-action-btn vlcs-action-btn-primary" 
+          onclick="updateStatusDriver('${driverDocId}', '${nextStatus}', '${idPesanan}')">
+          <i class="fas fa-arrow-right"></i>
+          ${nextStep.icon} ${nextStep.label}
+        </button>
+      `;
+    } else {
+      footerContent = `
+        <button class="vlcs-action-btn vlcs-action-btn-secondary" onclick="closeDriverModal()">
+          <i class="fas fa-times"></i>
+          Tutup
+        </button>
+      `;
     }
 
     const stepsLog = Array.isArray(driverData.stepsLog)
@@ -11008,136 +14691,286 @@ async function bukaDetailPesananDriver(docId) {
         : [];
 
     const formatStepsLog = () => {
-      if (!stepsLog.length) return "<li>(Belum ada log)</li>";
-      return stepsLog.map(s => {
-        if (typeof s === "string") return `<li>✅ ${s}</li>`;
+      if (!stepsLog.length) return "<li>(Belum ada log aktivitas)</li>";
+      return stepsLog.slice(-5).map(s => {
+        if (typeof s === "string") return `<li>${s}</li>`;
         if (typeof s === "object" && s.step && s.waktu) {
           const jam = new Date(s.waktu).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-          return `<li>✅ <strong>${s.step}</strong> - <em>${jam}</em></li>`;
+          return `<li><strong>${s.step}</strong> - ${jam}</li>`;
         }
-        return `<li>✅ ${JSON.stringify(s)}</li>`;
+        return `<li>${JSON.stringify(s)}</li>`;
       }).join("");
     };
 
     const namaPembeli = data.nama || "Customer";
     const produkList = Array.isArray(data.produk)
-      ? data.produk.map(p => `<li>${p.nama} (${p.jumlah}x) - Rp ${(p.harga * p.jumlah).toLocaleString("id-ID")}</li>`).join("")
-      : "<li>-</li>";
+      ? data.produk.map(p => `
+          <li class="vlcs-product-item">
+            <strong>${p.nama}</strong> • ${p.jumlah || 1}x • Rp ${((p.harga || 0) * (p.jumlah || 1)).toLocaleString("id-ID")}
+          </li>
+        `).join("")
+      : "<li class='vlcs-product-item'>-</li>";
 
-    container.innerHTML = `
-      <div class="detail-pesanan-wrapper" style="position: relative;">
-        <button onclick="document.getElementById('modal-detail').style.display='none'"
-          style="position: absolute; top: 10px; right: 15px; font-size: 20px; background: none; border: none; color: #333; cursor: pointer;">
-          ❌
-        </button>
-        <h2>📦 Detail Pesanan</h2>
-        <div class="detail-pesanan-info">
-          <p><strong>ID Pesanan:</strong> ${idPesanan}</p>
-          <p><strong>Nama Pembeli:</strong> ${namaPembeli}</p>
-          <p><strong>Alamat:</strong> ${data.alamat || "-"}</p>
-          <p><strong>Pembayaran:</strong> ${data.metode?.toUpperCase() || "-"}</p>
-          <p><strong>Status Driver:</strong> ${driverData.status || "-"}</p>
-        </div>
-
-        <h3 style="margin-top: 20px;">🛍️ Daftar Produk:</h3>
-        <ul style="margin-left: 20px;">${produkList}</ul>
-
-        <h3 style="margin-top: 20px;">📶 Langkah Pengantaran:</h3>
-        <ul style="margin-left: 20px;">${formatStepsLog()}</ul>
-
-        <h3 style="margin-top: 20px;">🗺️ Rute:</h3>
-        <div id="map-detail" class="map-detail" style="height: 300px;"></div>
-        <div style="margin-top: 10px; text-align: center;">
-          <a id="gmaps-link" class="btn-next-status" style="text-decoration: none;" target="_blank">
-            📍 Lihat Rute
+    // Render modal content dengan detail pembayaran
+    modalBody.innerHTML = `
+      <!-- Sticky Map Section -->
+      <div class="vlcs-sticky-map">
+        <div id="vlcs-driver-map" class="vlcs-modal-driver-map"></div>
+        <div class="vlcs-map-actions">
+          <a id="vlcs-gmaps-link" class="vlcs-action-btn vlcs-action-btn-secondary" 
+             style="text-decoration: none; flex: 1;" target="_blank">
+            <i class="fas fa-external-link-alt"></i>
+            Buka Maps
           </a>
         </div>
-
-        ${tombolStatus}
       </div>
+
+     <!-- Status Badge - Hanya ID Order -->
+<div class="vlcs-status-badge">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+    <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+      <i class="fas fa-receipt"></i>
+      ID Pesanan
+    </div>
+    <div style="font-size: 12px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 6px; font-family: 'Courier New', monospace; letter-spacing: 0.5px;">
+      ${idPesanan}
+    </div>
+  </div>
+  <div style="font-size: 11px; opacity: 0.9; text-align: left; display: flex; align-items: center; gap: 6px;">
+    <i class="fas fa-calendar-alt"></i>
+    ${new Date(data.tanggalPesan?.toDate() || new Date()).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}
+  </div>
+</div>
+      <!-- Detail Pembayaran Driver -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-money-bill-wave"></i>
+          <span>Detail Pembayaran Driver</span>
+        </div>
+        
+        <!-- Ringkasan Pendapatan -->
+        <div style="margin-bottom: 16px;">
+          <div class="vlcs-payment-item">
+            <span class="vlcs-payment-label">Ongkos Kirim:</span>
+            <span class="vlcs-payment-value">Rp ${totalOngkir.toLocaleString('id-ID')}</span>
+          </div>
+          
+          ${metodePengiriman === "priority" ? `
+          <div class="vlcs-payment-item">
+            <span class="vlcs-payment-label">Tambahan Priority:</span>
+            <span class="vlcs-payment-value vlcs-payment-positive">+ Rp ${tambahanPriority.toLocaleString('id-ID')}</span>
+          </div>
+          ` : ''}
+        </div>
+
+        <!-- Detail Potongan -->
+        <div style="background: #fff3cd; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <div style="font-size: 12px; color: #856404; font-weight: 600; margin-bottom: 6px;">Detail Potongan:</div>
+          
+          <div class="vlcs-payment-item">
+            <span class="vlcs-payment-label">Potongan Ongkir (5%):</span>
+            <span class="vlcs-payment-value vlcs-payment-negative">- Rp ${potonganDriverOngkir.toLocaleString('id-ID')}</span>
+          </div>
+          
+          <div class="vlcs-payment-item">
+            <span class="vlcs-payment-label">Biaya Layanan (1%):</span>
+            <span class="vlcs-payment-value vlcs-payment-negative">- Rp ${biayaLayanan.toLocaleString('id-ID')}</span>
+          </div>
+          
+          <div class="vlcs-payment-item" style="border-top: 1px solid #ffeaa7; padding-top: 8px;">
+            <span class="vlcs-payment-label">Total Potongan:</span>
+            <span class="vlcs-payment-value vlcs-payment-negative">- Rp ${totalPotonganDriver.toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+
+        <!-- Total Bersih -->
+        <div class="vlcs-payment-total">
+          <div class="vlcs-payment-item">
+            <span class="vlcs-payment-label">Total Bersih Diterima:</span>
+            <span class="vlcs-payment-value">Rp ${nominalBersihDriver.toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Informasi Customer -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-user"></i>
+          <span>Customer</span>
+        </div>
+        <div class="vlcs-info-grid">
+          <div class="vlcs-info-item">
+            <div class="vlcs-info-label">Nama</div>
+            <div class="vlcs-info-value">${namaPembeli}</div>
+          </div>
+          <div class="vlcs-info-item">
+            <div class="vlcs-info-label">Pembayaran</div>
+            <div class="vlcs-info-value">${(data.metode || "-").toUpperCase()}</div>
+          </div>
+        </div>
+        <div style="margin-top: 8px;">
+          <div class="vlcs-info-label">Alamat</div>
+          <div class="vlcs-info-value" style="text-align: left; font-size: 12px;">${data.alamat || "-"}</div>
+        </div>
+      </div>
+
+      <!-- Daftar Produk -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-box"></i>
+          <span>Produk</span>
+        </div>
+        <ul class="vlcs-product-list">
+          ${produkList}
+        </ul>
+      </div>
+
+      <!-- Log Aktivitas -->
+      <div class="vlcs-section">
+        <div class="vlcs-section-header">
+          <i class="fas fa-history"></i>
+          <span>Aktivitas Terakhir</span>
+        </div>
+        <div class="vlcs-steps-log">
+          <ul class="vlcs-steps-list">
+            ${formatStepsLog()}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Jarak Real-time -->
+      <div id="vlcs-realtime-info" class="vlcs-realtime-info" style="display: none;">
+        📏 Menghitung jarak...
+      </div>
+
+<!-- Menu Bantuan -->
+<div class="vlcs-section">
+  <div class="vlcs-section-header">
+    <i class="fas fa-headset"></i>
+    <span>Butuh Bantuan?</span>
+  </div>
+  <div style="text-align: center; padding: 12px 0;">
+    <button class="vlcs-action-btn vlcs-action-btn-secondary" 
+            onclick="hubungiAdmin('${idPesanan}', '${namaPembeli}', '${driverData.status}')"
+            style="background: linear-gradient(135deg, #ff6b6b, #ee5a52); color: white; border: none;">
+      <i class="fas fa-phone-alt"></i>
+      Pesanan Bermasalah? Hubungi Admin
+    </button>
+    <div style="font-size: 11px; color: #666; margin-top: 8px;">
+      Layanan customer service 24/7
+    </div>
+  </div>
+</div>
+
     `;
 
+    // Set footer content
+    modalFooter.innerHTML = footerContent;
+
+    // Initialize map
     setTimeout(async () => {
-      const geoToLatLng = geo =>
-        geo?.latitude ? { lat: geo.latitude, lng: geo.longitude } :
-        geo?.lat ? { lat: geo.lat, lng: geo.lng } : null;
-
-      const toko = geoToLatLng(driverData.lokasiToko);
-      const cust = geoToLatLng(driverData.lokasiCustomer);
-
-      if (toko && cust) {
-        const map = L.map("map-detail").setView([toko.lat, toko.lng], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-        const icon = (cls, icon) => L.divIcon({
-          className: cls,
-          html: `<i class="fas ${icon}"></i>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 32]
-        });
-
-        const tokoDoc = await db.collection("toko").doc(data.produk?.[0]?.idToko).get();
-        const namaToko = tokoDoc.exists ? tokoDoc.data().namaToko : "Toko";
-
-        L.marker([toko.lat, toko.lng], { icon: icon('toko-marker', 'fa-store') }).addTo(map).bindPopup(`📍 ${namaToko}`);
-        L.marker([cust.lat, cust.lng], { icon: icon('customer-marker', 'fa-user') }).addTo(map).bindPopup(`📦 ${namaPembeli}`);
-
-        const gmapsLink = document.getElementById("gmaps-link");
-        if (gmapsLink) {
-          gmapsLink.href = `https://www.google.com/maps/dir/?api=1&origin=${toko.lat},${toko.lng}&destination=${cust.lat},${cust.lng}&travelmode=driving`;
-        }
-      } else {
-        document.getElementById("map-detail").innerHTML = `<p style="padding:10px;">📍 Lokasi belum lengkap.</p>`;
-      }
-
-      // Hitung jarak real-time
       try {
-        const driverRealtimeSnap = await db.collection("driver")
-          .where("idDriver", "==", driverData.idDriver)
-          .limit(1).get();
+        const geoToLatLng = geo =>
+          geo?.latitude ? { lat: geo.latitude, lng: geo.longitude } :
+          geo?.lat ? { lat: geo.lat, lng: geo.lng } : null;
 
-        if (!driverRealtimeSnap.empty) {
-          const lokasiDriver = geoToLatLng(driverRealtimeSnap.docs[0].data().lokasi);
-          if (lokasiDriver && cust) {
-            const jarak = hitungJarakMeter(
-              cust.lat, cust.lng,
-              lokasiDriver.lat, lokasiDriver.lng
-            );
-            const infoElem = document.getElementById("jarak-info");
-            if (infoElem) {
-              infoElem.innerHTML = `📏 Jarak driver ke customer (real-time): <b>${jarak.toFixed(1)} meter</b>`;
-            }
+        const toko = geoToLatLng(driverData.lokasiToko);
+        const cust = geoToLatLng(driverData.lokasiCustomer);
+
+        if (toko && cust) {
+          const map = L.map("vlcs-driver-map").setView([toko.lat, toko.lng], 13);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+          const tokoDoc = await db.collection("toko").doc(data.produk?.[0]?.idToko).get();
+          const namaToko = tokoDoc.exists ? tokoDoc.data().namaToko : "Toko";
+
+          L.marker([toko.lat, toko.lng]).addTo(map).bindPopup(`<b>📍 ${namaToko}</b>`);
+          L.marker([cust.lat, cust.lng]).addTo(map).bindPopup(`<b>📦 ${namaPembeli}</b>`);
+
+          // Google Maps link
+          const gmapsLink = document.getElementById("vlcs-gmaps-link");
+          if (gmapsLink) {
+            gmapsLink.href = `https://www.google.com/maps/dir/?api=1&origin=${toko.lat},${toko.lng}&destination=${cust.lat},${cust.lng}&travelmode=driving`;
           }
-        }
-      } catch (err) {
-        console.error("❌ Gagal menghitung jarak:", err);
-      }
 
+        } else {
+          document.getElementById("vlcs-driver-map").innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666; background: #f8f9fa;">
+              <div style="text-align: center;">
+                <i class="fas fa-map-marker-alt" style="font-size: 32px; margin-bottom: 8px;"></i>
+                <p style="font-size: 12px;">Lokasi belum lengkap</p>
+              </div>
+            </div>
+          `;
+        }
+      } catch (mapError) {
+        console.error("Error initializing map:", mapError);
+      }
     }, 100);
 
-    document.getElementById("modal-detail").style.display = "flex";
-
   } catch (err) {
-    console.error("❌ Gagal membuka detail pesanan:", err);
-    container.innerHTML = `<p style="color:red;">❌ Terjadi kesalahan teknis.</p>`;
+    console.error("Gagal membuka detail pesanan:", err);
+    modalBody.innerHTML = `
+      <div class="vlcs-section" style="text-align: center; padding: 40px 20px;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 32px; color: #ff6b6b; margin-bottom: 12px;"></i>
+        <h3 style="color: #ff6b6b; margin-bottom: 8px; font-size: 16px;">Terjadi Kesalahan</h3>
+        <p style="color: #888; font-size: 13px;">${err.message}</p>
+      </div>
+    `;
+    modalFooter.innerHTML = `
+      <button class="vlcs-action-btn vlcs-action-btn-secondary" onclick="closeDriverModal()">
+        <i class="fas fa-times"></i>
+        Tutup
+      </button>
+    `;
   }
 }
 
 
+// Tambahkan fungsi hubungiAdmin di bagian akhir file:
+function hubungiAdmin(idPesanan, namaCustomer, statusPesanan) {
+  // Format pesan untuk WhatsApp
+  const pesan = `Halo Admin, saya butuh bantuan untuk pesanan:\n\n` +
+                `📦 ID Pesanan: ${idPesanan}\n` +
+                `👤 Customer: ${namaCustomer}\n` +
+                `📊 Status: ${statusPesanan}\n` +
+                `🕒 Waktu: ${new Date().toLocaleString('id-ID')}\n\n` +
+                `*Permasalahan:* [Jelaskan permasalahan yang dihadapi]`;
+  
+  // Encode pesan untuk URL
+  const pesanEncoded = encodeURIComponent(pesan);
+  
+  // Nomor admin (ganti dengan nomor yang sesuai)
+  const nomorAdmin = "6281234567890"; // Contoh: 081234567890
+  
+  // Buat link WhatsApp
+  const waLink = `https://wa.me/${nomorAdmin}?text=${pesanEncoded}`;
+  
+  // Buka WhatsApp
+  window.open(waLink, '_blank');
+}
 
+// Fungsi untuk menampilkan modal driver
+function showDriverModal() {
+  const modal = document.getElementById("vlcs-modal-driver");
+  if (modal) {
+    modal.style.display = 'flex';
+    document.body.classList.add('vlcs-modal-open');
+  }
+}
 
-
-
-function formatStatus(status) {
-  switch (status) {
-    case "Menunggu Driver": return "Pesanan dibuat (Pending)";
-    case "Driver Menuju Toko": return "Driver menuju toko";
-    case "Pesanan Diambil": return "Pesanan diambil";
-    case "Menuju Customer": return "Sedang diantar";
-    case "Pesanan Tiba": return "Pesanan sampai";
-    case "Menunggu Pesanan": return "Menunggu pesanan";
-    case "Selesai": return "Pesanan selesai";
-    default: return status;
+// Fungsi global untuk close modal driver
+function closeDriverModal() {
+  const modal = document.getElementById("vlcs-modal-driver");
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.classList.remove('vlcs-modal-open');
   }
 }
 
@@ -11187,7 +15020,7 @@ async function updateStatusDriver(docId, status, idPesanan) {
 
     const updateData = {
       status,
-      stepsLog: firebase.firestore.FieldValue.arrayUnion(`${waktu} ${formatStatus(status)}`),
+      stepsLog: firebase.firestore.FieldValue.arrayUnion(`${waktu} ${status}`),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -11200,21 +15033,18 @@ async function updateStatusDriver(docId, status, idPesanan) {
     if (status === "Menunggu Pesanan" && metode === "cod" && !dataPesanan.sudahDiprosesPotong) {
       if (isNaN(subtotal) || isNaN(ongkir) || subtotal <= 0 || ongkir <= 0) {
         console.warn("⚠️ subtotal/ongkir tidak valid. Lewati potongan.");
-        alert(`✅ Status diubah ke: ${status}`);
         return;
       }
 
       const potonganSeller = Math.round(subtotal * 0.05);
-      const potonganDriverOngkir = Math.round(ongkir * 0.05);
-      const biayaLayanan = Math.round((subtotal + ongkir) * 0.01);
-      const totalPotonganDriver = potonganDriverOngkir + biayaLayanan;
+      const potonganDriver = Math.round(ongkir * 0.05); // HANYA 5% untuk driver
 
       await db.runTransaction(async (t) => {
         const tokoSnap = await t.get(tokoRef);
         const driverSnap = await t.get(driverRef);
 
         const saldoTokoAkhir = (tokoSnap.data().saldo || 0) - potonganSeller;
-        const saldoDriverAkhir = (driverSnap.data().saldo || 0) - totalPotonganDriver;
+        const saldoDriverAkhir = (driverSnap.data().saldo || 0) - potonganDriver;
 
         t.update(tokoRef, { saldo: saldoTokoAkhir });
         t.update(driverRef, { saldo: saldoDriverAkhir });
@@ -11239,7 +15069,7 @@ async function updateStatusDriver(docId, status, idPesanan) {
           {
             idDriver: idDriverVal,
             perihal: "Pemotongan Saldo",
-            keterangan: `Saldo kamu dipotong Rp${totalPotonganDriver.toLocaleString("id-ID")} untuk pesanan #${idPesanan}.`,
+            keterangan: `Saldo kamu dipotong Rp${potonganDriver.toLocaleString("id-ID")} untuk pesanan #${idPesanan}.`,
             waktu: waktuPesan,
             dibaca: false,
             dari: "Sistem",
@@ -11250,12 +15080,12 @@ async function updateStatusDriver(docId, status, idPesanan) {
       console.log("✅ Potongan saldo COD berhasil.");
     }
 
-    // ✅ TAMBAH SALDO JIKA METODE SALDO + STATUS "Selesai"
+    // ✅ TAMBAH SALDO HANYA JIKA METODE SALDO + STATUS "Selesai"
     if (status === "Selesai" && metode === "saldo") {
       const metodePengiriman = (dataPesanan.metodePengiriman || "").toLowerCase();
 
       let sellerDiterima = Math.round(subtotal * 0.95);
-      let driverDiterima = Math.round(ongkir * 0.95);
+      let driverDiterima = Math.round(ongkir * 0.95); // HANYA 5% potongan
 
       if (metodePengiriman === "priority") {
         sellerDiterima += 1500;
@@ -11302,16 +15132,94 @@ async function updateStatusDriver(docId, status, idPesanan) {
       console.log("✅ Penambahan saldo berhasil.");
     }
 
-    alert(`✅ Status diubah ke: ${status}`);
+    // ✅ TAMPILKAN SWAL HANYA UNTUK STATUS "Selesai"
+    if (status === "Selesai") {
+      const potongan = Math.round(ongkir * 0.05);
+      let totalBersih = ongkir - potongan;
+      
+      // Tambahan untuk priority delivery
+      const metodePengiriman = (dataPesanan.metodePengiriman || "").toLowerCase();
+      if (metodePengiriman === "priority") {
+        totalBersih += 1000;
+      }
+
+      let pesanPendapatan = '';
+      
+      if (metode === 'saldo') {
+        pesanPendapatan = `<p style="font-size: 0.9em; color: #28a745; font-weight: bold;">Pendapatan telah ditambahkan ke saldo kamu.</p>`;
+      } else if (metode === 'cod') {
+        pesanPendapatan = `<p style="font-size: 0.9em; color: #6c757d;">Pendapatan COD telah diterima secara tunai.</p>`;
+      }
+
+      await Swal.fire({
+        title: '🎉 Selamat!',
+        html: `
+          <div style="text-align: left;">
+            <p>Kamu telah berhasil menyelesaikan pesanan!</p>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 15px 0;">
+              <p style="margin: 5px 0;"><strong>Rincian Pembayaran:</strong></p>
+              <p style="margin: 5px 0;">Ongkir: Rp ${ongkir.toLocaleString('id-ID')}</p>
+              <p style="margin: 5px 0; color: #dc3545;">Potongan (5%): Rp ${potongan.toLocaleString('id-ID')}</p>
+              ${metodePengiriman === "priority" ? `<p style="margin: 5px 0; color: #28a745;">Bonus Priority: Rp 1.000</p>` : ''}
+              <hr style="margin: 10px 0;">
+              <p style="margin: 5px 0; font-size: 1.2em; color: #28a745; font-weight: bold;">
+                Total Bersih: Rp ${totalBersih.toLocaleString('id-ID')}
+              </p>
+            </div>
+            <p style="margin: 5px 0; font-size: 0.9em; color: #6c757d;"><strong>Metode Pembayaran:</strong> ${metode.toUpperCase()}</p>
+            ${pesanPendapatan}
+          </div>
+        `,
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Tutup',
+        cancelButtonText: 'Bantuan',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+      }).then((result) => {
+        if (result.dismiss === Swal.DismissReason.cancel) {
+          // Redirect ke halaman bantuan atau buka modal bantuan
+          window.open('https://wa.me/6281234567890?text=Halo,%20saya%20butuh%20bantuan%20mengenai%20pesanan%20' + idPesanan, '_blank');
+        }
+      });
+    } else {
+      // Untuk status selain "Selesai", langsung update tanpa alert
+      console.log(`✅ Status berhasil diubah menjadi: ${status}`);
+    }
+
     await bukaDetailPesananDriver(idPesanan);
 
   } catch (err) {
     console.error("❌ Gagal update status:", err);
-    alert(err.message || "❌ Terjadi kesalahan.");
+    
+    // Tampilkan error dengan SweetAlert2
+    Swal.fire({
+      title: '❌ Gagal!',
+      text: err.message || "Terjadi kesalahan saat memperbarui status.",
+      icon: 'error',
+      confirmButtonText: 'OK',
+      confirmButtonColor: '#dc3545'
+    });
   }
 }
 
-
+// Fungsi formatStatus yang hilang
+function formatStatus(status) {
+  const statusMap = {
+    "Menunggu Driver": "⏳ Menunggu Driver",
+    "Driver Menuju Toko": "🚗 Driver Menuju Toko", 
+    "Pesanan Diambil": "📦 Pesanan Diambil",
+    "Menuju Customer": "🛵 Menuju Customer",
+    "Pesanan Tiba": "✅ Pesanan Tiba",
+    "Menunggu Pesanan": "⏳ Menunggu Pesanan",
+    "Pickup Pesanan": "📦 Pickup Pesanan",
+    "Pesanan Diterima": "✅ Pesanan Diterima",
+    "Selesai": "🎉 Selesai"
+  };
+  
+  return statusMap[status] || status;
+}
 
 
 function tampilkanRute(id) {
@@ -16191,162 +20099,166 @@ async function topupSaldoUser() {
 }
 
 function showTopupModal({ userId, role, idToko, idDriver, rekeningAktif }) {
+  // Hapus modal yang sudah ada sebelumnya
+  const existingModal = document.querySelector(".driver-crv-modal-overlay");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
   const kodeUnik = Math.floor(Math.random() * 900) + 100;
 
   const modal = document.createElement("div");
-  modal.className = "delivery-modal-overlay";
+  modal.className = "driver-crv-modal-overlay";
+  
+  // Simpan data untuk event listener
+  modal.setAttribute('data-user-id', userId);
+  modal.setAttribute('data-role', role);
+  modal.setAttribute('data-id-toko', idToko || '');
+  modal.setAttribute('data-id-driver', idDriver || '');
+  modal.setAttribute('data-rekening-aktif', JSON.stringify(rekeningAktif));
+  modal.setAttribute('data-kode-unik', kodeUnik);
+
   modal.innerHTML = `
-    <div class="delivery-modal-container">
-      <div class="delivery-modal-content">
-        <div class="delivery-modal-header">
-          <div class="delivery-modal-icon">
-            <i class="fas fa-wallet"></i>
+    <div class="driver-crv-modal-container">
+      <div class="driver-crv-modal-content">
+        <!-- Header dengan gradient oranye-kuning -->
+        <div class="driver-crv-modal-header">
+          <div class="driver-crv-header-content">
+            <div class="driver-crv-header-icon">
+              <div class="driver-crv-icon-wrapper">
+                <i class="fas fa-wallet"></i>
+              </div>
+            </div>
+            <div class="driver-crv-header-text">
+              <h2 class="driver-crv-title">Top Up Saldo</h2>
+              <p class="driver-crv-subtitle">Isi saldo untuk transaksi yang lebih mudah</p>
+            </div>
           </div>
-          <div class="delivery-modal-title">
-            <h3>Top Up Saldo</h3>
-            <p>Isi saldo untuk bertransaksi dengan mudah</p>
-          </div>
-          <button class="delivery-modal-close" onclick="closeTopupModal()">
+          <button class="driver-crv-modal-close" id="driver-crv-close-btn">
             <i class="fas fa-times"></i>
           </button>
         </div>
 
-        <div class="delivery-modal-body">
-          <!-- Informasi Role -->
-          <div class="delivery-topup-role-info">
-            <div class="delivery-topup-role-badge delivery-topup-role-${role}">
-              <i class="fas fa-${getRoleIcon(role)}"></i>
-              ${getRoleLabel(role)}
-            </div>
+        <div class="driver-crv-modal-body">
+          <!-- User Info Minimalis -->
+          <div class="driver-crv-user-info-minimal">
+            <div class="driver-crv-user-role">${driverCrvGetRoleLabel(role)}</div>
+            <div class="driver-crv-user-id">${userId.substring(0, 8)}...</div>
           </div>
 
-          <!-- Form Top Up -->
-          <form class="delivery-topup-form" id="topupForm">
+          <!-- Form Section yang Minimalis -->
+          <div class="driver-crv-form-section">
             <!-- Nominal Input -->
-            <div class="delivery-form-group">
-              <label class="delivery-form-label">
-                <i class="fas fa-money-bill-wave"></i>
-                Nominal Top Up
-                <span class="delivery-form-required">*</span>
-              </label>
-              <div class="delivery-form-input-group">
-                <span class="delivery-form-input-prefix">Rp</span>
+            <div class="driver-crv-input-group">
+              <label class="driver-crv-input-label">Jumlah Top Up</label>
+              <div class="driver-crv-amount-input-wrapper">
+                <span class="driver-crv-currency">Rp</span>
                 <input 
-                  id="topup-nominal" 
                   type="number" 
-                  class="delivery-form-input delivery-form-input-with-prefix" 
-                  placeholder="Minimal 10.000"
+                  id="driver-crv-topup-nominal"
+                  class="driver-crv-amount-input" 
+                  placeholder="0"
                   min="10000"
                   step="1000"
                   required
                 >
               </div>
-              <div class="delivery-form-helper">
-                Minimal top up Rp 10.000
+              <div class="driver-crv-amount-presets">
+                <button type="button" class="driver-crv-amount-btn" data-amount="10000">10K</button>
+                <button type="button" class="driver-crv-amount-btn" data-amount="50000">50K</button>
+                <button type="button" class="driver-crv-amount-btn" data-amount="100000">100K</button>
+                <button type="button" class="driver-crv-amount-btn" data-amount="200000">200K</button>
               </div>
             </div>
 
-            <!-- Metode Pembayaran -->
-            <div class="delivery-form-group">
-              <label class="delivery-form-label">
-                <i class="fas fa-university"></i>
-                Metode Pembayaran
-                <span class="delivery-form-required">*</span>
-              </label>
-              <select id="topup-metode" class="delivery-form-select" required onchange="tampilRekeningTujuan(this.value)">
-                <option value="">-- Pilih Bank --</option>
-                ${rekeningAktif.map((r, i) => `
-                  <option value="${i}">
-                    ${getBankIcon(r.bank)} ${r.bank}
-                  </option>
-                `).join("")}
-              </select>
-              <div class="delivery-form-helper">
-                Pilih bank tujuan transfer
+            <!-- Bank Selection -->
+            <div class="driver-crv-input-group">
+              <label class="driver-crv-input-label">Bank Tujuan</label>
+              <div class="driver-crv-bank-grid">
+                ${rekeningAktif.map((bank, index) => `
+                  <div class="driver-crv-bank-card" data-bank-index="${index}">
+                    <div class="driver-crv-bank-icon">${driverCrvGetBankLogo(bank.bank)}</div>
+                    <div class="driver-crv-bank-info">
+                      <span class="driver-crv-bank-name">${bank.bank}</span>
+                    </div>
+                    <div class="driver-crv-bank-check">
+                      <i class="fas fa-check"></i>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
             </div>
 
-            <!-- Rekening Tujuan -->
-            <div id="rekening-tujuan" class="delivery-topup-rekening" style="display: none;">
-              <div class="delivery-topup-rekening-header">
-                <i class="fas fa-credit-card"></i>
-                <h4>Rekening Tujuan</h4>
+            <!-- Payment Details -->
+            <div id="driver-crv-payment-card" class="driver-crv-payment-card" style="display: none;">
+              <div class="driver-crv-payment-header">
+                <h4>Rincian Pembayaran</h4>
               </div>
-              <div class="delivery-topup-rekening-info">
-                <div class="delivery-topup-rekening-item">
-                  <span class="delivery-topup-rekening-label">Bank</span>
-                  <span class="delivery-topup-rekening-value" id="rekening-bank">-</span>
+              <div class="driver-crv-payment-details">
+                <div class="driver-crv-payment-row">
+                  <span>Nominal</span>
+                  <span id="driver-crv-payment-nominal">Rp 0</span>
                 </div>
-                <div class="delivery-topup-rekening-item">
-                  <span class="delivery-topup-rekening-label">Nomor Rekening</span>
-                  <span class="delivery-topup-rekening-value copyable" id="rekening-nomor" onclick="copyToClipboard(this)">-</span>
+                <div class="driver-crv-payment-row">
+                  <span>Kode Unik</span>
+                  <span class="driver-crv-unique-code">+ ${kodeUnik}</span>
                 </div>
-                <div class="delivery-topup-rekening-item">
-                  <span class="delivery-topup-rekening-label">Nama Pemilik</span>
-                  <span class="delivery-topup-rekening-value" id="rekening-nama">-</span>
+                <div class="driver-crv-payment-total">
+                  <span>Total Transfer</span>
+                  <span id="driver-crv-payment-total">Rp 0</span>
                 </div>
               </div>
             </div>
 
-            <!-- Detail Pembayaran -->
-            <div id="payment-details" class="delivery-topup-payment-details" style="display: none;">
-              <div class="delivery-topup-payment-header">
-                <i class="fas fa-receipt"></i>
-                <h4>Detail Pembayaran</h4>
+            <!-- Rekening Info -->
+            <div id="driver-crv-rekening-card" class="driver-crv-rekening-card" style="display: none;">
+              <div class="driver-crv-rekening-header">
+                <h4>Transfer ke Rekening</h4>
               </div>
-              <div class="delivery-topup-payment-info">
-                <div class="delivery-topup-payment-item">
-                  <span class="delivery-topup-payment-label">Nominal Top Up</span>
-                  <span class="delivery-topup-payment-value" id="payment-nominal">-</span>
+              <div class="driver-crv-rekening-details">
+                <div class="driver-crv-rekening-item">
+                  <span>Bank</span>
+                  <span id="driver-crv-rekening-bank">-</span>
                 </div>
-                <div class="delivery-topup-payment-item">
-                  <span class="delivery-topup-payment-label">Kode Unik</span>
-                  <span class="delivery-topup-payment-value">+ ${kodeUnik}</span>
+                <div class="driver-crv-rekening-item">
+                  <span>No. Rekening</span>
+                  <div class="driver-crv-rekening-value-wrapper">
+                    <span id="driver-crv-rekening-nomor">-</span>
+                    <button class="driver-crv-copy-btn" id="driver-crv-copy-btn">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
                 </div>
-                <div class="delivery-topup-payment-divider"></div>
-                <div class="delivery-topup-payment-total">
-                  <span class="delivery-topup-payment-label">Total Transfer</span>
-                  <span class="delivery-topup-payment-total-value" id="payment-total">-</span>
+                <div class="driver-crv-rekening-item">
+                  <span>Atas Nama</span>
+                  <span id="driver-crv-rekening-nama">-</span>
                 </div>
               </div>
             </div>
 
             <!-- Catatan -->
-            <div class="delivery-form-group">
-              <label class="delivery-form-label">
-                <i class="fas fa-sticky-note"></i>
-                Catatan (Opsional)
-              </label>
-              <input 
-                id="topup-catatan" 
-                type="text" 
-                class="delivery-form-input" 
-                placeholder="Contoh: Top up untuk belanja bulanan"
-                maxlength="100"
-              >
-              <div class="delivery-form-helper">
-                Maksimal 100 karakter
-              </div>
+            <div class="driver-crv-input-group">
+              <label class="driver-crv-input-label">Catatan (Opsional)</label>
+              <textarea 
+                id="driver-crv-topup-catatan"
+                class="driver-crv-textarea" 
+                placeholder="Tambahkan catatan..."
+                rows="2"
+                maxlength="120"
+              ></textarea>
             </div>
 
-            <!-- Pesan Status -->
-            <div id="modal-message" class="delivery-modal-message"></div>
-          </form>
+            <!-- Status Message -->
+            <div id="driver-crv-modal-message" class="driver-crv-modal-message"></div>
+          </div>
         </div>
 
-        <div class="delivery-modal-footer">
-          <button class="delivery-modal-btn-secondary" onclick="closeTopupModal()">
-            <i class="fas fa-times"></i>
+        <!-- Footer -->
+        <div class="driver-crv-modal-footer">
+          <button type="button" class="driver-crv-btn driver-crv-btn-secondary" id="driver-crv-cancel-btn">
             Batal
           </button>
-          <button class="delivery-modal-btn-primary" id="btn-kirim" onclick="kirimTopupRequest({
-            userId: '${userId}',
-            idToko: '${idToko}',
-            idDriver: '${idDriver}',
-            role: '${role}',
-            rekeningAktif: ${JSON.stringify(rekeningAktif)},
-            kodeUnik: ${kodeUnik}
-          })">
+          <button type="button" class="driver-crv-btn driver-crv-btn-primary" id="driver-crv-submit-btn">
             <i class="fas fa-paper-plane"></i>
             Ajukan Top Up
           </button>
@@ -16355,636 +20267,265 @@ function showTopupModal({ userId, role, idToko, idDriver, rekeningAktif }) {
     </div>
   `;
 
-  document.body.appendChild(modal);
+  // Tambahkan modal di awal body
+  document.body.insertBefore(modal, document.body.firstChild);
 
-  // Add event listeners
-  setupTopupEventListeners({ rekeningAktif, kodeUnik });
+  // Setup event listeners
+  driverCrvSetupTopupEventListeners(modal, { rekeningAktif, kodeUnik });
+
+  // Prevent body scroll
+  document.body.style.overflow = 'hidden';
 }
 
-// Update CSS untuk modal center dan floating effect
-const topupStyles = `
-  <style>
-    /* Modal Overlay - Fixed Position untuk Center */
-    .delivery-modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      padding: 20px;
-      animation: modalFadeIn 0.3s ease;
-      backdrop-filter: blur(5px);
-    }
-
-    @keyframes modalFadeIn {
-      from { 
-        opacity: 0; 
-        backdrop-filter: blur(0px);
-      }
-      to { 
-        opacity: 1; 
-        backdrop-filter: blur(5px);
-      }
-    }
-
-    @keyframes modalFadeOut {
-      from { 
-        opacity: 1; 
-        backdrop-filter: blur(5px);
-      }
-      to { 
-        opacity: 0; 
-        backdrop-filter: blur(0px);
-      }
-    }
-
-    /* Modal Container - Floating Effect */
-    .delivery-modal-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    .delivery-modal-content {
-      background: white;
-      border-radius: 24px;
-      box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(255, 255, 255, 0.1),
-        0 0 100px rgba(59, 130, 246, 0.1);
-      max-width: 500px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      pointer-events: all;
-      animation: modalSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      position: relative;
-      transform-style: preserve-3d;
-      perspective: 1000px;
-    }
-
-    @keyframes modalSlideIn {
-      from { 
-        transform: translateY(-50px) scale(0.9) rotateX(-5deg);
-        opacity: 0; 
-      }
-      to { 
-        transform: translateY(0) scale(1) rotateX(0);
-        opacity: 1; 
-      }
-    }
-
-    @keyframes modalSlideOut {
-      from { 
-        transform: translateY(0) scale(1) rotateX(0);
-        opacity: 1; 
-      }
-      to { 
-        transform: translateY(-50px) scale(0.9) rotateX(-5deg);
-        opacity: 0; 
-      }
-    }
-
-    /* Floating Animation */
-    .delivery-modal-content::before {
-      content: '';
-      position: absolute;
-      top: -10px;
-      left: -10px;
-      right: -10px;
-      bottom: -10px;
-      background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
-      border-radius: 28px;
-      z-index: -1;
-      opacity: 0.1;
-      filter: blur(20px);
-      animation: floatShadow 3s ease-in-out infinite;
-    }
-
-    @keyframes floatShadow {
-      0%, 100% { 
-        transform: translateY(0px) scale(1);
-        opacity: 0.1;
-      }
-      50% { 
-        transform: translateY(-10px) scale(1.02);
-        opacity: 0.15;
-      }
-    }
-
-    /* Modal Header */
-    .delivery-modal-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      padding: 2rem 2rem 1.5rem;
-      border-bottom: 1px solid #f1f5f9;
-      position: relative;
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-      border-radius: 24px 24px 0 0;
-    }
-
-    .delivery-modal-header::after {
-      content: '';
-      position: absolute;
-      bottom: -1px;
-      left: 2rem;
-      right: 2rem;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-    }
-
-    .delivery-modal-icon {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 1.5rem;
-      flex-shrink: 0;
-      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-      animation: iconPulse 2s ease-in-out infinite;
-    }
-
-    @keyframes iconPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-
-    .delivery-modal-title {
-      flex: 1;
-    }
-
-    .delivery-modal-title h3 {
-      margin: 0 0 0.5rem 0;
-      color: #1e293b;
-      font-size: 1.5rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #334155, #1e293b);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .delivery-modal-title p {
-      margin: 0;
-      color: #64748b;
-      font-size: 0.95rem;
-      line-height: 1.5;
-    }
-
-    .delivery-modal-close {
-      background: white;
-      border: 2px solid #f1f5f9;
-      color: #64748b;
-      font-size: 1.1rem;
-      cursor: pointer;
-      padding: 0.5rem;
-      border-radius: 12px;
-      transition: all 0.3s ease;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .delivery-modal-close:hover {
-      background: #f8fafc;
-      border-color: #e2e8f0;
-      color: #475569;
-      transform: rotate(90deg);
-    }
-
-    /* Modal Body */
-    .delivery-modal-body {
-      padding: 2rem;
-      background: white;
-    }
-
-    /* Modal Footer */
-    .delivery-modal-footer {
-      padding: 1.5rem 2rem 2rem;
-      border-top: 1px solid #f1f5f9;
-      display: flex;
-      gap: 1rem;
-      background: white;
-      border-radius: 0 0 24px 24px;
-    }
-
-    /* Role Info */
-    .delivery-topup-role-info {
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-
-    .delivery-topup-role-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: 50px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      animation: badgeGlow 2s ease-in-out infinite;
-    }
-
-    @keyframes badgeGlow {
-      0%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-      50% { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); }
-    }
-
-    .delivery-topup-role-seller {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: white;
-    }
-
-    .delivery-topup-role-driver {
-      background: linear-gradient(135deg, #10b981, #047857);
-      color: white;
-    }
-
-    .delivery-topup-role-user {
-      background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-      color: white;
-    }
-
-    /* Form Styles */
-    .delivery-form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .delivery-form-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-    }
-
-    .delivery-form-required {
-      color: #ef4444;
-    }
-
-    .delivery-form-input,
-    .delivery-form-select {
-      width: 100%;
-      padding: 0.875rem 1rem;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      transition: all 0.3s ease;
-      background: white;
-    }
-
-    .delivery-form-input:focus,
-    .delivery-form-select:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      transform: translateY(-1px);
-    }
-
-    .delivery-form-input-group {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .delivery-form-input-prefix {
-      position: absolute;
-      left: 1rem;
-      color: #6b7280;
-      font-weight: 500;
-      z-index: 2;
-    }
-
-    .delivery-form-input-with-prefix {
-      padding-left: 3rem;
-    }
-
-    /* Rekening Section */
-    .delivery-topup-rekening {
-      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin: 1.5rem 0;
-      border: 1px solid #e2e8f0;
-      animation: slideDown 0.3s ease;
-    }
-
-    @keyframes slideDown {
-      from { 
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to { 
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .delivery-topup-rekening-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .delivery-topup-rekening-header h4 {
-      margin: 0;
-      color: #1e293b;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-
-    .delivery-topup-rekening-info {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .delivery-topup-rekening-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid #f1f5f9;
-    }
-
-    .delivery-topup-rekening-item:last-child {
-      border-bottom: none;
-    }
-
-    .delivery-topup-rekening-label {
-      color: #64748b;
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .delivery-topup-rekening-value {
-      color: #1e293b;
-      font-weight: 600;
-    }
-
-    .delivery-topup-rekening-value.copyable {
-      cursor: pointer;
-      padding: 0.5rem 0.75rem;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-      background: white;
-      border: 1px solid #e2e8f0;
-      font-family: 'Courier New', monospace;
-    }
-
-    .delivery-topup-rekening-value.copyable:hover {
-      background: #f8fafc;
-      border-color: #3b82f6;
-      transform: translateY(-1px);
-    }
-
-    .delivery-copy-success {
-      background: #dcfce7 !important;
-      border-color: #22c55e !important;
-      color: #166534 !important;
-    }
-
-    /* Payment Details */
-    .delivery-topup-payment-details {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin: 1.5rem 0;
-      color: white;
-      animation: slideDown 0.3s ease;
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-    }
-
-    .delivery-topup-payment-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .delivery-topup-payment-header h4 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-
-    .delivery-topup-payment-info {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .delivery-topup-payment-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .delivery-topup-payment-label {
-      opacity: 0.9;
-      font-size: 0.9rem;
-    }
-
-    .delivery-topup-payment-value {
-      font-weight: 600;
-    }
-
-    .delivery-topup-payment-divider {
-      height: 1px;
-      background: rgba(255, 255, 255, 0.3);
-      margin: 0.75rem 0;
-    }
-
-    .delivery-topup-payment-total {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 0.75rem;
-      border-top: 2px solid rgba(255, 255, 255, 0.5);
-    }
-
-    .delivery-topup-payment-total-value {
-      font-size: 1.3rem;
-      font-weight: 700;
-    }
-
-    /* Modal Message */
-    .delivery-modal-message {
-      padding: 1rem;
-      border-radius: 12px;
-      margin: 1rem 0;
-      font-size: 0.9rem;
-      font-weight: 500;
-      display: none;
-      animation: slideDown 0.3s ease;
-    }
-
-    .delivery-modal-message-success {
-      background: #dcfce7;
-      color: #166534;
-      border: 1px solid #bbf7d0;
-    }
-
-    .delivery-modal-message-error {
-      background: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
-    }
-
-    .delivery-modal-message-info {
-      background: #dbeafe;
-      color: #1e40af;
-      border: 1px solid #bfdbfe;
-    }
-
-    /* Modal Buttons */
-    .delivery-modal-btn-primary,
-    .delivery-modal-btn-secondary {
-      flex: 1;
-      padding: 1rem 1.5rem;
-      border: none;
-      border-radius: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-      transition: all 0.3s ease;
-      font-size: 0.95rem;
-    }
-
-    .delivery-modal-btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: white;
-      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-    }
-
-    .delivery-modal-btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.6);
-    }
-
-    .delivery-modal-btn-secondary {
-      background: white;
-      color: #64748b;
-      border: 2px solid #e2e8f0;
-    }
-
-    .delivery-modal-btn-secondary:hover {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      transform: translateY(-1px);
-    }
-
-    .delivery-modal-btn-disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none !important;
-      box-shadow: none !important;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 640px) {
-      .delivery-modal-overlay {
-        padding: 10px;
-      }
-
-      .delivery-modal-content {
-        max-height: 95vh;
-        border-radius: 20px;
-      }
-
-      .delivery-modal-header {
-        padding: 1.5rem 1.5rem 1rem;
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-      }
-
-      .delivery-modal-body {
-        padding: 1.5rem;
-      }
-
-      .delivery-modal-footer {
-        padding: 1.5rem;
-        flex-direction: column;
-      }
-
-      .delivery-modal-icon {
-        width: 50px;
-        height: 50px;
-        font-size: 1.25rem;
-      }
-
-      .delivery-topup-rekening-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-      }
-
-      .delivery-topup-role-badge {
-        padding: 0.5rem 1rem;
-        font-size: 0.8rem;
-      }
-    }
-
-    /* Scrollbar Styling */
-    .delivery-modal-content::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .delivery-modal-content::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 3px;
-    }
-
-    .delivery-modal-content::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-
-    .delivery-modal-content::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-  </style>
-`;
-
-// Inject styles
-if (!document.querySelector('#delivery-topup-styles')) {
-  const styleElement = document.createElement('style');
-  styleElement.id = 'delivery-topup-styles';
-  styleElement.textContent = topupStyles;
-  document.head.appendChild(styleElement);
+// ✅ FUNGSI SETUP EVENT LISTENERS
+function driverCrvSetupTopupEventListeners(modal, { rekeningAktif, kodeUnik }) {
+  // Close button
+  const closeBtn = document.getElementById('driver-crv-close-btn');
+  const cancelBtn = document.getElementById('driver-crv-cancel-btn');
+  if (closeBtn) closeBtn.addEventListener('click', driverCrvCloseTopupModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', driverCrvCloseTopupModal);
+
+  // Submit button
+  const submitBtn = document.getElementById('driver-crv-submit-btn');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      const userId = modal.getAttribute('data-user-id');
+      const role = modal.getAttribute('data-role');
+      const idToko = modal.getAttribute('data-id-toko') || null;
+      const idDriver = modal.getAttribute('data-id-driver') || null;
+      const rekeningAktif = JSON.parse(modal.getAttribute('data-rekening-aktif'));
+      const kodeUnik = parseInt(modal.getAttribute('data-kode-unik'));
+
+      driverCrvKirimTopupRequest({
+        userId,
+        idToko,
+        idDriver,
+        role,
+        rekeningAktif,
+        kodeUnik
+      });
+    });
+  }
+
+  // Copy button
+  const copyBtn = document.getElementById('driver-crv-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', driverCrvCopyRekening);
+  }
+
+  // Quick amount buttons
+  document.querySelectorAll('.driver-crv-amount-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const amount = this.getAttribute('data-amount');
+      document.getElementById('driver-crv-topup-nominal').value = amount;
+      driverCrvUpdatePaymentDetails(rekeningAktif, kodeUnik);
+    });
+  });
+
+  // Nominal input
+  const nominalInput = document.getElementById('driver-crv-topup-nominal');
+  if (nominalInput) {
+    nominalInput.addEventListener('input', function() {
+      driverCrvUpdatePaymentDetails(rekeningAktif, kodeUnik);
+    });
+  }
+
+  // Bank selection
+  document.querySelectorAll('.driver-crv-bank-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const index = this.getAttribute('data-bank-index');
+      
+      // Remove active class from all cards
+      document.querySelectorAll('.driver-crv-bank-card').forEach(c => {
+        c.classList.remove('active');
+      });
+      
+      // Add active class to clicked card
+      this.classList.add('active');
+      
+      // Show rekening info
+      driverCrvTampilRekeningTujuan(index, rekeningAktif);
+      driverCrvUpdatePaymentDetails(rekeningAktif, kodeUnik);
+    });
+  });
+
+  // Character counter for notes
+  const catatanInput = document.getElementById('driver-crv-topup-catatan');
+  if (catatanInput) {
+    catatanInput.addEventListener('input', function() {
+      const remaining = 120 - this.value.length;
+      // Optional: bisa ditampilkan counter jika diperlukan
+    });
+  }
 }
 
-// Update close function dengan animasi
-function closeTopupModal() {
-  const modal = document.querySelector(".delivery-modal-overlay");
+// ✅ FUNGSI UNTUK MENAMPILKAN REKENING TUJUAN
+function driverCrvTampilRekeningTujuan(index, rekeningAktif) {
+  const rekeningCard = document.getElementById('driver-crv-rekening-card');
+  const bankElement = document.getElementById('driver-crv-rekening-bank');
+  const nomorElement = document.getElementById('driver-crv-rekening-nomor');
+  const namaElement = document.getElementById('driver-crv-rekening-nama');
+
+  if (index === "" || !rekeningAktif[index]) {
+    rekeningCard.style.display = 'none';
+    return;
+  }
+
+  const rekening = rekeningAktif[index];
+  
+  bankElement.textContent = rekening.bank || '-';
+  nomorElement.textContent = rekening.nomor || '-';
+  namaElement.textContent = rekening.nama || '-';
+  
+  rekeningCard.style.display = 'block';
+}
+
+// ✅ FUNGSI UNTUK UPDATE DETAIL PEMBAYARAN
+function driverCrvUpdatePaymentDetails(rekeningAktif, kodeUnik) {
+  const nominalInput = document.getElementById('driver-crv-topup-nominal');
+  const metodeSelect = document.querySelector('.driver-crv-bank-card.active');
+  const paymentCard = document.getElementById('driver-crv-payment-card');
+  const paymentNominal = document.getElementById('driver-crv-payment-nominal');
+  const paymentTotal = document.getElementById('driver-crv-payment-total');
+
+  const nominal = parseInt(nominalInput.value) || 0;
+  const metodeIndex = metodeSelect ? metodeSelect.getAttribute('data-bank-index') : "";
+
+  if (nominal >= 10000 && metodeIndex !== "") {
+    const totalTransfer = nominal + kodeUnik;
+    
+    paymentNominal.textContent = `Rp ${nominal.toLocaleString('id-ID')}`;
+    paymentTotal.textContent = `Rp ${totalTransfer.toLocaleString('id-ID')}`;
+    paymentCard.style.display = 'block';
+  } else {
+    paymentCard.style.display = 'none';
+  }
+}
+
+// ✅ FUNGSI UNTUK COPY REKENING
+function driverCrvCopyRekening() {
+  const nomorElement = document.getElementById('driver-crv-rekening-nomor');
+  const text = nomorElement.textContent;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    // Show success feedback
+    const copyBtn = document.getElementById('driver-crv-copy-btn');
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+    copyBtn.classList.add('success');
+    
+    setTimeout(() => {
+      copyBtn.innerHTML = originalHTML;
+      copyBtn.classList.remove('success');
+    }, 2000);
+  }).catch(err => {
+    console.error('Gagal menyalin teks: ', err);
+    driverCrvShowMessage('❌ Gagal menyalin nomor rekening', 'error');
+  });
+}
+
+// ✅ FUNGSI KIRIM TOPUP REQUEST
+async function driverCrvKirimTopupRequest({ userId, idToko, idDriver, role, rekeningAktif, kodeUnik }) {
+  const db = firebase.firestore();
+  
+  // Validasi form
+  const nominalInput = document.getElementById('driver-crv-topup-nominal');
+  const metodeSelect = document.querySelector('.driver-crv-bank-card.active');
+  const catatanInput = document.getElementById('driver-crv-topup-catatan');
+  
+  const nominal = parseInt(nominalInput.value) || 0;
+  const metodeIndex = metodeSelect ? metodeSelect.getAttribute('data-bank-index') : "";
+  const catatan = catatanInput.value.trim();
+  
+  if (nominal < 10000) {
+    driverCrvShowMessage('❌ Minimal top up adalah Rp 10.000', 'error');
+    return;
+  }
+  
+  if (metodeIndex === "") {
+    driverCrvShowMessage('❌ Pilih bank tujuan terlebih dahulu', 'error');
+    return;
+  }
+  
+  const rekening = rekeningAktif[metodeIndex];
+  if (!rekening) {
+    driverCrvShowMessage('❌ Rekening tujuan tidak valid', 'error');
+    return;
+  }
+  
+  const totalTransfer = nominal + kodeUnik;
+  
+  // Disable button dan show loading
+  const btnKirim = document.getElementById('driver-crv-submit-btn');
+  btnKirim.disabled = true;
+  btnKirim.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+  
+  try {
+    // Simpan ke Firestore
+    const topupData = {
+      userId: userId,
+      idToko: idToko,
+      idDriver: idDriver,
+      role: role,
+      nominal: nominal,
+      kodeUnik: kodeUnik,
+      totalTransfer: totalTransfer,
+      bank: rekening.bank,
+      nomorRekening: rekening.nomor,
+      namaRekening: rekening.nama,
+      catatan: catatan || "-",
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      expiredAt: firebase.firestore.Timestamp.fromMillis(Date.now() + 24 * 3600 * 1000)
+    };
+    
+    await db.collection('topup_request').add(topupData);
+    
+    // Show success message
+    driverCrvShowMessage('✅ Permintaan top up berhasil dikirim!', 'success');
+    
+    // Update button state
+    btnKirim.innerHTML = '<i class="fas fa-check"></i> Berhasil';
+    
+    // Close modal setelah 2 detik
+    setTimeout(() => {
+      driverCrvCloseTopupModal();
+      showNotification('✅ Permintaan top up berhasil dikirim!', 'success');
+    }, 2000);
+    
+  } catch (error) {
+    console.error('❌ Gagal mengirim permintaan top up:', error);
+    driverCrvShowMessage('❌ Gagal mengirim permintaan top up', 'error');
+    
+    // Enable button kembali
+    btnKirim.disabled = false;
+    btnKirim.innerHTML = '<i class="fas fa-paper-plane"></i> Ajukan Top Up';
+  }
+}
+
+// ✅ FUNGSI SHOW MESSAGE
+function driverCrvShowMessage(text, type) {
+  const messageElement = document.getElementById('driver-crv-modal-message');
+  if (!messageElement) return;
+  
+  messageElement.textContent = text;
+  messageElement.className = `driver-crv-modal-message driver-crv-message-${type}`;
+  messageElement.style.display = 'flex';
+  
+  if (type === 'success') {
+    setTimeout(() => {
+      messageElement.style.display = 'none';
+    }, 5000);
+  }
+}
+
+// ✅ FUNGSI CLOSE MODAL
+function driverCrvCloseTopupModal() {
+  const modal = document.querySelector(".driver-crv-modal-overlay");
   if (modal) {
-    const modalContent = modal.querySelector('.delivery-modal-content');
-    modalContent.style.animation = 'modalSlideOut 0.3s ease forwards';
-    modal.style.animation = 'modalFadeOut 0.3s ease forwards';
+    modal.classList.add('driver-crv-closing');
+    document.body.style.overflow = '';
     
     setTimeout(() => {
       if (modal.parentNode) {
@@ -16994,33 +20535,590 @@ function closeTopupModal() {
   }
 }
 
-// Helper functions (tetap sama)
-function getRoleIcon(role) {
-  const icons = {
-    seller: "store",
-    driver: "motorcycle",
-    user: "user"
-  };
-  return icons[role] || "user";
-}
-
-function getRoleLabel(role) {
+// ✅ FUNGSI HELPER
+function driverCrvGetRoleLabel(role) {
   const labels = {
-    seller: "Seller",
-    driver: "Driver",
-    user: "Customer"
+    seller: 'Seller',
+    driver: 'Driver',
+    user: 'Customer',
+    admin: 'Admin'
   };
-  return labels[role] || "User";
+  return labels[role] || 'User';
 }
 
-function getBankIcon(bankName) {
-  const bank = bankName.toLowerCase();
-  if (bank.includes("bca")) return "🏦";
-  if (bank.includes("bni")) return "🏛️";
-  if (bank.includes("bri")) return "🏢";
-  if (bank.includes("mandiri")) return "🏣";
-  if (bank.includes("bsi")) return "🕌";
-  return "🏦";
+function driverCrvGetBankLogo(bank) {
+  const logos = {
+    'bca': '🏦',
+    'bni': '🏦',
+    'bri': '🏦',
+    'mandiri': '🏦',
+    'bsi': '🏦',
+    'cimb': '🏦',
+    'danamon': '🏦',
+    'permata': '🏦'
+  };
+  return logos[bank?.toLowerCase()] || '🏦';
+}
+
+// ✅ EVENT LISTENER UNTUK CLOSE MODAL
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('driver-crv-modal-overlay')) {
+    driverCrvCloseTopupModal();
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    driverCrvCloseTopupModal();
+  }
+});
+
+// ✅ INJECT CSS STYLES DENGAN THEMA ORANYE-KUNING
+const driverCrvTopupStyles = `
+<style id="driver-crv-topup-styles">
+/* Modern Modal Styles dengan Thema Oranye-Kuning */
+.driver-crv-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  animation: driver-crv-modalFadeIn 0.3s ease;
+  backdrop-filter: blur(8px);
+}
+
+.driver-crv-modal-overlay.driver-crv-closing {
+  animation: driver-crv-modalFadeOut 0.3s ease forwards;
+}
+
+@keyframes driver-crv-modalFadeIn { 
+  from { opacity: 0; } 
+  to { opacity: 1; } 
+}
+
+@keyframes driver-crv-modalFadeOut { 
+  from { opacity: 1; } 
+  to { opacity: 0; } 
+}
+
+.driver-crv-modal-container {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  justify-content: center;
+}
+
+.driver-crv-modal-content {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: driver-crv-modalSlideIn 0.4s ease;
+}
+
+@keyframes driver-crv-modalSlideIn {
+  from { transform: translateY(-20px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Header dengan Gradient Oranye-Kuning */
+.driver-crv-modal-header {
+  padding: 24px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border-radius: 20px 20px 0 0;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+
+.driver-crv-modal-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.driver-crv-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.driver-crv-header-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.driver-crv-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  font-size: 1.2rem;
+}
+
+.driver-crv-title {
+  margin: 0 0 4px 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.driver-crv-subtitle {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.driver-crv-modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.driver-crv-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Body */
+.driver-crv-modal-body {
+  padding: 24px;
+}
+
+/* User Info Minimalis */
+.driver-crv-user-info-minimal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.driver-crv-user-role {
+  font-weight: 600;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+.driver-crv-user-id {
+  font-size: 0.8rem;
+  color: #d97706;
+  font-family: 'Courier New', monospace;
+}
+
+/* Form Sections */
+.driver-crv-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.driver-crv-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.driver-crv-input-label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+/* Amount Input */
+.driver-crv-amount-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.driver-crv-currency {
+  position: absolute;
+  left: 16px;
+  color: #6b7280;
+  font-weight: 600;
+  z-index: 2;
+}
+
+.driver-crv-amount-input {
+  width: 100%;
+  padding: 16px 16px 16px 48px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: white;
+  transition: all 0.2s ease;
+  text-align: right;
+}
+
+.driver-crv-amount-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.driver-crv-amount-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.driver-crv-amount-btn {
+  padding: 10px 8px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.driver-crv-amount-btn:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+/* Bank Grid */
+.driver-crv-bank-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.driver-crv-bank-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.driver-crv-bank-card:hover {
+  border-color: #d1d5db;
+}
+
+.driver-crv-bank-card.active {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.driver-crv-bank-icon {
+  font-size: 1.1rem;
+  width: 32px;
+  text-align: center;
+}
+
+.driver-crv-bank-info {
+  flex: 1;
+}
+
+.driver-crv-bank-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.driver-crv-bank-check {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: all 0.2s ease;
+  font-size: 0.7rem;
+}
+
+.driver-crv-bank-card.active .driver-crv-bank-check {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: white;
+}
+
+/* Cards */
+.driver-crv-payment-card,
+.driver-crv-rekening-card {
+  background: #fefce8;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #fef3c7;
+}
+
+.driver-crv-payment-header,
+.driver-crv-rekening-header {
+  margin-bottom: 12px;
+}
+
+.driver-crv-payment-header h4,
+.driver-crv-rekening-header h4 {
+  margin: 0;
+  color: #92400e;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.driver-crv-payment-details,
+.driver-crv-rekening-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.driver-crv-payment-row,
+.driver-crv-rekening-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.driver-crv-payment-row span:first-child,
+.driver-crv-rekening-item span:first-child {
+  color: #6b7280;
+}
+
+.driver-crv-payment-row span:last-child,
+.driver-crv-rekening-item span:last-child {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.driver-crv-unique-code {
+  color: #059669 !important;
+}
+
+.driver-crv-payment-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #fef3c7;
+  font-weight: 600;
+}
+
+.driver-crv-payment-total span:last-child {
+  color: #d97706;
+  font-size: 1.1rem;
+}
+
+.driver-crv-rekening-value-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.driver-crv-copy-btn {
+  background: #fef3c7;
+  border: none;
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  color: #d97706;
+  transition: all 0.2s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
+.driver-crv-copy-btn:hover {
+  background: #f59e0b;
+  color: white;
+}
+
+.driver-crv-copy-btn.success {
+  background: #10b981;
+  color: white;
+}
+
+/* Textarea */
+.driver-crv-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: white;
+  transition: all 0.2s ease;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.driver-crv-textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+/* Message */
+.driver-crv-modal-message {
+  padding: 12px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.driver-crv-message-success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.driver-crv-message-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Footer */
+.driver-crv-modal-footer {
+  padding: 20px 24px 24px;
+  display: flex;
+  gap: 12px;
+  background: white;
+  border-radius: 0 0 20px 20px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.driver-crv-btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.driver-crv-btn-primary {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.driver-crv-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.driver-crv-btn-secondary {
+  background: white;
+  color: #6b7280;
+  border: 2px solid #e5e7eb;
+}
+
+.driver-crv-btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.driver-crv-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .driver-crv-modal-overlay {
+    padding: 10px;
+  }
+  
+  .driver-crv-modal-content {
+    max-height: 95vh;
+    border-radius: 16px;
+  }
+  
+  .driver-crv-modal-header {
+    padding: 20px;
+  }
+  
+  .driver-crv-modal-body {
+    padding: 20px;
+  }
+  
+  .driver-crv-modal-footer {
+    padding: 16px 20px 20px;
+  }
+  
+  .driver-crv-amount-presets {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Scrollbar */
+.driver-crv-modal-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.driver-crv-modal-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.driver-crv-modal-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+</style>
+`;
+
+// Inject styles
+if (!document.querySelector('#driver-crv-topup-styles')) {
+  document.head.insertAdjacentHTML('beforeend', driverCrvTopupStyles);
 }
 
 function formatRupiah(angka) {
@@ -19492,7 +23590,16 @@ function showNotification(message, type = 'info') {
 
 async function prosesCheckout() {
   const user = firebase.auth().currentUser;
-  if (!user) return alert("Silakan login terlebih dahulu.");
+  if (!user) {
+    await Swal.fire({
+      icon: 'warning',
+      title: 'Login Required',
+      text: 'Silakan login terlebih dahulu.',
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
+  
   const uid = user.uid;
   const db = firebase.firestore();
 
@@ -19500,200 +23607,296 @@ async function prosesCheckout() {
   const metodePengiriman = document.querySelector('input[name="pengiriman"]:checked')?.value || "standard";
   const catatanPesanan = document.getElementById("catatan-pesanan")?.value.trim() || "-";
 
-  const alamatDoc = await db.collection("alamat").doc(uid).get();
-  if (!alamatDoc.exists) return alert("❌ Alamat belum tersedia.");
-  const { nama, noHp, alamat, lokasi } = alamatDoc.data();
-
-  const keranjangDoc = await db.collection("keranjang").doc(uid).get();
-  const produk = keranjangDoc.exists ? keranjangDoc.data().items || [] : [];
-  if (produk.length === 0) return alert("❌ Keranjang kosong.");
-
-  for (let i = 0; i < produk.length; i++) {
-    const item = produk[i];
-    const produkDoc = await db.collection("produk").doc(item.id).get();
-    produk[i].estimasi = produkDoc.exists ? (parseInt(produkDoc.data().estimasi) || 10) : 10;
-  }
-
-  const estimasiMasakTotal = produk.reduce((t, i) => t + (i.estimasi * i.jumlah), 0);
-  const subtotalProduk = produk.reduce((t, i) => t + (i.harga * i.jumlah), 0);
-  const totalOngkir = [...new Set(produk.map(p => p.idToko))].reduce((sum, idToko) => {
-    const item = produk.find(p => p.idToko === idToko);
-    return sum + (item?.ongkir || 0);
-  }, 0);
-
-  const tokoUtama = produk[0].idToko;
-  const tokoDoc = await db.collection("toko").doc(tokoUtama).get();
-  const lokasiToko = tokoDoc.exists ? tokoDoc.data().koordinat : null;
-  if (!lokasiToko) return alert("❌ Lokasi toko belum tersedia.");
-
-  const geoToLatLng = (geo) => geo.latitude ? { lat: geo.latitude, lng: geo.longitude } : geo;
-  const hitungJarakKM = (a, b) => {
-    a = geoToLatLng(a); b = geoToLatLng(b);
-    if (!a || !b) return Infinity;
-    const R = 6371;
-    const dLat = (b.lat - a.lat) * Math.PI / 180;
-    const dLng = (b.lng - a.lng) * Math.PI / 180;
-    const x = Math.sin(dLat / 2) ** 2 +
-      Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) *
-      Math.sin(dLng / 2) ** 2;
-    return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)) * 100) / 100;
-  };
-
-  const jarakKM = hitungJarakKM(lokasiToko, lokasi);
-  const estimasiKirim = metodePengiriman === "priority"
-    ? jarakKM * 5 * 0.75
-    : jarakKM * 5;
-
-  const estimasiTotal = Math.round(estimasiMasakTotal + estimasiKirim);
-
-  let potongan = 0;
-  let kodeVoucher = null;
-  const voucher = window.voucherTerpakai;
-  if (voucher?.kode && voucher.potongan) {
-    if (voucher.digunakanOleh?.includes(uid)) return alert("❌ Voucher sudah digunakan.");
-    if (new Date() > voucher.expired?.toDate?.()) return alert("❌ Voucher expired.");
-    if (voucher.kuota <= 0) return alert("❌ Kuota habis.");
-    if (subtotalProduk < voucher.minimal) return alert(`❌ Minimal order Rp${voucher.minimal.toLocaleString()}`);
-    kodeVoucher = voucher.kode;
-    const dasar = voucher.tipePotongan === "ongkir" ? totalOngkir : subtotalProduk;
-    potongan = voucher.tipe === "persen"
-      ? Math.round(dasar * (parseFloat(voucher.potongan) / 100))
-      : parseInt(voucher.potongan);
-    if (potongan > dasar) potongan = dasar;
-  }
-
-  const biayaLayanan = Math.round((subtotalProduk + totalOngkir - potongan) * 0.01);
-  const totalBayar = subtotalProduk + totalOngkir + biayaLayanan - potongan;
-  if (totalBayar <= 0) return alert("❌ Total bayar tidak valid.");
-
-  // ✅ Cek dan potong saldo jika metode saldo
-  if (metodePembayaran === "saldo") {
-    try {
-      await db.runTransaction(async (tx) => {
-        const userRef = db.collection("users").doc(uid);
-        const userSnap = await tx.get(userRef);
-        const saldo = userSnap.exists ? (userSnap.data().saldo || 0) : 0;
-        if (saldo < totalBayar) throw new Error("Saldo tidak cukup.");
-
-        const saldoBaru = saldo - totalBayar;
-        tx.update(userRef, { saldo: saldoBaru });
-
-        const logRef = db.collection("transaksi_saldo").doc();
-        tx.set(logRef, {
-          userId: uid,
-          jenis: "pengurangan",
-          jumlah: totalBayar,
-          deskripsi: `Pembayaran pesanan`,
-          waktu: firebase.firestore.FieldValue.serverTimestamp(),
-          saldoSetelah: saldoBaru
-        });
-      });
-    } catch (e) {
-      return alert(`❌ ${e.message}`);
+  // Tampilkan loading
+  const swalLoading = Swal.fire({
+    title: 'Memproses...',
+    text: 'Sedang memeriksa data pesanan',
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
     }
-  }
-
-  const now = Date.now();
-  const today = new Date();
-  const random = Math.floor(Math.random() * 100000);
-  const idPesanan = `ORD-${today.toISOString().slice(0, 10).replace(/-/g, "")}-${random}`;
-  const wa = noHp.startsWith("08") ? "628" + noHp.slice(2) : noHp;
-
-  const dataPesanan = {
-    id: idPesanan,
-    userId: uid,
-    nama,
-    noHp: wa,
-    alamat,
-    lokasi,
-    produk,
-    catatan: catatanPesanan,
-    metode: metodePembayaran,
-    pengiriman: metodePengiriman,
-    estimasiMasak: Math.round(estimasiMasakTotal),
-    estimasiKirim: Math.round(estimasiKirim),
-    estimasiTotal,
-    status: "Pending",
-    stepsLog: [`${new Date(now).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} Pesanan dibuat (Pending)`],
-    waktuPesan: now,
-    subtotalProduk,
-    totalOngkir,
-    biayaLayanan,
-    potongan,
-    total: totalBayar,
-    kodeVoucher,
-    tipePotongan: voucher?.tipePotongan || null,
-    sudahDiprosesPembayaran: metodePembayaran === "saldo" ? true : false,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-
-  await db.collection("pesanan").doc(idPesanan).set(dataPesanan);
-  await db.collection("keranjang").doc(uid).delete();
-
-  // ✅ Simpan ke pesanan_penjual per toko
-  const produkPerToko = {};
-  produk.forEach(item => {
-    if (!produkPerToko[item.idToko]) produkPerToko[item.idToko] = [];
-    produkPerToko[item.idToko].push(item);
   });
 
-  for (const idToko in produkPerToko) {
-    const produkToko = produkPerToko[idToko];
-    const subtotalToko = produkToko.reduce((t, i) => t + (i.harga * i.jumlah), 0);
-    const ongkirToko = produkToko[0].ongkir || 0;
-    const estimasiMasakToko = produkToko.reduce((t, i) => t + (i.estimasi * i.jumlah), 0);
-    const estimasiTotalToko = estimasiMasakToko + estimasiKirim;
+  try {
+    const alamatDoc = await db.collection("alamat").doc(uid).get();
+    if (!alamatDoc.exists) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Alamat Tidak Tersedia',
+        text: '❌ Alamat belum tersedia.',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+    const { nama, noHp, alamat, lokasi } = alamatDoc.data();
 
-    await db.collection("pesanan_penjual").doc(`${idPesanan}-${idToko}`).set({
-      idPesanan,
-      idToko,
-      metode: metodePembayaran,
-      namaPembeli: nama,
-      noHpPembeli: wa,
-      alamatPembeli: alamat,
-      lokasiPembeli: lokasi,
-      produk: produkToko.map(i => ({
-        nama: i.nama,
-        harga: i.harga,
-        qty: i.jumlah,
-        ongkir: i.ongkir || 0
-      })),
-      subtotalProduk: subtotalToko,
-      totalOngkir: ongkirToko,
-      biayaLayanan: 0,
-      potongan: 0,
-      total: subtotalToko + ongkirToko,
+    const keranjangDoc = await db.collection("keranjang").doc(uid).get();
+    const produk = keranjangDoc.exists ? keranjangDoc.data().items || [] : [];
+    if (produk.length === 0) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Keranjang Kosong',
+        text: '❌ Keranjang kosong.',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    for (let i = 0; i < produk.length; i++) {
+      const item = produk[i];
+      const produkDoc = await db.collection("produk").doc(item.id).get();
+      produk[i].estimasi = produkDoc.exists ? (parseInt(produkDoc.data().estimasi) || 10) : 10;
+    }
+
+    const estimasiMasakTotal = produk.reduce((t, i) => t + (i.estimasi * i.jumlah), 0);
+    const subtotalProduk = produk.reduce((t, i) => t + (i.harga * i.jumlah), 0);
+    const totalOngkir = [...new Set(produk.map(p => p.idToko))].reduce((sum, idToko) => {
+      const item = produk.find(p => p.idToko === idToko);
+      return sum + (item?.ongkir || 0);
+    }, 0);
+
+    const tokoUtama = produk[0].idToko;
+    const tokoDoc = await db.collection("toko").doc(tokoUtama).get();
+    const lokasiToko = tokoDoc.exists ? tokoDoc.data().koordinat : null;
+    if (!lokasiToko) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Lokasi Toko',
+        text: '❌ Lokasi toko belum tersedia.',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    const geoToLatLng = (geo) => geo.latitude ? { lat: geo.latitude, lng: geo.longitude } : geo;
+    const hitungJarakKM = (a, b) => {
+      a = geoToLatLng(a); b = geoToLatLng(b);
+      if (!a || !b) return Infinity;
+      const R = 6371;
+      const dLat = (b.lat - a.lat) * Math.PI / 180;
+      const dLng = (b.lng - a.lng) * Math.PI / 180;
+      const x = Math.sin(dLat / 2) ** 2 +
+        Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)) * 100) / 100;
+    };
+
+    const jarakKM = hitungJarakKM(lokasiToko, lokasi);
+    const estimasiKirim = metodePengiriman === "priority"
+      ? jarakKM * 5 * 0.75
+      : jarakKM * 5;
+
+    const estimasiTotal = Math.round(estimasiMasakTotal + estimasiKirim);
+
+    let potongan = 0;
+    let kodeVoucher = null;
+    const voucher = window.voucherTerpakai;
+    if (voucher?.kode && voucher.potongan) {
+      if (voucher.digunakanOleh?.includes(uid)) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Voucher Tidak Valid',
+          text: '❌ Voucher sudah digunakan.',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      if (new Date() > voucher.expired?.toDate?.()) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Voucher Expired',
+          text: '❌ Voucher expired.',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      if (voucher.kuota <= 0) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Voucher Habis',
+          text: '❌ Kuota habis.',
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      if (subtotalProduk < voucher.minimal) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Minimal Order',
+          text: `❌ Minimal order Rp${voucher.minimal.toLocaleString()}`,
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+      kodeVoucher = voucher.kode;
+      const dasar = voucher.tipePotongan === "ongkir" ? totalOngkir : subtotalProduk;
+      potongan = voucher.tipe === "persen"
+        ? Math.round(dasar * (parseFloat(voucher.potongan) / 100))
+        : parseInt(voucher.potongan);
+      if (potongan > dasar) potongan = dasar;
+    }
+
+    const biayaLayanan = Math.round((subtotalProduk + totalOngkir - potongan) * 0.01);
+    const totalBayar = subtotalProduk + totalOngkir + biayaLayanan - potongan;
+    if (totalBayar <= 0) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Total Bayar Invalid',
+        text: '❌ Total bayar tidak valid.',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    // ✅ Cek dan potong saldo jika metode saldo
+    if (metodePembayaran === "saldo") {
+      try {
+        await db.runTransaction(async (tx) => {
+          const userRef = db.collection("users").doc(uid);
+          const userSnap = await tx.get(userRef);
+          const saldo = userSnap.exists ? (userSnap.data().saldo || 0) : 0;
+          if (saldo < totalBayar) throw new Error("Saldo tidak cukup.");
+
+          const saldoBaru = saldo - totalBayar;
+          tx.update(userRef, { saldo: saldoBaru });
+
+          const logRef = db.collection("transaksi_saldo").doc();
+          tx.set(logRef, {
+            userId: uid,
+            jenis: "pengurangan",
+            jumlah: totalBayar,
+            deskripsi: `Pembayaran pesanan`,
+            waktu: firebase.firestore.FieldValue.serverTimestamp(),
+            saldoSetelah: saldoBaru
+          });
+        });
+      } catch (e) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Pembayaran Gagal',
+          text: `❌ ${e.message}`,
+          confirmButtonText: 'OK'
+        });
+        return;
+      }
+    }
+
+    const now = Date.now();
+    const today = new Date();
+    const random = Math.floor(Math.random() * 100000);
+    const idPesanan = `ORD-${today.toISOString().slice(0, 10).replace(/-/g, "")}-${random}`;
+    const wa = noHp.startsWith("08") ? "628" + noHp.slice(2) : noHp;
+
+    const dataPesanan = {
+      id: idPesanan,
+      userId: uid,
+      nama,
+      noHp: wa,
+      alamat,
+      lokasi,
+      produk,
       catatan: catatanPesanan,
+      metode: metodePembayaran,
       pengiriman: metodePengiriman,
-      status: "Pending",
-      estimasiMasak: estimasiMasakToko,
+      estimasiMasak: Math.round(estimasiMasakTotal),
       estimasiKirim: Math.round(estimasiKirim),
-      estimasiTotal: estimasiTotalToko,
+      estimasiTotal,
+      status: "Pending",
+      stepsLog: [`${new Date(now).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} Pesanan dibuat (Pending)`],
+      waktuPesan: now,
+      subtotalProduk,
+      totalOngkir,
+      biayaLayanan,
+      potongan,
+      total: totalBayar,
+      kodeVoucher,
+      tipePotongan: voucher?.tipePotongan || null,
+      sudahDiprosesPembayaran: metodePembayaran === "saldo" ? true : false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection("pesanan").doc(idPesanan).set(dataPesanan);
+    await db.collection("keranjang").doc(uid).delete();
+
+    // ✅ Simpan ke pesanan_penjual per toko
+    const produkPerToko = {};
+    produk.forEach(item => {
+      if (!produkPerToko[item.idToko]) produkPerToko[item.idToko] = [];
+      produkPerToko[item.idToko].push(item);
     });
-  }
 
-  if (voucher?.id) {
-    await db.collection("voucher").doc(voucher.id).update({
-      kuota: firebase.firestore.FieldValue.increment(-1),
-      digunakanOleh: firebase.firestore.FieldValue.arrayUnion(uid)
+    for (const idToko in produkPerToko) {
+      const produkToko = produkPerToko[idToko];
+      const subtotalToko = produkToko.reduce((t, i) => t + (i.harga * i.jumlah), 0);
+      const ongkirToko = produkToko[0].ongkir || 0;
+      const estimasiMasakToko = produkToko.reduce((t, i) => t + (i.estimasi * i.jumlah), 0);
+      const estimasiTotalToko = estimasiMasakToko + estimasiKirim;
+
+      await db.collection("pesanan_penjual").doc(`${idPesanan}-${idToko}`).set({
+        idPesanan,
+        idToko,
+        metode: metodePembayaran,
+        namaPembeli: nama,
+        noHpPembeli: wa,
+        alamatPembeli: alamat,
+        lokasiPembeli: lokasi,
+        produk: produkToko.map(i => ({
+          nama: i.nama,
+          harga: i.harga,
+          qty: i.jumlah,
+          ongkir: i.ongkir || 0
+        })),
+        subtotalProduk: subtotalToko,
+        totalOngkir: ongkirToko,
+        biayaLayanan: 0,
+        potongan: 0,
+        total: subtotalToko + ongkirToko,
+        catatan: catatanPesanan,
+        pengiriman: metodePengiriman,
+        status: "Pending",
+        estimasiMasak: estimasiMasakToko,
+        estimasiKirim: Math.round(estimasiKirim),
+        estimasiTotal: estimasiTotalToko,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    if (voucher?.id) {
+      await db.collection("voucher").doc(voucher.id).update({
+        kuota: firebase.firestore.FieldValue.increment(-1),
+        digunakanOleh: firebase.firestore.FieldValue.arrayUnion(uid)
+      });
+    }
+
+    window.voucherTerpakai = null;
+    if (document.getElementById("voucher")) document.getElementById("voucher").value = "";
+    if (document.getElementById("voucher-feedback")) document.getElementById("voucher-feedback").innerText = "";
+
+    // Tutup loading dan tampilkan success
+    await Swal.fire({
+      icon: 'success',
+      title: 'Pesanan Berhasil',
+      text: '✅ Pesanan berhasil dibuat!',
+      confirmButtonText: 'OK'
     });
+
+    renderCheckoutItems();
+    if (document.getElementById("riwayat-list")) renderRiwayat();
+    loadContent(metodePembayaran);
+
+  } catch (error) {
+    console.error("Error proses checkout:", error);
+    await Swal.fire({
+      icon: 'error',
+      title: 'Terjadi Kesalahan',
+      text: '❌ Gagal memproses pesanan. Silakan coba lagi.',
+      confirmButtonText: 'OK'
+    });
+  } finally {
+    // Pastikan loading ditutup
+    Swal.close();
   }
-
-  window.voucherTerpakai = null;
-  if (document.getElementById("voucher")) document.getElementById("voucher").value = "";
-  if (document.getElementById("voucher-feedback")) document.getElementById("voucher-feedback").innerText = "";
-
-  alert("✅ Pesanan berhasil dibuat!");
-  renderCheckoutItems();
-  if (document.getElementById("riwayat-list")) renderRiwayat();
-  loadContent(metodePembayaran);
 }
-
-
-
-
-
 
 
 
@@ -21549,144 +25752,129 @@ async function renderProductList() {
   const db = firebase.firestore();
   const user = firebase.auth().currentUser;
 
-  // Tambah CSS dengan namespace vlc- (GoFood Style)
+  // CSS ShopeeFood Style dengan Banner Slider
   if (!document.getElementById('vlc-styles')) {
     const style = document.createElement('style');
     style.id = 'vlc-styles';
     style.textContent = `
-      /* Main Container - GoFood Style */
+      /* ShopeeFood Style Container */
       .vlc-container {
         padding: 0;
         max-width: 100%;
         margin: 0 auto;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        background: #f8f9fa;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: #f5f5f5;
         min-height: 100vh;
       }
 
-      /* Header Style */
-      .vlc-header {
-        background: linear-gradient(135deg, #ff6f00, #ff8f00);
-        color: white;
-        padding: 1rem;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      }
-
-      .vlc-header-content {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-      }
-
-      .vlc-location-selector {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(255,255,255,0.2);
-        padding: 0.75rem 1rem;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .vlc-location-selector:hover {
-        background: rgba(255,255,255,0.3);
-      }
-
-      .vlc-location-text {
-        flex: 1;
-        font-size: 0.9rem;
-      }
-
-      .vlc-location-arrow {
-        font-size: 1.2rem;
-      }
-
-      /* Search Bar */
-      .vlc-search-container {
-        padding: 1rem;
-        background: white;
-        position: sticky;
-        top: 72px;
-        z-index: 99;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      }
-
-      .vlc-search-bar {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        background: #f8f9fa;
-        padding: 0.75rem 1rem;
-        border-radius: 12px;
-        border: 1px solid #e9ecef;
-      }
-
-      .vlc-search-bar i {
-        color: #6c757d;
-      }
-
-      .vlc-search-input {
-        flex: 1;
-        border: none;
-        background: transparent;
-        font-size: 0.9rem;
-        outline: none;
-      }
-
-      /* Banner Slider */
-      .vlc-banner-container {
-        padding: 1rem;
-        background: white;
-      }
-
+      /* Banner Slider - ShopeeFood Style */
       .vlc-banner-slider {
-        display: flex;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        gap: 0.75rem;
-        padding-bottom: 0.5rem;
-        -webkit-overflow-scrolling: touch;
+        padding: 16px 16px 0;
+        background: white;
+        position: relative;
       }
 
-      .vlc-banner-slider::-webkit-scrollbar {
-        display: none;
-      }
-
-      .vlc-banner-item {
-        min-width: 85%;
-        scroll-snap-align: start;
-        border-radius: 16px;
+      .vlc-banner-container {
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        position: relative;
+        height: 160px;
+      }
+
+      .vlc-banner-slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+      }
+
+      .vlc-banner-slide.active {
+        opacity: 1;
       }
 
       .vlc-banner-img {
         width: 100%;
-        height: 120px;
+        height: 100%;
         object-fit: cover;
       }
 
-      /* Quick Actions */
+      .vlc-banner-dots {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 6px;
+        z-index: 10;
+      }
+
+      .vlc-banner-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .vlc-banner-dot.active {
+        background: white;
+        width: 20px;
+        border-radius: 3px;
+      }
+
+      .vlc-banner-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0, 0, 0, 0.3);
+        color: white;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 10;
+        transition: background 0.3s ease;
+      }
+
+      .vlc-banner-nav:hover {
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .vlc-banner-prev {
+        left: 12px;
+      }
+
+      .vlc-banner-next {
+        right: 12px;
+      }
+
+      /* Quick Actions - ShopeeFood Style */
+      .vlc-quick-actions-section {
+        background: white;
+        padding: 20px 16px;
+        margin-top: 8px;
+      }
+
       .vlc-quick-actions {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        padding: 1.5rem 1rem;
-        background: white;
+        gap: 16px;
       }
 
       .vlc-quick-action {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
+        gap: 8px;
         cursor: pointer;
         transition: transform 0.2s ease;
       }
@@ -21696,124 +25884,160 @@ async function renderProductList() {
       }
 
       .vlc-quick-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #ff6f00, #ff8f00);
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #ee4d2d, #ff7337);
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 1.2rem;
+        font-size: 20px;
+        box-shadow: 0 4px 12px rgba(238, 77, 45, 0.3);
+      }
+
+      .vlc-quick-action:nth-child(2) .vlc-quick-icon {
+        background: linear-gradient(135deg, #00bfa5, #00d4b3);
+        box-shadow: 0 4px 12px rgba(0, 191, 165, 0.3);
+      }
+
+      .vlc-quick-action:nth-child(3) .vlc-quick-icon {
+        background: linear-gradient(135deg, #2979ff, #448aff);
+        box-shadow: 0 4px 12px rgba(41, 121, 255, 0.3);
+      }
+
+      .vlc-quick-action:nth-child(4) .vlc-quick-icon {
+        background: linear-gradient(135deg, #ff6d00, #ff9100);
+        box-shadow: 0 4px 12px rgba(255, 109, 0, 0.3);
       }
 
       .vlc-quick-text {
-        font-size: 0.75rem;
-        font-weight: 600;
+        font-size: 12px;
+        font-weight: 500;
         color: #333;
         text-align: center;
         line-height: 1.2;
       }
 
-      /* Section Titles */
-      .vlc-section-title {
-        font-size: 1.3rem;
-        margin: 1.5rem 1rem 1rem;
-        color: #1a1a1a;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-weight: 700;
+      /* Kategori Section - ShopeeFood Style */
+      .vlc-kategori-section {
+        background: white;
+        padding: 20px 16px;
+        margin-top: 8px;
       }
 
-      .vlc-section-link {
-        font-size: 0.85rem;
-        color: #ff6f00;
-        font-weight: 600;
-        text-decoration: none;
-      }
-
-      /* Kategori Scroll */
       .vlc-kategori-scroll {
         display: flex;
-        gap: 0.75rem;
+        gap: 16px;
         overflow-x: auto;
-        padding: 0.5rem 1rem;
+        padding: 8px 0;
         scrollbar-width: none;
         -ms-overflow-style: none;
-        background: white;
       }
 
       .vlc-kategori-scroll::-webkit-scrollbar {
         display: none;
       }
 
-      /* Kategori Cards */
-      .vlc-kategori-card {
+      .vlc-kategori-item {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
-        padding: 1rem 0.75rem;
-        background: white;
-        border-radius: 16px;
+        gap: 8px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 12px;
         cursor: pointer;
         transition: all 0.3s ease;
         min-width: 80px;
-        border: 1px solid #f0f0f0;
+        border: 2px solid transparent;
         flex-shrink: 0;
       }
 
-      .vlc-kategori-card.active {
-        background: linear-gradient(135deg, #fff3e0, #ffe0b2);
-        border-color: #ff6f00;
+      .vlc-kategori-item:hover {
+        background: #fff;
+        border-color: #ee4d2d;
+        box-shadow: 0 2px 8px rgba(238, 77, 45, 0.15);
       }
 
-      .vlc-kategori-img-wrapper {
-        width: 50px;
-        height: 50px;
+      .vlc-kategori-item.active {
+        background: #fff;
+        border-color: #ee4d2d;
+        box-shadow: 0 2px 8px rgba(238, 77, 45, 0.2);
+      }
+
+      .vlc-kategori-icon {
+        width: 48px;
+        height: 48px;
         border-radius: 12px;
-        overflow: hidden;
-        background: #f8f9fa;
+        background: linear-gradient(135deg, #ee4d2d, #ff7337);
         display: flex;
         align-items: center;
         justify-content: center;
+        color: white;
+        font-size: 18px;
       }
 
-      .vlc-kategori-card img {
-        width: 30px;
-        height: 30px;
-        object-fit: contain;
+      .vlc-kategori-item.active .vlc-kategori-icon {
+        background: linear-gradient(135deg, #ee4d2d, #ff7337);
+        transform: scale(1.05);
       }
 
-      .vlc-kategori-card span {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: #333;
+      .vlc-kategori-text {
+        font-size: 12px;
+        font-weight: 500;
+        color: #666;
         text-align: center;
         line-height: 1.2;
       }
 
-      /* Product Cards - GoFood Style */
+      .vlc-kategori-item.active .vlc-kategori-text {
+        color: #ee4d2d;
+        font-weight: 600;
+      }
+
+      /* Section Titles - ShopeeFood Style */
+      .vlc-section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #333;
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .vlc-section-link {
+        font-size: 14px;
+        color: #ee4d2d;
+        font-weight: 500;
+        text-decoration: none;
+      }
+
+      /* Product Grid - ShopeeFood Style */
+      .vlc-produk-section {
+        background: white;
+        padding: 20px 16px;
+        margin-top: 8px;
+      }
+
       .vlc-produk-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 0.75rem;
-        padding: 0 1rem 1rem;
-        background: #f8f9fa;
+        gap: 16px;
       }
 
       .vlc-produk-card {
         background: white;
-        border-radius: 16px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         transition: all 0.3s ease;
         border: 1px solid #f0f0f0;
       }
 
       .vlc-produk-card:hover {
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         transform: translateY(-2px);
       }
 
@@ -21839,14 +26063,13 @@ async function renderProductList() {
         position: absolute;
         top: 8px;
         left: 8px;
-        background: linear-gradient(135deg, #e53935, #d32f2f);
+        background: linear-gradient(135deg, #ee4d2d, #ff7337);
         color: white;
-        font-size: 0.7rem;
+        font-size: 11px;
         padding: 4px 8px;
         border-radius: 8px;
-        font-weight: 700;
+        font-weight: 600;
         z-index: 2;
-        box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
       }
 
       .vlc-toko-badge {
@@ -21855,178 +26078,112 @@ async function renderProductList() {
         left: 8px;
         background: rgba(0,0,0,0.7);
         color: white;
-        font-size: 0.7rem;
+        font-size: 11px;
         padding: 4px 8px;
         border-radius: 8px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .vlc-produk-info {
-        padding: 1rem;
+        padding: 12px;
       }
 
       .vlc-produk-nama {
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #1a1a1a;
-        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+        margin-bottom: 8px;
         line-height: 1.3;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        height: 36px;
       }
 
       .vlc-produk-meta {
-        font-size: 0.75rem;
+        font-size: 12px;
         color: #666;
-        margin-bottom: 0.75rem;
+        margin-bottom: 12px;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 8px;
+        flex-wrap: wrap;
       }
 
       .vlc-rating {
         display: flex;
         align-items: center;
-        gap: 0.25rem;
-        color: #ff6f00;
+        gap: 4px;
+        color: #ee4d2d;
+        font-weight: 500;
       }
 
       .vlc-produk-action {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 8px;
       }
 
       .vlc-harga-container {
         display: flex;
         flex-direction: column;
+        flex: 1;
       }
 
       .vlc-harga-asli {
         text-decoration: line-through;
-        font-size: 0.75rem;
+        font-size: 12px;
         color: #999;
+        margin-bottom: 2px;
       }
 
       .vlc-harga-diskon {
-        color: #e53935;
-        font-size: 1rem;
+        color: #ee4d2d;
+        font-size: 16px;
         font-weight: 700;
       }
 
       .vlc-harga-normal {
-        color: #1a1a1a;
-        font-size: 1rem;
+        color: #333;
+        font-size: 16px;
         font-weight: 700;
       }
 
       .vlc-beli-btn {
-        background: linear-gradient(135deg, #ff6f00, #ff8f00);
+        background: #ee4d2d;
         color: white;
         border: none;
-        padding: 0.6rem 1.2rem;
-        border-radius: 12px;
-        font-weight: 700;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(255, 111, 0, 0.3);
-        font-size: 0.85rem;
+        font-size: 12px;
+        white-space: nowrap;
       }
 
       .vlc-beli-btn:hover:not(:disabled) {
+        background: #ff7337;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(255, 111, 0, 0.4);
       }
 
       .vlc-beli-btn:disabled {
         background: #ccc;
         cursor: not-allowed;
-        box-shadow: none;
         transform: none;
       }
 
-      /* Restaurant Cards */
-      .vlc-resto-card {
-        background: white;
-        border-radius: 16px;
-        overflow: hidden;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        border: 1px solid #f0f0f0;
-      }
-
-      .vlc-resto-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1rem;
-        cursor: pointer;
-        transition: background 0.2s ease;
-      }
-
-      .vlc-resto-header:hover {
-        background: #f8f9fa;
-      }
-
-      .vlc-resto-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        object-fit: cover;
-        border: 2px solid #ffecb3;
-      }
-
-      .vlc-resto-info {
-        flex: 1;
-      }
-
-      .vlc-resto-nama {
-        font-weight: 700;
-        font-size: 1rem;
-        color: #1a1a1a;
-        margin-bottom: 0.25rem;
-      }
-
-      .vlc-resto-meta {
-        font-size: 0.8rem;
-        color: #666;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .vlc-resto-status {
-        padding: 0.25rem 0.5rem;
-        border-radius: 8px;
-        font-size: 0.7rem;
-        font-weight: 600;
-      }
-
-      .vlc-resto-open {
-        background: #e8f5e8;
-        color: #2e7d32;
-      }
-
-      .vlc-resto-closed {
-        background: #ffebee;
-        color: #c62828;
-      }
-
-      .vlc-resto-arrow {
-        color: #666;
-        font-size: 1.2rem;
-      }
-
-      /* Loader States */
+      /* Loader - ShopeeFood Style */
       .vlc-loader {
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 3rem;
+        padding: 40px;
         color: #666;
-        font-size: 1rem;
+        font-size: 14px;
+        font-weight: 500;
       }
 
       .vlc-loader::before {
@@ -22034,10 +26191,10 @@ async function renderProductList() {
         width: 20px;
         height: 20px;
         border: 2px solid #f3f3f3;
-        border-top: 2px solid #ff6f00;
+        border-top: 2px solid #ee4d2d;
         border-radius: 50%;
         animation: vlc-spin 1s linear infinite;
-        margin-right: 0.5rem;
+        margin-right: 8px;
       }
 
       @keyframes vlc-spin {
@@ -22048,50 +26205,77 @@ async function renderProductList() {
       /* Error States */
       .vlc-error {
         text-align: center;
-        padding: 2rem;
-        color: #e53935;
-        background: #ffebee;
+        padding: 40px 20px;
+        color: #ee4d2d;
+        background: #fff;
         border-radius: 12px;
-        margin: 1rem;
+        margin: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       }
 
-      /* Floating Cart */
-      .vlc-floating-cart {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        background: linear-gradient(135deg, #ff6f00, #ff8f00);
-        color: white;
-        width: 60px;
-        height: 60px;
+      /* Quick Action Page */
+      .vlc-quick-action-page {
+        background: #f5f5f5;
+        min-height: 100vh;
+      }
+
+      .vlc-page-header {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        background: white;
+        border-bottom: 1px solid #f0f0f0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .vlc-back-button {
+        background: none;
+        border: none;
+        font-size: 18px;
+        padding: 8px;
+        margin-right: 16px;
+        cursor: pointer;
+        color: #333;
         border-radius: 50%;
+        width: 40px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        box-shadow: 0 4px 20px rgba(255, 111, 0, 0.4);
-        cursor: pointer;
-        z-index: 1000;
-        transition: all 0.3s ease;
+        transition: background 0.3s ease;
       }
 
-      .vlc-floating-cart:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 25px rgba(255, 111, 0, 0.6);
+      .vlc-back-button:hover {
+        background: #f5f5f5;
       }
 
-      .vlc-cart-badge {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #e53935;
-        color: white;
-        font-size: 0.7rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 10px;
+      .vlc-page-header h2 {
+        margin: 0;
+        font-size: 18px;
         font-weight: 700;
-        min-width: 20px;
+        color: #333;
+      }
+
+      .vlc-page-content {
+        padding: 16px;
+      }
+
+      .vlc-action-description {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 16px;
         text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .vlc-action-description p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+        font-weight: 500;
       }
 
       /* Responsive Design */
@@ -22100,12 +26284,13 @@ async function renderProductList() {
           grid-template-columns: repeat(2, 1fr);
         }
         
-        .vlc-banner-item {
-          min-width: 60%;
-        }
-        
         .vlc-quick-actions {
-          grid-template-columns: repeat(8, 1fr);
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+        }
+
+        .vlc-banner-container {
+          height: 200px;
         }
       }
 
@@ -22113,34 +26298,17 @@ async function renderProductList() {
         .vlc-produk-grid {
           grid-template-columns: repeat(3, 1fr);
         }
-        
-        .vlc-banner-item {
-          min-width: 40%;
-        }
       }
 
       @media (max-width: 480px) {
-        .vlc-kategori-card {
+        .vlc-kategori-item {
           min-width: 70px;
-          padding: 0.75rem 0.5rem;
-        }
-        
-        .vlc-quick-actions {
-          grid-template-columns: repeat(4, 1fr);
-          gap: 0.75rem;
+          padding: 8px;
         }
         
         .vlc-quick-icon {
-          width: 45px;
-          height: 45px;
-        }
-        
-        .vlc-floating-cart {
-          bottom: 1rem;
-          right: 1rem;
-          width: 50px;
-          height: 50px;
-          font-size: 1.2rem;
+          width: 48px;
+          height: 48px;
         }
       }
     `;
@@ -22187,59 +26355,183 @@ async function renderProductList() {
     const waktu = new Date().getHours();
     const waktuMenu = waktu < 11 ? 'Sarapan' : (waktu < 17 ? 'Makan Siang' : 'Makan Malam');
 
-    // Data untuk UI GoFood style
-    const quickActions = [
-      { label: "Food", value: "all", icon: "fa-utensils" },
-      { label: "Martabak", value: "Martabak", icon: "fa-pizza-slice" },
-      { label: "Minuman", value: "Minuman", icon: "fa-martini-glass" },
-      { label: "Promo", value: "Promo", icon: "fa-percent" },
-      { label: "Terdekat", value: "Terdekat", icon: "fa-location-dot" },
-      { label: "Rating", value: "Bestseller", icon: "fa-star" },
-      { label: "Hemat", value: "Hemat", icon: "fa-wallet" },
-      { label: "Sehat", value: "Sehat", icon: "fa-heart" }
-    ];
+    // Load banner data dari Firebase
+    const bannerSnapshot = await db.collection("banners").where("isActive", "==", true).get();
+    const banners = [];
+    bannerSnapshot.forEach(doc => {
+      const data = doc.data();
+      banners.push({
+        id: doc.id,
+        imageUrl: data.imageUrl || './img/banner-default.jpg',
+        title: data.title || 'Promo Spesial',
+        link: data.link || '#',
+        order: data.order || 0
+      });
+    });
 
-    const kategoriKuliner = [
-      { label: "Martabak", value: "Martabak", image: "./img/kategori/martabak.png" },
-      { label: "Bakso", value: "Bakso", image: "./img/kategori/bakso.png" },
-      { label: "Roti", value: "Roti", image: "./img/kategori/roti.png" },
-      { label: "Minuman", value: "Minuman", image: "./img/kategori/minuman.png" },
-      { label: "Kue", value: "Kue", image: "./img/kategori/kue.png" },
-      { label: "Jajanan", value: "Jajanan", image: "./img/kategori/jajanan.png" },
-      { label: "Sate", value: "Sate", image: "./img/kategori/sate.png" },
-      { label: "Nasi", value: "Nasi", image: "./img/kategori/nasi.png" },
-      { label: "Ayam", value: "Ayam", image: "./img/kategori/ayam.png" }
-    ];
+    // Urutkan banner berdasarkan order
+    banners.sort((a, b) => a.order - b.order);
+// Data untuk UI ShopeeFood style
+const kategoriKuliner = [
+  { label: "Semua", value: "all", icon: "fa-utensils" },
+  { label: "Martabak", value: "Martabak", icon: "fa-pizza-slice" },
+  { label: "Minuman", value: "Minuman", icon: "fa-martini-glass" },
+  { label: "Promo", value: "Promo", icon: "fa-percent" },
+  { label: "Terdekat", value: "Terdekat", icon: "fa-location-dot" },
+  { label: "Rating", value: "Bestseller", icon: "fa-star" },
+  { label: "Hemat", value: "Hemat", icon: "fa-wallet" },
+  { label: "Sehat", value: "Sehat", icon: "fa-heart" }
+];
 
-    // Render main UI structure
-    produkContainer.innerHTML = `
-      <div class="vlc-container">
-        
-        <!-- Kategori Section -->
+const quickActions = [
+  { label: "Pulsa", value: "pulsa", icon: "fa-mobile-alt", page: "pulsa" },
+  { label: "Paket Data", value: "data", icon: "fa-wifi", page: "data" },
+  { label: "Sosial Media", value: "sosmed", icon: "fa-share-alt", page: "sosmed" },
+  { label: "Games", value: "games", icon: "fa-gamepad", page: "games" }
+];
+
+
+// Render main UI structure dengan design ShopeeFood
+if (typeof produkContainer !== 'undefined' && produkContainer) {
+  produkContainer.innerHTML = `
+    <div class="vlc-container">
+      <!-- Quick Actions Section -->
+      <div class="vlc-quick-actions-section">
+        <h2 class="vlc-section-title">Layanan Cepat</h2>
+        <div class="vlc-quick-actions">
+          ${quickActions.map(action => `
+            <div 
+              class="vlc-quick-action" 
+              onclick="loadContent('${action.page}')"
+            >
+              <div class="vlc-quick-icon">
+                <i class="fas ${action.icon}"></i>
+              </div>
+              <span class="vlc-quick-text">${action.label}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Kategori Section -->
+      <div class="vlc-kategori-section">
+        <h2 class="vlc-section-title">Kategori</h2>
+        <div class="vlc-kategori-scroll" id="vlc-kategori-container">
+          ${kategoriKuliner.map(kategori => `
+            <div class="vlc-kategori-item" data-kategori="${kategori.value}">
+              <div class="vlc-kategori-icon">
+                <i class="fas ${kategori.icon}"></i>
+              </div>
+              <span class="vlc-kategori-text">${kategori.label}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Recommended Section -->
+      <div class="vlc-produk-section">
         <h2 class="vlc-section-title">
-          Kategori
-          <a href="#" class="vlc-section-link">Lihat Semua</a>
-        </h2>
-        <div id="vlc-kategori-container" class="vlc-kategori-scroll"></div>
-
-        <!-- Recommended Section -->
-        <h2 class="vlc-section-title">
-          <i class="fas fa-bell-concierge"></i> Menu ${waktuMenu}
+          Menu ${waktuMenu}
           <a href="#" class="vlc-section-link">Lihat Semua</a>
         </h2>
         <div id="vlc-produk-list-wrapper" class="vlc-produk-grid">
           <div class="vlc-loader">Memuat produk...</div>
         </div>
-
-        <!-- Floating Cart -->
-        <div class="vlc-floating-cart" onclick="openCart()">
-          <i class="fas fa-shopping-cart"></i>
-          <div class="vlc-cart-badge">0</div>
-        </div>
       </div>
-    `;
+    </div>
+  `;
+} else {
+  console.error('produkContainer tidak terdefinisi');
+}
 
-    // Load data from Firestore
+    // Initialize Banner Slider
+    if (banners.length > 1) {
+      initializeBannerSlider();
+    }
+
+    // Fungsi untuk Banner Slider
+    function initializeBannerSlider() {
+      const slides = document.querySelectorAll('.vlc-banner-slide');
+      const dots = document.querySelectorAll('.vlc-banner-dot');
+      const prevBtn = document.querySelector('.vlc-banner-prev');
+      const nextBtn = document.querySelector('.vlc-banner-next');
+      
+      let currentSlide = 0;
+      let slideInterval;
+
+      function showSlide(index) {
+        // Hide all slides
+        slides.forEach(slide => slide.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+        
+        // Show current slide
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+        currentSlide = index;
+      }
+
+      function nextSlide() {
+        let nextIndex = (currentSlide + 1) % slides.length;
+        showSlide(nextIndex);
+      }
+
+      function prevSlide() {
+        let prevIndex = (currentSlide - 1 + slides.length) % slides.length;
+        showSlide(prevIndex);
+      }
+
+      // Auto slide every 5 seconds
+      function startAutoSlide() {
+        slideInterval = setInterval(nextSlide, 5000);
+      }
+
+      function stopAutoSlide() {
+        clearInterval(slideInterval);
+      }
+
+      // Event Listeners
+      if (nextBtn) nextBtn.addEventListener('click', () => {
+        stopAutoSlide();
+        nextSlide();
+        startAutoSlide();
+      });
+
+      if (prevBtn) prevBtn.addEventListener('click', () => {
+        stopAutoSlide();
+        prevSlide();
+        startAutoSlide();
+      });
+
+      dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          stopAutoSlide();
+          const index = parseInt(dot.getAttribute('data-index'));
+          showSlide(index);
+          startAutoSlide();
+        });
+      });
+
+      // Pause auto-slide on hover
+      const bannerContainer = document.getElementById('vlc-banner-container');
+      if (bannerContainer) {
+        bannerContainer.addEventListener('mouseenter', stopAutoSlide);
+        bannerContainer.addEventListener('mouseleave', startAutoSlide);
+      }
+
+      // Start auto-slide
+      startAutoSlide();
+    }
+
+    // Event listener untuk Quick Actions
+    document.addEventListener('click', function(e) {
+      const quickAction = e.target.closest('.vlc-quick-action');
+      if (quickAction) {
+        const page = quickAction.getAttribute('data-page');
+        loadContent(page);
+      }
+    });
+
+    // Load data produk dari Firestore dan sisanya tetap sama...
     const produkSnapshot = await db.collection("produk").get();
     const produkList = produkSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -22302,35 +26594,27 @@ async function renderProductList() {
     }
 
     const produkUrut = produkGabung.sort((a, b) => a.jarakNumber - b.jarakNumber);
-    const produkIklan = produkGabung.filter(p => p.iklan === true);
 
     // Render kategori
     function renderKategori() {
       const kategoriContainer = document.getElementById('vlc-kategori-container');
-      kategoriContainer.innerHTML = kategoriKuliner.map(k => `
-        <div class="vlc-kategori-card" data-kategori="${k.value}">
-          <div class="vlc-kategori-img-wrapper">
-            <img src="${k.image}" alt="${k.label}" onerror="this.src='./img/toko-pict.png'" />
-          </div>
-          <span>${k.label}</span>
-        </div>
-      `).join("");
+      if (!kategoriContainer) return;
+      
+      // Set first category as active by default
+      setTimeout(() => {
+        const firstCategory = kategoriContainer.querySelector('.vlc-kategori-item');
+        if (firstCategory) {
+          firstCategory.classList.add('active');
+        }
+      }, 100);
 
-      // Add event listeners
-      document.querySelectorAll('.vlc-kategori-card').forEach(card => {
+      // Add event listeners untuk kategori
+      document.querySelectorAll('.vlc-kategori-item').forEach(card => {
         card.addEventListener('click', () => {
           const kategori = card.getAttribute('data-kategori');
-          document.querySelectorAll('.vlc-kategori-card').forEach(c => c.classList.remove('active'));
+          document.querySelectorAll('.vlc-kategori-item').forEach(c => c.classList.remove('active'));
           card.classList.add('active');
           tampilkanProdukFilter(kategori);
-        });
-      });
-
-      // Add event listeners for quick actions
-      document.querySelectorAll('.vlc-quick-action').forEach(action => {
-        action.addEventListener('click', () => {
-          const actionType = action.getAttribute('data-action');
-          tampilkanProdukFilter(actionType);
         });
       });
     }
@@ -22338,6 +26622,8 @@ async function renderProductList() {
     // Enhanced product display function
     window.tampilkanProdukFilter = function (kategori = "all", containerId = "vlc-produk-list-wrapper") {
       const wrapper = document.getElementById(containerId);
+      if (!wrapper) return;
+      
       let produkFilter = produkUrut;
 
       switch (kategori.toLowerCase()) {
@@ -22357,7 +26643,7 @@ async function renderProductList() {
           produkFilter = produkUrut.filter(p => (p.kategori || "").toLowerCase().includes("sehat") || (p.deskripsi || "").toLowerCase().includes("sehat"));
           break;
         case "all":
-          produkFilter = produkUrut.slice(0, 12); // Limit for better performance
+          produkFilter = produkUrut.slice(0, 12);
           break;
         default:
           produkFilter = produkUrut.filter(p => (p.kategori || "").toLowerCase() === kategori.toLowerCase());
@@ -22365,9 +26651,9 @@ async function renderProductList() {
 
       if (produkFilter.length === 0) {
         wrapper.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #666;">
-            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-            <p>Tidak ada produk untuk <strong>${kategori}</strong></p>
+          <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #666;">
+            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <p style="font-size: 0.9rem; font-weight: 500;">Tidak ada produk untuk <strong>${kategori}</strong></p>
           </div>
         `;
         return;
@@ -22392,7 +26678,7 @@ async function renderProductList() {
           <div class="vlc-produk-card">
             <div class="vlc-produk-img-container">
               ${showDiskon ? `<div class="vlc-diskon-badge">-${persenDiskon}%</div>` : ""}
-              <img src="${p.urlGambar}" alt="${p.namaProduk}" class="vlc-produk-img" />
+              <img src="${p.urlGambar}" alt="${p.namaProduk}" class="vlc-produk-img" onerror="this.src='./img/toko-pict.png'" />
               <div class="vlc-toko-badge">${p.tokoNama}</div>
             </div>
             <div class="vlc-produk-info">
@@ -22414,7 +26700,7 @@ async function renderProductList() {
                     : `<span class="vlc-harga-normal">Rp ${hargaAsli.toLocaleString("id-ID")}</span>`}
                 </div>
                 <button class="vlc-beli-btn" ${disabledAttr} 
-                  onclick="${!disabledAttr ? `tampilkanPopupDetail(${JSON.stringify(p).replace(/"/g, '&quot;')})` : ''}">
+                  onclick="${!disabledAttr ? `tampilkanPopupDetail(${JSON.stringify(p).replace(/"/g, '&quot;')})` : 'void(0)'}">
                   ${btnText}
                 </button>
               </div>
@@ -22427,45 +26713,6 @@ async function renderProductList() {
     // Initialize
     renderKategori();
     tampilkanProdukFilter("all");
-
-    // Add search functionality
-    const searchInput = document.querySelector('.vlc-search-input');
-    searchInput.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase();
-      if (searchTerm.length >= 2) {
-        const filtered = produkUrut.filter(p => 
-          p.namaProduk.toLowerCase().includes(searchTerm) ||
-          p.tokoNama.toLowerCase().includes(searchTerm) ||
-          (p.kategori || '').toLowerCase().includes(searchTerm)
-        );
-        document.getElementById('vlc-produk-list-wrapper').innerHTML = filtered.map(p => `
-          <div class="vlc-produk-card">
-            <div class="vlc-produk-img-container">
-              <img src="${p.urlGambar}" alt="${p.namaProduk}" class="vlc-produk-img" />
-              <div class="vlc-toko-badge">${p.tokoNama}</div>
-            </div>
-            <div class="vlc-produk-info">
-              <p class="vlc-produk-nama">${p.namaProduk}</p>
-              <div class="vlc-produk-meta">
-                <span class="vlc-rating">
-                  <i class="fas fa-star"></i> ${p.ratingDisplay}
-                </span>
-                <span>•</span>
-                <span>${p.jarak}</span>
-              </div>
-              <div class="vlc-produk-action">
-                <span class="vlc-harga-normal">Rp ${Number(p.harga).toLocaleString("id-ID")}</span>
-                <button class="vlc-beli-btn" onclick="tampilkanPopupDetail(${JSON.stringify(p).replace(/"/g, '&quot;')})">
-                  Pesan
-                </button>
-              </div>
-            </div>
-          </div>
-        `).join('');
-      } else if (searchTerm.length === 0) {
-        tampilkanProdukFilter("all");
-      }
-    });
 
   } catch (err) {
     console.error("Gagal memuat produk:", err);
@@ -22480,8 +26727,33 @@ async function renderProductList() {
     `;
   }
 }
-renderProductList();
 
+// Fungsi untuk menampilkan content quick action
+function showQuickActionContent(title, description) {
+  const produkContainer = document.getElementById('produk-container');
+  if (!produkContainer) return;
+  
+  produkContainer.innerHTML = `
+    <div class="vlc-quick-action-page">
+      <div class="vlc-page-header">
+        <button class="vlc-back-button" onclick="renderProductList()">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h2>${title}</h2>
+      </div>
+      <div class="vlc-page-content">
+        <div class="vlc-action-description">
+          <p>${description}</p>
+        </div>
+        <div class="vlc-action-products">
+          <div class="vlc-loader">Memuat ${title}...</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+renderProductList();
 
 // Fungsi untuk menampilkan modal
 function showVlxModal(modalId) {
@@ -23162,7 +27434,6 @@ function hitungSubtotal(hargaProduk) {
   const tombol = document.getElementById("tombol-tambah-keranjang");
   if (tombol) {
     tombol.innerHTML = `
-      <div style="font-weight: 500;">Tambah ke Keranjang</div>
       <div style="font-weight: bold;">Rp ${subtotal.toLocaleString("id-ID")}</div>
     `;
   }
@@ -23221,25 +27492,44 @@ function parseRating(val) {
 
 
 
-async function tambahKeKeranjangDenganAddon(produk, addons = []) {
+async function tambahKeKeranjangDenganAddon(produk, addons = [], quantity = 1, selectedAddons = []) {
   try {
-    const checkboxes = document.querySelectorAll(".addon-checkbox");
-    const addonTerpilih = [];
+    // Show loading state on button
+    const addButton = document.querySelector('.vlcr-add-cart-btn');
+    if (addButton) {
+      const originalHTML = addButton.innerHTML;
+      addButton.innerHTML = `
+        <div class="vlcr-btn-content">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span class="vlcr-btn-text">Menambahkan...</span>
+        </div>
+        <span class="vlcr-btn-price">Rp <span id="vlcr-total-price">${document.getElementById('vlcr-total-price')?.textContent || '0'}</span></span>
+      `;
+      addButton.disabled = true;
+    }
+
+    const checkboxes = document.querySelectorAll(".addon-checkbox, .vlcr-addon-checkbox");
+    const addonTerpilih = selectedAddons.length > 0 ? selectedAddons : [];
     let totalAddon = 0;
 
-    checkboxes.forEach(cb => {
-      if (cb.checked) {
-        const hargaAddon = parseInt(cb.dataset.harga || "0");
-        addonTerpilih.push({
-          nama: cb.dataset.nama,
-          harga: hargaAddon
-        });
-        totalAddon += hargaAddon;
-      }
-    });
+    // If no selectedAddons provided, get from checkboxes
+    if (selectedAddons.length === 0) {
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          const hargaAddon = parseInt(cb.dataset.harga || "0");
+          addonTerpilih.push({
+            nama: cb.dataset.nama,
+            harga: hargaAddon
+          });
+          totalAddon += hargaAddon;
+        }
+      });
+    } else {
+      totalAddon = selectedAddons.reduce((sum, addon) => sum + addon.harga, 0);
+    }
 
-    // Ambil catatan dari textarea
-    const catatanElem = document.querySelector(".popup-text-detail-produk textarea");
+    // Ambil catatan
+    const catatanElem = document.querySelector(".popup-text-detail-produk textarea, .vlcr-modal-content textarea, [data-catatan]");
     const catatan = catatanElem ? catatanElem.value.trim() : "";
 
     // Pastikan fungsi tambahKeKeranjang tersedia
@@ -23247,22 +27537,214 @@ async function tambahKeKeranjangDenganAddon(produk, addons = []) {
       throw new Error("Fungsi tambahKeKeranjang tidak ditemukan.");
     }
 
-    // Kirim catatan ke fungsi tambahKeKeranjang
-    await tambahKeKeranjang(produk, addonTerpilih, catatan);
-    tutupPopup();
-    alert("✅ Produk berhasil ditambahkan ke keranjang.");
+    // Kirim data ke fungsi tambahKeKeranjang
+    await tambahKeKeranjang(produk, addonTerpilih, catatan, quantity);
     
-    // Setelah sukses, load halaman checkout
-    if (typeof loadContent === "function") {
-      loadContent('checkout');
-    } else {
-      console.warn("Fungsi loadContent tidak ditemukan, tidak dapat pindah ke checkout.");
+    // Tutup modal produk
+    closeProductModal();
+    
+    // Success animation menggunakan SweetAlert bawaan
+    await Swal.fire({
+      icon: 'success',
+      title: 'Berhasil Ditambahkan!',
+ 
+      showConfirmButton: true,
+      confirmButtonText: 'Lihat Keranjang',
+      confirmButtonColor: '#ff6f00',
+      showCancelButton: true,
+      cancelButtonText: 'Lanjut Belanja',
+      cancelButtonColor: '#6b7280',
+      background: 'white',
+      customClass: {
+        popup: 'vlcr-swal-popup',
+        title: 'vlcr-swal-title',
+        htmlContainer: 'vlcr-swal-content'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Navigate to checkout
+        if (typeof loadContent === "function") {
+          loadContent('checkout');
+        } else {
+          // Fallback: reload keranjang jika loadContent tidak ada
+          if (typeof renderCheckoutItems === "function") {
+            renderCheckoutItems();
+          }
+        }
+      }
+    });
+
+    // Update cart badge if function exists
+    if (typeof updateCartBadge === 'function') {
+      updateCartBadge();
     }
+
   } catch (err) {
     console.error("❌ Gagal proses keranjang:", err.message || err);
-    alert("❌ Gagal menambahkan ke keranjang.");
+    
+    // Error animation menggunakan SweetAlert bawaan
+    await Swal.fire({
+      icon: 'error',
+      title: 'Gagal Menambahkan',
+      text: err.message || 'Terjadi kesalahan saat menambahkan ke keranjang',
+      confirmButtonText: 'Coba Lagi',
+      confirmButtonColor: '#ff6f00',
+      background: 'white'
+    });
+  } finally {
+    // Restore button state
+    const addButton = document.querySelector('.vlcr-add-cart-btn');
+    if (addButton) {
+      addButton.disabled = false;
+      addButton.innerHTML = `
+        <div class="vlcr-btn-content">
+          <i class="fas fa-shopping-cart vlcr-btn-icon"></i>
+          <span class="vlcr-btn-text">Tambah ke Keranjang</span>
+        </div>
+        <span class="vlcr-btn-price">Rp <span id="vlcr-total-price">${document.getElementById('vlcr-total-price')?.textContent || '0'}</span></span>
+      `;
+    }
   }
 }
+
+// CSS untuk styling SweetAlert (tanpa animasi custom)
+if (!document.getElementById('vlcr-swal-styles')) {
+  const swalStyles = document.createElement('style');
+  swalStyles.id = 'vlcr-swal-styles';
+  swalStyles.textContent = `
+    /* SweetAlert Custom Styling */
+    .vlcr-swal-popup {
+      border-radius: 20px !important;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2) !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      padding: 24px !important;
+    }
+
+    .vlcr-swal-title {
+      font-size: 1.4rem !important;
+      font-weight: 700 !important;
+      margin-bottom: 16px !important;
+      color: #1a1a1a !important;
+    }
+
+    .vlcr-swal-content {
+      text-align: center !important;
+      margin: 16px 0 !important;
+    }
+
+    .vlcr-success-content {
+      text-align: center;
+    }
+
+    .vlcr-success-content p {
+      color: #333;
+      margin: 0 0 8px 0;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .vlcr-addons-summary, .vlcr-quantity-summary {
+      color: #666;
+      margin: 4px 0;
+      font-size: 0.9rem;
+    }
+
+    .swal2-confirm {
+      border-radius: 12px !important;
+      padding: 12px 24px !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem !important;
+      background: linear-gradient(135deg, #ff6f00, #ff8f00) !important;
+      border: none !important;
+      box-shadow: 0 4px 15px rgba(255, 111, 0, 0.3) !important;
+      transition: all 0.3s ease !important;
+    }
+
+    .swal2-confirm:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 6px 20px rgba(255, 111, 0, 0.4) !important;
+    }
+
+    .swal2-confirm:active {
+      transform: translateY(0) !important;
+    }
+
+    .swal2-cancel {
+      border-radius: 12px !important;
+      padding: 12px 24px !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem !important;
+      background: #f8f9fa !important;
+      border: 1px solid #e0e0e0 !important;
+      color: #666 !important;
+      transition: all 0.3s ease !important;
+    }
+
+    .swal2-cancel:hover {
+      background: #e9ecef !important;
+      border-color: #ff6f00 !important;
+      color: #ff6f00 !important;
+    }
+
+    /* SweetAlert Icon Styling */
+    .swal2-icon {
+      margin: 0 auto 16px !important;
+    }
+
+    .swal2-success [class^=swal2-success-line] {
+      background-color: #4CAF50 !important;
+    }
+
+    .swal2-success .swal2-success-ring {
+      border-color: rgba(76, 175, 80, 0.3) !important;
+    }
+
+    .swal2-error [class^=swal2-x-mark-line] {
+      background-color: #f44336 !important;
+    }
+
+    /* Button Loading State */
+    .vlcr-add-cart-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .fa-spinner {
+      animation: vlcr-spin 1s linear infinite;
+    }
+
+    @keyframes vlcr-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive SweetAlert */
+    @media (max-width: 480px) {
+      .vlcr-swal-popup {
+        padding: 20px !important;
+        margin: 10px !important;
+      }
+
+      .vlcr-swal-title {
+        font-size: 1.2rem !important;
+      }
+
+      .vlcr-success-content p {
+        font-size: 1rem;
+      }
+
+      .swal2-confirm,
+      .swal2-cancel {
+        padding: 10px 20px !important;
+        font-size: 0.9rem !important;
+      }
+    }
+  `;
+  document.head.appendChild(swalStyles);
+}
+
+// Make sure the enhanced function is available globally
+window.tambahKeKeranjangDenganAddon = tambahKeKeranjangDenganAddon;
 
 async function batalkanPesananDriver(idDocDriver, idPesanan) {
   const alasan = prompt("Tulis alasan pembatalan pesanan:");
