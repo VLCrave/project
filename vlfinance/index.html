@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLFinance - Financial Advice untuk Generasi Z</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
+        <div class="loading-animation mb-8">
+            <div class="loading-circle"></div>
+            <div class="loading-circle"></div>
+            <div class="loading-circle"></div>
+        </div>
+        <div class="text-center">
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <i class="fas fa-coins text-3xl text-purple-500"></i>
+                <span class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-cyan-500 bg-clip-text text-transparent">VLFinance</span>
+            </div>
+            <p class="text-gray-600 animate-pulse">Mempersiapkan pengalaman finansial terbaik untuk Anda...</p>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app" class="hidden">
+        <!-- Content akan di-render oleh JavaScript -->
+    </div>
+
+    <!-- Main JavaScript -->
+    <script src="js/script.js"></script>
+</body>
+</html>
