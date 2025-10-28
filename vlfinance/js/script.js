@@ -24,7 +24,7 @@ const db = firebase.firestore();
 
 // AI Configuration
 const AI_CONFIG = {
-    API_KEY: "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",
+    API_KEY: "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",
     MODEL: "google/gemini-2.0-flash-001"
 };
 
