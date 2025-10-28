@@ -1,3 +1,83 @@
+/* Custom Styles untuk Dashboard Modern */
+.quick-action-btn {
+    @apply flex flex-col items-center justify-center p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 border border-gray-200 hover:border-gray-300;
+}
+
+.quick-action-btn i {
+    @apply text-lg mb-2;
+}
+
+.quick-action-btn span {
+    @apply text-xs font-medium text-gray-700;
+}
+
+.dashboard-stat-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Progress Circle Animation */
+@keyframes progressAnimation {
+    0% {
+        stroke-dasharray: 0, 100;
+    }
+}
+
+#health-progress {
+    animation: progressAnimation 1.5s ease-in-out;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Loading Skeleton */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .container {
+        @apply px-3;
+    }
+    
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .stat-card-mobile {
+        @apply p-3;
+    }
+}
 /* Modern Gradient Backgrounds */
 .gradient-bg {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
