@@ -66,34 +66,32 @@ class VLFinanceApp {
 
     // ==================== AUTH MANAGEMENT ====================
     initAuthListener() {
-        this.auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                console.log('User logged in:', user.email);
-                await this.loadUserData(user.uid);
-                
-                if (this.userData && this.userData.status === false) {
-                    this.setAuthState(true, {
-                        displayName: user.displayName,
-                        email: user.email,
-                        uid: user.uid,
-                        ...this.userData
-                    });
-                    this.loadContent('pending-active');
-                } else {
-                    this.setAuthState(true, {
-                        displayName: user.displayName,
-                        email: user.email,
-                        uid: user.uid,
-                        ...this.userData
-                    });
-                    this.showNotification('Berhasil masuk!', 'success');
-                }
+    this.auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            console.log('User logged in:', user.email);
+            await this.loadUserData(user.uid);
+
+            this.setAuthState(true, {
+                displayName: user.displayName,
+                email: user.email,
+                uid: user.uid,
+                ...this.userData
+            });
+
+            if (this.userData && this.userData.status === false) {
+                console.log("User belum aktif, tampilkan halaman pending...");
+                document.getElementById('app').innerHTML = this.renderPendingActivePage();
             } else {
-                console.log('User logged out');
-                this.setAuthState(false);
+                this.showNotification('Berhasil masuk!', 'success');
+                this.loadContent('dashboard'); // atau halaman utama aktifmu
             }
-        });
-    }
+        } else {
+            console.log('User logged out');
+            this.setAuthState(false);
+        }
+    });
+}
+
 
     async loadUserData(uid) {
         try {
