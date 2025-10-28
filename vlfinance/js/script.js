@@ -1178,7 +1178,7 @@ async sendVLFinanceMessage() {
         const API_KEY = "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";
         const MODEL = "google/gemini-2.0-flash-001";
         
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const response = await fetch("/js/vlfinance", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${API_KEY}`,
