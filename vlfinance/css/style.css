@@ -1,3 +1,43 @@
+/* Tambahkan di CSS file Anda */
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.floating-image {
+    animation: float 3s ease-in-out infinite;
+}
+
+.glow-effect {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+/* CSS untuk AI Response */
+.vlfinance-ai-response {
+    line-height: 1.5;
+}
+
+.vlfinance-ai-response b,
+.vlfinance-ai-response strong {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.vlfinance-ai-response i,
+.vlfinance-ai-response em {
+    color: #7c3aed;
+    font-style: italic;
+}
+
+.vlfinance-ai-response br {
+    content: "";
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* Untuk list yang menggunakan br */
+.vlfinance-ai-response br + br {
+    margin-bottom: 0.75rem;
+}
 /* Custom Styles untuk Dashboard Modern */
 .quick-action-btn {
     @apply flex flex-col items-center justify-center p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 border border-gray-200 hover:border-gray-300;
