@@ -1034,97 +1034,648 @@ startCountdown() {
         `;
     }
 
-    renderUserDashboard() {
-        return `
-            <div class="container mx-auto px-4 py-8">
-                <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
-                    <p class="text-gray-600">Selamat datang kembali, ${this.userData?.displayName || 'User'}!</p>
+ renderUserDashboard() {
+    return `
+        <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+            <!-- Header -->
+            <header class="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-50">
+                <div class="container mx-auto px-4 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-wallet text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-bold text-gray-800">FinTrack</h1>
+                                <p class="text-sm text-gray-600">Hello, ${this.userData?.displayName || 'User'}! 👋</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                <i class="fas fa-bell text-gray-600"></i>
+                            </button>
+                            <div class="w-8 h-8 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                                ${this.userData?.displayName?.charAt(0) || 'U'}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-green-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-600 text-sm">Total Pemasukan</p>
-                                <p class="text-2xl font-bold text-gray-800">Rp 5.250.000</p>
-                            </div>
-                            <i class="fas fa-wallet text-green-500 text-2xl"></i>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-red-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-600 text-sm">Total Pengeluaran</p>
-                                <p class="text-2xl font-bold text-gray-800">Rp 2.800.000</p>
-                            </div>
-                            <i class="fas fa-shopping-cart text-red-500 text-2xl"></i>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-600 text-sm">Tabungan</p>
-                                <p class="text-2xl font-bold text-gray-800">Rp 8.500.000</p>
-                            </div>
-                            <i class="fas fa-piggy-bank text-blue-500 text-2xl"></i>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-purple-500">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-600 text-sm">Investasi</p>
-                                <p class="text-2xl font-bold text-gray-800">+15.2%</p>
-                            </div>
-                            <i class="fas fa-chart-line text-purple-500 text-2xl"></i>
-                        </div>
+            </header>
+
+            <div class="container mx-auto px-4 py-6">
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    ${this.renderStatCard('pemasukan', 'Total Income', 'fa-wallet', 'green', 'income')}
+                    ${this.renderStatCard('pengeluaran', 'Total Expense', 'fa-shopping-cart', 'red', 'expense')}
+                    ${this.renderStatCard('tabungan', 'Savings', 'fa-piggy-bank', 'blue', 'savings')}
+                    ${this.renderStatCard('saldo', 'Balance', 'fa-chart-line', 'purple', 'balance')}
+                </div>
+
+                <!-- Financial Planning Section -->
+                <div class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Financial Planning</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        ${this.renderPlanningCard('tabungan', 'Savings Plan', 'fa-piggy-bank', 'Manage your savings goals', 'blue')}
+                        ${this.renderPlanningCard('dana-darurat', 'Emergency Fund', 'fa-shield-alt', 'Calculate emergency needs', 'green')}
+                        ${this.renderPlanningCard('liburan', 'Vacation Plan', 'fa-umbrella-beach', 'Plan your dream vacation', 'yellow')}
+                        ${this.renderPlanningCard('kpr', 'Mortgage Sim', 'fa-home', 'Simulate your KPR', 'purple')}
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-white rounded-xl p-6 shadow-lg">
-                        <h3 class="text-xl font-bold mb-4">Transaksi Terbaru</h3>
-                        <div class="space-y-4">
-                            ${this.renderTransactionItem('Gaji Bulanan', 'Rp 5.000.000', 'income', '2024-01-15')}
-                            ${this.renderTransactionItem('Belanja Bulanan', 'Rp 800.000', 'expense', '2024-01-14')}
-                            ${this.renderTransactionItem('Freelance Project', 'Rp 2.500.000', 'income', '2024-01-12')}
+                <!-- Main Content Grid -->
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+                    <!-- Left Column -->
+                    <div class="xl:col-span-2 space-y-6">
+                        <!-- Recent Transactions -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h2 class="text-lg font-semibold text-gray-800">Recent Transactions</h2>
+                                <button class="text-blue-600 hover:text-blue-700 text-sm font-medium view-all-transactions">
+                                    View All
+                                </button>
+                            </div>
+                            <div id="recent-transactions" class="space-y-3">
+                                <div class="text-center py-8 text-gray-400">
+                                    <i class="fas fa-receipt text-3xl mb-2"></i>
+                                    <p>Loading transactions...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl p-6 shadow-lg">
-                        <h3 class="text-xl font-bold mb-4">Kesehatan Keuangan</h3>
-                        <div class="text-center">
-                            <div class="health-score mb-4">
-                                <span>72</span>
+
+                    <!-- Right Column -->
+                    <div class="space-y-6">
+                        <!-- Financial Health -->
+                        <div class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-6 text-white">
+                            <div class="text-center mb-4">
+                                <div class="w-20 h-20 mx-auto mb-3 relative">
+                                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                                        <path id="health-progress" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            fill="none" stroke="#ffffff" stroke-width="3" stroke-dasharray="0, 100"/>
+                                        <text x="18" y="20.5" class="text-sm font-bold" text-anchor="middle" fill="#ffffff">
+                                            <tspan id="health-score">0</tspan>
+                                            <tspan dx="-2" dy="-2" class="text-xs">%</tspan>
+                                        </text>
+                                    </svg>
+                                </div>
+                                <h3 class="font-semibold mb-1">Financial Health</h3>
+                                <p class="text-blue-100 text-sm" id="health-status">Calculating...</p>
                             </div>
-                            <p class="text-green-600 font-semibold">Baik</p>
-                            <p class="text-gray-600 text-sm mt-2">Skor kesehatan keuangan Anda dalam kondisi baik</p>
                         </div>
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
+}
+
+renderPlanningCard(type, title, icon, description, color) {
+    const colorClasses = {
+        blue: 'from-blue-500 to-cyan-500',
+        green: 'from-green-500 to-emerald-500',
+        yellow: 'from-yellow-500 to-orange-500',
+        purple: 'from-purple-500 to-pink-500'
+    };
+
+    return `
+        <div class="planning-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 cursor-pointer hover:shadow-md transition-all duration-300 group" data-page="${type}">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-12 h-12 bg-gradient-to-r ${colorClasses[color]} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas ${icon} text-white text-lg"></i>
+                </div>
+            </div>
+            <h3 class="font-semibold text-gray-800 mb-2">${title}</h3>
+            <p class="text-gray-600 text-sm mb-3">${description}</p>
+            <div class="flex items-center text-blue-600 text-sm font-medium">
+                <span>Manage</span>
+                <i class="fas fa-chevron-right ml-2 text-xs group-hover:translate-x-1 transition-transform duration-200"></i>
+            </div>
+        </div>
+    `;
+}
+
+// Fungsi utama untuk render halaman berdasarkan route
+renderPage(route) {
+    switch (route) {
+        case '/':
+        case '/dashboard':
+            return this.renderUserDashboard();
+        case '/income':
+            return this.renderIncomeManagement();
+        case '/expense':
+            return this.renderExpenseManagement();
+        case '/savings':
+            return this.renderSavingsManagement();
+        case '/transactions':
+            return this.renderAllTransactions();
+        case '/financial-planning':
+            return this.renderFinancialPlanning();
+        case '/emergency-fund':
+            return this.renderEmergencyFund();
+        case '/vacation-plan':
+            return this.renderVacationPlan();
+        case '/mortgage-sim':
+            return this.renderMortgageSim();
+        case '/profile':
+            return this.renderProfilePage();
+        case '/login':
+            return this.renderLoginPage();
+        case '/register':
+            return this.renderRegisterPage();
+        default:
+            return this.renderUserDashboard();
+    }
+}
+
+// Fungsi untuk menampilkan halaman
+showPage(route) {
+    const app = document.getElementById('app');
+    if (app) {
+        app.innerHTML = this.renderPage(route);
+        this.attachEventListeners(route);
+        
+        // Load data khusus untuk halaman tertentu
+        this.loadPageSpecificData(route);
+    }
+}
+
+// Fungsi untuk load data berdasarkan halaman
+loadPageSpecificData(route) {
+    switch (route) {
+        case '/':
+        case '/dashboard':
+            this.loadDashboardData();
+            break;
+        case '/income':
+            this.loadIncomeData();
+            break;
+        case '/expense':
+            this.loadExpenseData();
+            break;
+        case '/savings':
+            this.loadSavingsData();
+            break;
+        case '/transactions':
+            this.loadAllTransactions();
+            break;
+    }
+}
+
+// Event listeners untuk dashboard
+attachDashboardEventListeners() {
+    // Event listeners untuk planning cards
+    const planningCards = document.querySelectorAll('.planning-card');
+    planningCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            const page = e.currentTarget.getAttribute('data-page');
+            this.navigateToPlanningPage(page);
+        });
+    });
+
+    // View all transactions button
+    const viewAllTransactionsBtn = document.querySelector('.view-all-transactions');
+    if (viewAllTransactionsBtn) {
+        viewAllTransactionsBtn.addEventListener('click', () => {
+            this.showPage('/transactions');
+        });
     }
 
-    renderTransactionItem(name, amount, type, date) {
-        const isIncome = type === 'income';
-        const textColor = isIncome ? 'text-green-600' : 'text-red-600';
-        const icon = isIncome ? 'fa-arrow-down' : 'fa-arrow-up';
+    // Stat cards click events
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            const type = e.currentTarget.getAttribute('data-type');
+            this.navigateToStatPage(type);
+        });
+    });
+}
+
+// Navigasi ke halaman planning
+navigateToPlanningPage(pageType) {
+    const pageMap = {
+        'tabungan': '/savings',
+        'dana-darurat': '/emergency-fund',
+        'liburan': '/vacation-plan',
+        'kpr': '/mortgage-sim'
+    };
+    
+    const route = pageMap[pageType] || '/dashboard';
+    this.showPage(route);
+}
+
+// Navigasi berdasarkan stat card
+navigateToStatPage(statType) {
+    const pageMap = {
+        'income': '/income',
+        'expense': '/expense',
+        'savings': '/savings',
+        'balance': '/transactions'
+    };
+    
+    const route = pageMap[statType] || '/dashboard';
+    this.showPage(route);
+}
+
+// Fungsi render stat card (perbaikan)
+renderStatCard(type, title, icon, color, dataType) {
+    const colorClasses = {
+        green: 'from-green-500 to-emerald-500',
+        red: 'from-red-500 to-orange-500',
+        blue: 'from-blue-500 to-cyan-500',
+        purple: 'from-purple-500 to-pink-500'
+    };
+
+    return `
+        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 cursor-pointer hover:shadow-md transition-all duration-300 group" data-type="${dataType}">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-12 h-12 bg-gradient-to-r ${colorClasses[color]} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas ${icon} text-white text-lg"></i>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-200"></i>
+            </div>
+            <h3 class="text-gray-600 text-sm mb-1">${title}</h3>
+            <p class="text-2xl font-bold text-gray-800" id="${type}-amount">Rp 0</p>
+            <div class="mt-2 text-xs text-gray-500" id="${type}-trend">Loading...</div>
+        </div>
+    `;
+}
+
+// Fungsi render planning card (perbaikan)
+renderPlanningCard(type, title, icon, description, color) {
+    const colorClasses = {
+        blue: 'from-blue-500 to-cyan-500',
+        green: 'from-green-500 to-emerald-500',
+        yellow: 'from-yellow-500 to-orange-500',
+        purple: 'from-purple-500 to-pink-500'
+    };
+
+    return `
+        <div class="planning-card bg-white rounded-xl shadow-sm border border-gray-100 p-5 cursor-pointer hover:shadow-md transition-all duration-300 group" data-page="${type}">
+            <div class="flex items-start justify-between mb-3">
+                <div class="w-12 h-12 bg-gradient-to-r ${colorClasses[color]} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <i class="fas ${icon} text-white text-lg"></i>
+                </div>
+            </div>
+            <h3 class="font-semibold text-gray-800 mb-2">${title}</h3>
+            <p class="text-gray-600 text-sm mb-3">${description}</p>
+            <div class="flex items-center text-blue-600 text-sm font-medium">
+                <span>Manage</span>
+                <i class="fas fa-chevron-right ml-2 text-xs group-hover:translate-x-1 transition-transform duration-200"></i>
+            </div>
+        </div>
+    `;
+}
+
+// Contoh implementasi router sederhana
+initRouter() {
+    // Handle browser back/forward
+    window.addEventListener('popstate', (event) => {
+        this.showPage(window.location.pathname);
+    });
+
+    // Initial page load
+    const initialRoute = window.location.pathname || '/';
+    this.showPage(initialRoute);
+}
+
+// Fungsi untuk navigasi programmatic
+navigateTo(route) {
+    window.history.pushState({}, '', route);
+    this.showPage(route);
+}
+
+// Load data dashboard
+loadDashboardData() {
+    // Simulasi loading data
+    setTimeout(() => {
+        // Update stat cards
+        const stats = {
+            'pemasukan': 'Rp 8.500.000',
+            'pengeluaran': 'Rp 5.200.000',
+            'tabungan': 'Rp 3.300.000',
+            'saldo': 'Rp 12.700.000'
+        };
+
+        Object.keys(stats).forEach(key => {
+            const element = document.getElementById(`${key}-amount`);
+            if (element) {
+                element.textContent = stats[key];
+            }
+        });
+
+        // Load recent transactions
+        this.loadRecentTransactions();
         
-        return `
-            <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+        // Calculate financial health
+        this.calculateFinancialHealth();
+    }, 1000);
+}
+
+// Load recent transactions untuk dashboard
+loadRecentTransactions() {
+    const transactionsContainer = document.getElementById('recent-transactions');
+    if (!transactionsContainer) return;
+
+    // Contoh data transaksi
+    const transactions = [
+        { type: 'income', description: 'Gaji Bulanan', amount: 'Rp 8.500.000', date: 'Today', category: 'Salary' },
+        { type: 'expense', description: 'Belanja Bulanan', amount: 'Rp 1.200.000', date: 'Today', category: 'Shopping' },
+        { type: 'expense', description: 'Bayar Listrik', amount: 'Rp 450.000', date: 'Yesterday', category: 'Utilities' }
+    ];
+
+    if (transactions.length === 0) {
+        transactionsContainer.innerHTML = `
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas fa-receipt text-3xl mb-2"></i>
+                <p>No transactions yet</p>
+                <button class="text-blue-600 hover:text-blue-700 font-medium mt-2 add-first-transaction">
+                    Add your first transaction
+                </button>
+            </div>
+        `;
+    } else {
+        transactionsContainer.innerHTML = transactions.map(transaction => `
+            <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full ${isIncome ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-center">
-                        <i class="fas ${icon} ${isIncome ? 'text-green-600' : 'text-red-600'}"></i>
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center ${
+                        transaction.type === 'income' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                    }">
+                        <i class="fas ${
+                            transaction.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up'
+                        }"></i>
                     </div>
                     <div>
-                        <p class="font-medium">${name}</p>
-                        <p class="text-gray-500 text-sm">${new Date(date).toLocaleDateString('id-ID')}</p>
+                        <p class="font-medium text-gray-800">${transaction.description}</p>
+                        <p class="text-sm text-gray-500">${transaction.category} • ${transaction.date}</p>
                     </div>
                 </div>
-                <span class="${textColor} font-semibold">${amount}</span>
+                <div class="text-right">
+                    <p class="font-semibold ${
+                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    }">${transaction.amount}</p>
+                </div>
             </div>
-        `;
+        `).join('');
     }
+}
+
+// Calculate financial health score
+calculateFinancialHealth() {
+    // Simulasi perhitungan health score
+    const healthScore = 75; // Contoh score
+    const healthElement = document.getElementById('health-score');
+    const healthProgress = document.getElementById('health-progress');
+    const healthStatus = document.getElementById('health-status');
+
+    if (healthElement) healthElement.textContent = healthScore;
+    if (healthProgress) {
+        const circumference = 2 * Math.PI * 15.9155;
+        const dashArray = `${(healthScore / 100) * circumference}, ${circumference}`;
+        healthProgress.setAttribute('stroke-dasharray', dashArray);
+    }
+    if (healthStatus) {
+        let status = 'Good';
+        if (healthScore >= 80) status = 'Excellent';
+        else if (healthScore >= 60) status = 'Good';
+        else if (healthScore >= 40) status = 'Fair';
+        else status = 'Needs Improvement';
+        healthStatus.textContent = status;
+    }
+}
+
+// Inisialisasi aplikasi
+initApp() {
+    this.initRouter();
+    
+    // Cek status authentication
+    this.checkAuthState();
+    
+    // Attach global event listeners
+    this.attachGlobalEventListeners();
+}
+
+// Attach global event listeners
+attachGlobalEventListeners() {
+    // Logout handler, dll
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('global-logout')) {
+            this.handleLogout();
+        }
+    });
+}
+
+// Komponen Stat Card yang Modern
+renderStatCard(type, title, icon, color, category) {
+    const colorClasses = {
+        green: 'from-green-500 to-emerald-500',
+        red: 'from-red-500 to-orange-500',
+        blue: 'from-blue-500 to-cyan-500',
+        purple: 'from-purple-500 to-pink-500'
+    };
+
+    return `
+        <div class="dashboard-stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-4 cursor-pointer hover:shadow-md transition-all duration-300" data-page="${type}">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-gradient-to-r ${colorClasses[color]} rounded-lg flex items-center justify-center">
+                    <i class="fas ${icon} text-white text-sm"></i>
+                </div>
+                <span class="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-600">${category}</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 mb-1">${title}</p>
+                <p class="text-lg font-bold text-gray-800" id="total-${type}">Loading...</p>
+            </div>
+        </div>
+    `;
+}
+
+renderTransactionItem(transaction) {
+    const isIncome = transaction.type === 'income';
+    const icon = isIncome ? 'fa-arrow-down' : 'fa-arrow-up';
+    const bgColor = isIncome ? 'bg-green-50' : 'bg-red-50';
+    const iconColor = isIncome ? 'text-green-600' : 'text-red-600';
+    const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
+    
+    const formatRupiah = (number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0
+        }).format(number);
+    };
+
+    return `
+        <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors duration-200 group">
+            <div class="flex items-center space-x-3 flex-1">
+                <div class="w-10 h-10 ${bgColor} rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                    <i class="fas ${icon} ${iconColor} text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <p class="font-medium text-gray-800 truncate">${transaction.name}</p>
+                        <span class="${amountColor} font-semibold text-sm ml-2">
+                            ${isIncome ? '+' : '-'}${formatRupiah(transaction.amount)}
+                        </span>
+                    </div>
+                    <div class="flex items-center space-x-2 mt-1">
+                        <p class="text-gray-500 text-xs">${new Date(transaction.date).toLocaleDateString('id-ID')}</p>
+                        ${transaction.category ? `
+                            <span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                                ${transaction.category}
+                            </span>
+                        ` : ''}
+                    </div>
+                    ${transaction.description ? `
+                        <p class="text-gray-400 text-xs mt-1 truncate">${transaction.description}</p>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+renderFinancialGoal(goal) {
+    const progress = Math.min(Math.round((goal.current / goal.target) * 100), 100);
+    const progressColor = progress >= 100 ? 'from-green-500 to-emerald-500' : 
+                         progress >= 75 ? 'from-blue-500 to-cyan-500' :
+                         progress >= 50 ? 'from-yellow-500 to-orange-500' : 'from-red-500 to-pink-500';
+
+    return `
+        <div class="goal-card p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-300">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gradient-to-r ${progressColor} rounded-lg flex items-center justify-center">
+                        <i class="fas ${goal.icon} text-white text-xs"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 text-sm">${goal.name}</h4>
+                        <p class="text-xs text-gray-500">Target: ${this.formatCurrency(goal.target)}</p>
+                    </div>
+                </div>
+                <span class="text-xs font-semibold ${progress >= 100 ? 'text-green-600' : 'text-blue-600'}">
+                    ${progress}%
+                </span>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div class="h-2 rounded-full bg-gradient-to-r ${progressColor} transition-all duration-1000 ease-out" 
+                     style="width: ${progress}%"></div>
+            </div>
+            
+            <div class="flex justify-between text-xs text-gray-600">
+                <span>Terkumpul: ${this.formatCurrency(goal.current)}</span>
+                <span>Sisa: ${this.formatCurrency(goal.target - goal.current)}</span>
+            </div>
+        </div>
+    `;
+}
+
+setupDashboardEvents() {
+    // Smooth card interactions
+    document.querySelectorAll('.dashboard-stat-card, .goal-card').forEach(card => {
+        card.addEventListener('mouseenter', (e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+        });
+        
+        card.addEventListener('mouseleave', (e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Quick actions dengan feedback
+    document.querySelectorAll('.quick-action-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const action = e.currentTarget.getAttribute('data-action');
+            this.handleQuickAction(action);
+            
+            // Add click feedback
+            e.currentTarget.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                e.currentTarget.style.transform = 'scale(1)';
+            }, 150);
+        });
+    });
+
+    // Navigation dengan smooth transition
+    document.querySelectorAll('[data-page]').forEach(element => {
+        element.addEventListener('click', (e) => {
+            const page = e.currentTarget.getAttribute('data-page');
+            this.navigateWithTransition(page);
+        });
+    });
+}
+
+// Navigasi dengan animasi
+async navigateWithTransition(page) {
+    const mainContent = document.querySelector('.container');
+    if (mainContent) {
+        mainContent.style.opacity = '0';
+        mainContent.style.transform = 'translateY(10px)';
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        this.navigateToPage(page);
+        
+        // Restore animation untuk konten baru
+        setTimeout(() => {
+            const newContent = document.querySelector('.container');
+            if (newContent) {
+                newContent.style.opacity = '1';
+                newContent.style.transform = 'translateY(0)';
+            }
+        }, 50);
+    } else {
+        this.navigateToPage(page);
+    }
+}
+
+// Format currency dengan style modern
+formatCurrency(amount) {
+    if (amount >= 1000000) {
+        return `Rp ${(amount / 1000000).toFixed(1)}Jt`;
+    } else if (amount >= 1000) {
+        return `Rp ${(amount / 1000).toFixed(0)}Rb`;
+    }
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount);
+}
+
+// Show notification toast
+showNotification(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 z-50 p-4 rounded-xl shadow-lg border-l-4 transform translate-x-full transition-transform duration-300 ${
+        type === 'success' ? 'bg-green-50 border-green-500 text-green-700' :
+        type === 'error' ? 'bg-red-50 border-red-500 text-red-700' :
+        'bg-blue-50 border-blue-500 text-blue-700'
+    }`;
+    
+    toast.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <i class="fas ${
+                type === 'success' ? 'fa-check-circle' :
+                type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'
+            }"></i>
+            <span class="font-medium">${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.style.transform = 'translateX(0)', 10);
+    
+    // Auto remove
+    setTimeout(() => {
+        toast.style.transform = 'translateX(full)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
     renderFinancePage() {
         return `
