@@ -1174,24 +1174,20 @@ async sendVLFinanceMessage() {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     try {
-        // OpenRouter API Configuration
-        const API_KEY = "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";
-        const MODEL = "google/gemini-2.0-flash-001";
-        
-        const response = await fetch("/js/vlfinance", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${API_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": window.location.href,
-                "X-Title": "VLFinance AI Assistant"
-            },
-            body: JSON.stringify({
-                model: MODEL,
-                messages: [
-                    {
-                        role: "system",
-                        content: `Anda adalah VLFinance AI — asisten keuangan pribadi profesional.
+     // OpenRouter API Configuration (diproses lewat backend proxy di Vercel)
+const MODEL = "google/gemini-2.0-flash-001";
+
+const response = await fetch("/api/vlfinance", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+        model: MODEL,
+        messages: [
+            {
+                role: "system",
+                content: `Anda adalah VLFinance AI — asisten keuangan pribadi profesional.
 
 FOKUS HANYA PADA:
 • Keuangan pribadi & budgeting
@@ -1214,13 +1210,14 @@ CONTOH FORMAT YANG BENAR:
 "<b>Untuk menabung 10 juta dalam 3 bulan</b>, sisihkan 3,3 juta per bulan.<br><br>
 <b>Langkah praktis:</b><br>1) Catat semua pengeluaran<br>2) Identifikasi yang bisa dikurangi<br>3) Otomatiskan transfer tabungan<br><br>
 Gunakan <b>VLFinance</b> untuk tracking yang lebih mudah!"`
-                    },
-                    { role: "user", content: userMessage }
-                ],
-                temperature: 0.7,
-                max_tokens: 350
-            })
-        });
+            },
+            { role: "user", content: userMessage }
+        ],
+        temperature: 0.7,
+        max_tokens: 350
+    })
+});
+
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
