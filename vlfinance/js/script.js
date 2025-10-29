@@ -1175,7 +1175,7 @@ async sendVLFinanceMessage() {
 
     try {
         // OpenRouter API Configuration
-        const API_KEY = "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";
+        const API_KEY = "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";
         const MODEL = "google/gemini-2.0-flash-001";
         
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
