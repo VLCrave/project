@@ -22,12 +22,6 @@ try {
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// AI Configuration
-const AI_CONFIG = {
-    API_KEY: "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",
-    MODEL: "google/gemini-2.0-flash-001"
-};
-
 // Main VLFinance Application - FULLY INTEGRATED
 class VLFinanceApp {
     constructor() {
@@ -1035,7 +1029,7 @@ class VLFinanceApp {
     }
 
 // =============================
-// VLFinance Chat Assistant (OpenRouter Version)
+// VLFinance Chat Assistant (Proxy Version)
 // =============================
 initVLFinanceAI() {
     // Tombol floating chat
@@ -1174,17 +1168,14 @@ async sendVLFinanceMessage() {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
     try {
-        // OpenRouter API Configuration
-        const API_KEY = "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";
+        // ✅ GUNAKAN PROXY WORKER - FIX INI
+        const API_URL = "https://mucuans-ai-proxy.qalam.workers.dev";
         const MODEL = "google/gemini-2.0-flash-001";
         
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const response = await fetch(API_URL, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${API_KEY}`,
-                "Content-Type": "application/json",
-                "HTTP-Referer": window.location.href,
-                "X-Title": "VLFinance AI Assistant"
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 model: MODEL,
@@ -1202,18 +1193,26 @@ FOKUS HANYA PADA:
 • Selalu sarankan menggunakan VLFinance untuk mengelola keuangan
 
 FORMAT JAWABAN WAJIB:
-- Gunakan <b>teks bold</b> untuk poin penting
-- Gunakan <br> untuk baris baru
-- Untuk list/nomor, gunakan: <br>1) Poin pertama<br>2) Poin kedua<br>3) Poin ketiga
+- Gunakan **teks bold** untuk poin penting
+- Gunakan baris baru untuk pemisah
+- Untuk list/nomor, gunakan: 
+1) Poin pertama
+2) Poin kedua  
+3) Poin ketiga
 - Maksimal 3-4 kalimat singkat
 - Bahasa Indonesia santai tapi profesional
 - Berikan tips konkret yang bisa langsung diterapkan
 - Selalu sarankan menggunakan VLFinance untuk mengelola keuangan
 
 CONTOH FORMAT YANG BENAR:
-"<b>Untuk menabung 10 juta dalam 3 bulan</b>, sisihkan 3,3 juta per bulan.<br><br>
-<b>Langkah praktis:</b><br>1) Catat semua pengeluaran<br>2) Identifikasi yang bisa dikurangi<br>3) Otomatiskan transfer tabungan<br><br>
-Gunakan <b>VLFinance</b> untuk tracking yang lebih mudah!"`
+**Untuk menabung 10 juta dalam 3 bulan**, sisihkan 3,3 juta per bulan.
+
+**Langkah praktis:**
+1) Catat semua pengeluaran
+2) Identifikasi yang bisa dikurangi
+3) Otomatiskan transfer tabungan
+
+Gunakan **VLFinance** untuk tracking yang lebih mudah!`
                     },
                     { role: "user", content: userMessage }
                 ],
@@ -1223,26 +1222,34 @@ Gunakan <b>VLFinance</b> untuk tracking yang lebih mudah!"`
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
         const data = await response.json();
         loadingDiv.remove();
 
-        // Cek apakah respon valid
-        const aiReply = data?.choices?.[0]?.message?.content?.trim();
+        // Handle response format dari proxy worker
+        let aiReply = "";
+        
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            // Format OpenAI-compatible
+            aiReply = data.choices[0].message.content.trim();
+        } else if (data.content) {
+            // Format langsung content
+            aiReply = data.content.trim();
+        } else if (data.response) {
+            // Format response langsung
+            aiReply = data.response.trim();
+        } else {
+            // Fallback - coba parse apapun yang ada
+            aiReply = JSON.stringify(data).substring(0, 300) + "...";
+        }
+
         let finalReply = aiReply || "Maaf, saya tidak dapat memberikan jawaban saat ini. Silakan coba lagi.";
 
         // Process HTML tags safely
         finalReply = this.processHTMLTags(finalReply);
-
-        // Fallback jika AI memberikan jawaban terlalu panjang
-        if (finalReply.split(' ').length > 100) {
-            const sentences = finalReply.split('.');
-            finalReply = sentences.slice(0, 2).join('.') + '.';
-            finalReply += '<br><br><i>Butuh penjelasan lebih detail?</i>';
-        }
 
         const aiMessageDiv = document.createElement('div');
         aiMessageDiv.className = 'text-left animate-fade-in';
@@ -1270,8 +1277,12 @@ Gunakan <b>VLFinance</b> untuk tracking yang lebih mudah!"`
         
         if (err.message.includes('429') || err.message.includes('quota')) {
             errorMessage = "Quota API sedang penuh. Silakan coba beberapa saat lagi.";
-        } else if (err.message.includes('401')) {
-            errorMessage = "Error autentikasi. Silakan refresh halaman.";
+        } else if (err.message.includes('401') || err.message.includes('invalid')) {
+            errorMessage = "Error autentikasi API. Pastikan endpoint valid.";
+        } else if (err.message.includes('402')) {
+            errorMessage = "Quota API telah habis. Silakan cek konfigurasi proxy.";
+        } else if (err.message.includes('Failed to fetch')) {
+            errorMessage = "Tidak dapat terhubung ke server. Periksa koneksi internet Anda.";
         }
 
         const errorDiv = document.createElement('div');
@@ -1327,6 +1338,15 @@ escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
+// Helper function untuk convert file ke base64 (jika diperlukan untuk upload gambar)
+fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
 
 
 
