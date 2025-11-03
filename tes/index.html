@@ -7,10 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-purple-50 to-blue-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <!-- Premium Upgrade Card -->
         <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
             <!-- Header -->
             <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
@@ -21,7 +21,6 @@
                 <p class="text-purple-100">Akses penuh semua fitur premium</p>
             </div>
 
-            <!-- Content -->
             <div class="p-6">
                 <div class="text-center mb-6">
                     <!-- Product Image -->
@@ -61,6 +60,28 @@
                         </select>
                     </div>
                     
+                    <!-- Customer Info Form -->
+                    <div class="mb-4 space-y-3 text-left">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                            <input type="text" id="customerName" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                   placeholder="Nama Anda" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="customerEmail" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                   placeholder="email@example.com" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">No. HP</label>
+                            <input type="tel" id="customerPhone" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                   placeholder="08123456789" required>
+                        </div>
+                    </div>
+                    
                     <!-- Upgrade Button -->
                     <button 
                         id="upgradeButton"
@@ -97,28 +118,28 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Additional Info -->
-                <div class="mt-6 text-center">
-                    <p class="text-xs text-gray-500">
-                        ⏳ Penawaran terbatas untuk 50 user pertama
-                    </p>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Payment Processing Modal -->
+    <!-- Payment Modal -->
     <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-2xl p-6 max-w-sm mx-4">
             <div class="text-center">
                 <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
                 </div>
-                <h3 class="text-lg font-bold text-gray-800 mb-2">Memproses Pembayaran</h3>
-                <p class="text-gray-600 text-sm mb-4">Sedang menghubungkan ke iPaymu...</p>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <h3 class="text-lg font-bold text-gray-800 mb-2" id="modalTitle">Memproses Pembayaran</h3>
+                <p class="text-gray-600 text-sm mb-4" id="modalMessage">Sedang menghubungkan ke iPaymu...</p>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                     <p class="text-yellow-800 text-xs">Jangan tutup halaman ini selama proses pembayaran</p>
+                </div>
+                <div id="paymentInfo" class="hidden">
+                    <p class="text-sm font-semibold text-green-600">Pembayaran Berhasil Diproses!</p>
+                    <p class="text-xs text-gray-600 mt-2">Silakan lanjutkan pembayaran di halaman iPaymu</p>
+                    <button onclick="redirectToPayment()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg mt-3 hover:bg-green-700">
+                        Lanjut ke Pembayaran
+                    </button>
                 </div>
             </div>
         </div>
@@ -129,16 +150,10 @@
     const IPAYMU_CONFIG = {
         va: '1179002181670112',
         apiKey: '3D535899-D600-4CE7-AFC9-BCC85348137F',
-        backendUrl: 'https://vlcrave.github.io/project/tes/simple_ipaymu.php' // Ganti dengan URL backend Anda
+        url: 'https://sandbox.ipaymu.com/api/v2/payment'
     };
 
-    // User data (bisa diambil dari Firebase/database)
-    const userData = {
-        email: 'user@example.com',
-        name: 'John Doe',
-        phone: '08123456789',
-        uid: 'user123'
-    };
+    let currentPaymentUrl = '';
 
     // Show payment modal
     function showPaymentModal() {
@@ -156,14 +171,26 @@
         }
     }
 
+    // Update modal content
+    function updateModal(title, message, showPaymentInfo = false) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalMessage').textContent = message;
+        
+        if (showPaymentInfo) {
+            document.getElementById('paymentInfo').classList.remove('hidden');
+        } else {
+            document.getElementById('paymentInfo').classList.add('hidden');
+        }
+    }
+
     // Show notification
     function showNotification(message, type = 'info') {
         Swal.fire({
             icon: type,
             title: type === 'success' ? 'Sukses!' : type === 'error' ? 'Error!' : 'Info',
             text: message,
-            timer: type === 'success' ? 2000 : 3000,
-            showConfirmButton: false
+            timer: type === 'success' ? 3000 : 4000,
+            showConfirmButton: type !== 'success'
         });
     }
 
@@ -171,7 +198,16 @@
     async function processPayment() {
         const paymentMethod = document.getElementById('paymentMethod')?.value || 'qris';
         const amount = 49000;
+        const name = document.getElementById('customerName').value;
+        const email = document.getElementById('customerEmail').value;
+        const phone = document.getElementById('customerPhone').value;
         const button = document.getElementById('upgradeButton');
+
+        // Validation
+        if (!name || !email || !phone) {
+            showNotification('Harap isi semua data terlebih dahulu', 'error');
+            return;
+        }
 
         // Disable button and show loading
         button.disabled = true;
@@ -184,27 +220,27 @@
                 product: 'VLFinance Premium Membership',
                 amount: amount,
                 paymentMethod: paymentMethod,
-                name: userData.name,
-                email: userData.email,
-                phone: userData.phone,
-                userId: userData.uid
+                name: name,
+                email: email,
+                phone: phone,
+                userId: 'user-' + Date.now()
             };
 
             console.log('Processing payment:', paymentData);
 
-            // Call backend to create payment
-            const result = await createIPaymuPayment(paymentData);
+            // Direct iPaymu integration (client-side)
+            const result = await createDirectIPaymuPayment(paymentData);
 
             if (result.success) {
-                console.log('Payment created successfully, redirecting to:', result.redirectUrl);
+                currentPaymentUrl = result.redirectUrl;
                 
-                // Show success message before redirect
-                showNotification('Redirect ke halaman pembayaran...', 'success');
+                updateModal(
+                    'Pembayaran Siap!', 
+                    'Silakan lanjutkan ke halaman pembayaran iPaymu', 
+                    true
+                );
                 
-                // Redirect to iPaymu payment page
-                setTimeout(() => {
-                    window.location.href = result.redirectUrl;
-                }, 2000);
+                console.log('Payment URL:', currentPaymentUrl);
                 
             } else {
                 hidePaymentModal();
@@ -220,95 +256,60 @@
         }
     }
 
-    // Create iPaymu payment via backend
-    async function createIPaymuPayment(paymentData) {
-        try {
-            // Use FormData for better compatibility
-            const formData = new FormData();
-            formData.append('product', paymentData.product);
-            formData.append('amount', paymentData.amount);
-            formData.append('paymentMethod', paymentData.paymentMethod);
-            formData.append('name', paymentData.name);
-            formData.append('email', paymentData.email);
-            formData.append('phone', paymentData.phone);
-            formData.append('userId', paymentData.userId);
-
-            console.log('Sending request to:', IPAYMU_CONFIG.backendUrl);
-            
-            const response = await fetch(IPAYMU_CONFIG.backendUrl, {
-                method: 'POST',
-                body: formData
-            });
-
-            console.log('Response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-            }
-
-            const result = await response.json();
-            console.log('Backend response:', result);
-            
-            return result;
-
-        } catch (error) {
-            console.error('Create payment error:', error);
-            return {
-                success: false,
-                error: 'Gagal terhubung ke server: ' + error.message
-            };
-        }
-    }
-
-    // Reset button state
-    function resetButton(button) {
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = '💳 Upgrade Sekarang';
-        }
-    }
-
-    // Direct iPaymu integration (fallback if backend fails)
+    // Direct iPaymu integration (client-side)
     async function createDirectIPaymuPayment(paymentData) {
-        // This is a client-side implementation (not recommended for production)
-        // Use only for testing or as fallback
-        
-        const referenceId = 'VLF-' + Date.now() + '-' + paymentData.userId;
-        
-        const body = {
-            product: [paymentData.product],
-            qty: [1],
-            price: [paymentData.amount],
-            amount: paymentData.amount,
-            returnUrl: window.location.origin + '/success.html',
-            cancelUrl: window.location.origin + '/cancel.html',
-            notifyUrl: IPAYMU_CONFIG.backendUrl.replace('simple_ipaymu.php', 'ipaymu_callback.php'),
-            referenceId: referenceId,
-            paymentMethod: paymentData.paymentMethod,
-            buyerName: paymentData.name,
-            buyerPhone: paymentData.phone,
-            buyerEmail: paymentData.email
-        };
-
         try {
-            // Generate signature
-            const jsonBody = JSON.stringify(body);
+            const referenceId = 'VLF-' + Date.now() + '-' + paymentData.userId;
+            
+            const body = {
+                product: [paymentData.product],
+                qty: [1],
+                price: [paymentData.amount],
+                amount: paymentData.amount,
+                returnUrl: 'https://vlcrave.github.io/project/success.html', // Ganti dengan URL success page Anda
+                cancelUrl: 'https://vlcrave.github.io/project/cancel.html', // Ganti dengan URL cancel page Anda
+                notifyUrl: 'https://your-webhook-url.com/ipaymu_callback', // Butuh webhook service
+                referenceId: referenceId,
+                paymentMethod: paymentData.paymentMethod,
+                buyerName: paymentData.name,
+                buyerPhone: paymentData.phone,
+                buyerEmail: paymentData.email
+            };
+
+            console.log('iPaymu Request Body:', body);
+
+            // Generate signature using CryptoJS
+            const jsonBody = JSON.stringify(body, null, 0); // Remove spaces for signature
             const requestBody = CryptoJS.SHA256(jsonBody).toString(CryptoJS.enc.Hex);
             const stringToSign = 'POST:' + IPAYMU_CONFIG.va + ':' + requestBody + ':' + IPAYMU_CONFIG.apiKey;
             const signature = CryptoJS.HmacSHA256(stringToSign, IPAYMU_CONFIG.apiKey).toString(CryptoJS.enc.Hex);
 
-            const response = await fetch('https://sandbox.ipaymu.com/api/v2/payment', {
+            const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
+
+            console.log('Signature generated:', signature);
+            console.log('Timestamp:', timestamp);
+
+            const response = await fetch(IPAYMU_CONFIG.url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'va': IPAYMU_CONFIG.va,
                     'signature': signature,
-                    'timestamp': new Date().toISOString().replace(/[-:]/g, '').split('.')[0]
+                    'timestamp': timestamp
                 },
                 body: jsonBody
             });
 
+            console.log('iPaymu Response Status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('iPaymu Error Response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
             const result = await response.json();
+            console.log('iPaymu API Response:', result);
             
             if (result.Data && result.Data.Url) {
                 return {
@@ -320,57 +321,81 @@
             } else {
                 return {
                     success: false,
-                    error: result.Message || 'Payment creation failed'
+                    error: result.Message || 'Payment creation failed',
+                    debug: result
                 };
             }
 
         } catch (error) {
+            console.error('Direct payment error:', error);
             return {
                 success: false,
-                error: 'Direct payment error: ' + error.message
+                error: 'Payment error: ' + error.message
             };
         }
     }
 
-    // Test function (for debugging)
-    async function testPayment() {
-        const testData = {
-            product: 'Test Premium',
-            amount: 49000,
-            paymentMethod: 'qris',
-            name: 'Test User',
-            email: 'test@example.com',
-            phone: '08123456789',
-            userId: 'test123'
-        };
-
-        console.log('Testing payment with:', testData);
-        
-        const result = await createIPaymuPayment(testData);
-        console.log('Test result:', result);
-        
-        if (result.success) {
-            showNotification('Test berhasil! Redirect URL: ' + result.redirectUrl, 'success');
-        } else {
-            showNotification('Test gagal: ' + result.error, 'error');
+    // Redirect to payment
+    function redirectToPayment() {
+        if (currentPaymentUrl) {
+            // Buka di tab baru
+            window.open(currentPaymentUrl, '_blank');
+            hidePaymentModal();
+            resetButton(document.getElementById('upgradeButton'));
+            showNotification('Silakan selesaikan pembayaran di halaman yang terbuka', 'info');
         }
+    }
+
+    // Reset button state
+    function resetButton(button) {
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '💳 Upgrade Sekarang';
+        }
+    }
+
+    // Demo mode (untuk testing tanpa real payment)
+    function demoPayment() {
+        const button = document.getElementById('upgradeButton');
+        const name = document.getElementById('customerName').value;
+        const email = document.getElementById('customerEmail').value;
+        const phone = document.getElementById('customerPhone').value;
+
+        if (!name || !email || !phone) {
+            showNotification('Harap isi semua data terlebih dahulu', 'error');
+            return;
+        }
+
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
+        showPaymentModal();
+
+        setTimeout(() => {
+            currentPaymentUrl = 'https://sandbox.ipaymu.com/demo';
+            updateModal(
+                'Demo Mode - Pembayaran Siap!', 
+                'Ini hanya simulasi. Di production, akan redirect ke iPaymu real.', 
+                true
+            );
+        }, 2000);
     }
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('VLFinance Payment Gateway Loaded');
-        console.log('Backend URL:', IPAYMU_CONFIG.backendUrl);
+        console.log('VLFinance Payment Gateway Loaded - Client Side Version');
         
-        // Add test button for debugging (bisa dihapus di production)
-        const testButton = document.createElement('button');
-        testButton.textContent = '🧪 Test Payment';
-        testButton.className = 'fixed bottom-4 right-4 bg-gray-500 text-white px-4 py-2 rounded-lg text-sm';
-        testButton.onclick = testPayment;
-        document.body.appendChild(testButton);
+        // Pre-fill demo data
+        document.getElementById('customerName').value = 'John Doe';
+        document.getElementById('customerEmail').value = 'john@example.com';
+        document.getElementById('customerPhone').value = '08123456789';
+
+        // Add demo button
+        const demoButton = document.createElement('button');
+        demoButton.textContent = '🎮 Demo Mode';
+        demoButton.className = 'fixed bottom-4 right-4 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50';
+        demoButton.onclick = demoPayment;
+        document.body.appendChild(demoButton);
     });
     </script>
-
-    <!-- Include CryptoJS for signature generation (for direct method) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </body>
 </html>
