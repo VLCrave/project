@@ -583,12 +583,10 @@ getTimeBasedGreeting() {
                 status: userData.status || false
             };
             
-            // Cek jika status false, arahkan ke pending-active
-            if (!this.userData.status) {
-                // Redirect ke halaman pending-active atau trigger event
-                this.redirectToPendingActive();
-                return; // Stop execution, jangan lanjut ke loadDashboard
-            }
+            return {
+                userData: this.userData,
+                requiresRedirect: !this.userData.status
+            };
             
         } else {
             const currentUser = this.auth.currentUser;
@@ -609,38 +607,20 @@ getTimeBasedGreeting() {
             await this.db.collection('users').doc(uid).set(newUserData);
             this.userData = newUserData;
             
-            // Untuk user baru yang statusnya false, arahkan ke pending-active
-            if (!this.userData.status) {
-                this.redirectToPendingActive();
-                return; // Stop execution, jangan lanjut ke loadDashboard
-            }
+            return {
+                userData: this.userData,
+                requiresRedirect: true // User baru selalu butuh aktivasi
+            };
         }
-        
-        // Jika status true, lanjutkan ke loadDashboard
-        this.loadDashboard();
         
     } catch (error) {
         console.error('Error loading user data:', error);
+        return {
+            userData: null,
+            requiresRedirect: false,
+            error: error
+        };
     }
-}
-
-// Method untuk redirect ke halaman pending-active
-redirectToPendingActive() {
-    // Sesuaikan dengan framework atau routing yang Anda gunakan
-    // Contoh dengan vanilla JS:
-    // window.location.href = '/pending-active';
-    
-    // Contoh dengan Vue Router:
-    // this.$router.push('/pending-active');
-    
-    // Contoh dengan React Router:
-    // this.props.history.push('/pending-active');
-    
-    // Contoh dengan Angular:
-    // this.router.navigate(['/pending-active']);
-    
-    console.log('Redirect to pending-active page');
-    // Implementasi redirect sesuai dengan framework Anda
 }
     async register(email, password, displayName) {
         try {
@@ -682,25 +662,34 @@ redirectToPendingActive() {
     }
 
     async login(email, password) {
-        try {
-            const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
-            const user = userCredential.user;
-            await this.loadUserData(user.uid);
-            return { success: true };
-        } catch (error) {
-            console.error('Login error:', error);
-            let errorMessage = 'Terjadi kesalahan saat login';
-            
-            switch (error.code) {
-                case 'auth/user-not-found': errorMessage = 'Email tidak terdaftar'; break;
-                case 'auth/wrong-password': errorMessage = 'Password salah'; break;
-                case 'auth/invalid-email': errorMessage = 'Format email tidak valid'; break;
-                case 'auth/invalid-login-credentials': errorMessage = 'Email atau password salah'; break;
-            }
-
-            return { success: false, error: errorMessage };
+    try {
+        const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
+        const user = userCredential.user;
+        
+        // Tunggu loadUserData dan ambil return value-nya
+        const userDataResult = await this.loadUserData(user.uid);
+        
+        // Kembalikan informasi status user juga
+        return { 
+            success: true, 
+            userStatus: userDataResult.userData.status,
+            requiresActivation: !userDataResult.userData.status
+        };
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        let errorMessage = 'Terjadi kesalahan saat login';
+        
+        switch (error.code) {
+            case 'auth/user-not-found': errorMessage = 'Email tidak terdaftar'; break;
+            case 'auth/wrong-password': errorMessage = 'Password salah'; break;
+            case 'auth/invalid-email': errorMessage = 'Format email tidak valid'; break;
+            case 'auth/invalid-login-credentials': errorMessage = 'Email atau password salah'; break;
         }
+
+        return { success: false, error: errorMessage };
     }
+}
 
     async logout() {
         try {
