@@ -20,9 +20,9 @@ class IPaymuProcessor {
             'qty' => [1],
             'price' => [$data['amount']],
             'amount' => $data['amount'],
-            'returnUrl' => 'https://vlcrave.github.io/vlfinance/success.php?ref=' . $referenceId,
-            'cancelUrl' => 'https://vlcrave.github.io/vlfinance/cancel.php?ref=' . $referenceId,
-            'notifyUrl' => 'https://vlcrave.github.io/vlfinance/ipaymu_callback.php',
+            'returnUrl' => 'https://vlcrave.github.io/project/vlfinance/success.php?ref=' . $referenceId,
+            'cancelUrl' => 'https://vlcrave.github.io/project/vlfinance/cancel.php?ref=' . $referenceId,
+            'notifyUrl' => 'https://vlcrave.github.io/project/vlfinance/ipaymu_callback.php',
             'referenceId' => $referenceId, // Include userId in reference
             'paymentMethod' => $data['paymentMethod'],
             'buyerName' => $data['name'],
@@ -86,4 +86,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'error' => 'Method not allowed'
     ]);
 }
+
 ?>
