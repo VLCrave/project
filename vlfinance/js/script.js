@@ -663,16 +663,18 @@ getTimeBasedGreeting() {
 
     async login(email, password) {
     try {
+        this.loading = true; // Aktifkan loading
+        
         const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
         const user = userCredential.user;
         
-        // Tunggu loadUserData dan ambil return value-nya
+        // Tampilkan loading, tunggu cek status user dari Firestore
+        console.log('🔄 Checking user status...');
         const userDataResult = await this.loadUserData(user.uid);
         
-        // Kembalikan informasi status user juga
         return { 
             success: true, 
-            userStatus: userDataResult.userData.status,
+            userData: userDataResult.userData,
             requiresActivation: !userDataResult.userData.status
         };
         
@@ -688,6 +690,8 @@ getTimeBasedGreeting() {
         }
 
         return { success: false, error: errorMessage };
+    } finally {
+        this.loading = false; // Matikan loading
     }
 }
 
@@ -715,33 +719,69 @@ setupPageSpecificFeatures() {
     setTimeout(() => {
         switch (this.currentPage) {
             case 'dashboard':
-                if (this.isLoggedIn) this.loadDashboardData();
+                if (this.isLoggedIn) {
+                    // CEK STATUS USER SEBELUM LOAD DASHBOARD
+                    if (this.userData && this.userData.status === true) {
+                        this.loadDashboardData();
+                    } else {
+                        console.log('❌ User not active, redirecting to pending...');
+                        this.redirectToPendingActive();
+                    }
+                }
                 break;
             case 'pengeluaran':
-                this.loadPengeluaranData();
+                // Cek status untuk halaman protected lainnya
+                if (this.userData && this.userData.status === true) {
+                    this.loadPengeluaranData();
+                } else {
+                    this.redirectToPendingActive();
+                }
                 break;
             case 'pemasukan':
-                this.loadPemasukanData();
+                if (this.userData && this.userData.status === true) {
+                    this.loadPemasukanData();
+                } else {
+                    this.redirectToPendingActive();
+                }
                 break;
             case 'invoice':
+                // Invoice mungkin boleh diakses tanpa status active
                 this.renderSimpleInvoicePage();
                 break;
             case 'dreams':
-                // Setup real-time listener untuk dreams page
-                this.setupDreamsRealtimeListener();
+                if (this.userData && this.userData.status === true) {
+                    this.setupDreamsRealtimeListener();
+                } else {
+                    this.redirectToPendingActive();
+                }
                 break;
             case 'goals':
-                // Setup untuk goals page jika ada
-                if (typeof this.loadGoalsData === 'function') {
-                    this.loadGoalsData();
+                if (this.userData && this.userData.status === true) {
+                    if (typeof this.loadGoalsData === 'function') {
+                        this.loadGoalsData();
+                    }
+                } else {
+                    this.redirectToPendingActive();
                 }
                 break;
             case 'emergency':
-                // Setup untuk emergency fund page jika ada
-                if (typeof this.loadEmergencyFundData === 'function') {
-                    this.loadEmergencyFundData();
+                if (this.userData && this.userData.status === true) {
+                    if (typeof this.loadEmergencyFundData === 'function') {
+                        this.loadEmergencyFundData();
+                    }
+                } else {
+                    this.redirectToPendingActive();
                 }
                 break;
+            case 'pending-active':
+                // Halaman pending-active boleh diakses tanpa status active
+                console.log('✅ On pending-active page');
+                break;
+            default:
+                // Untuk halaman lain, cek status
+                if (this.isLoggedIn && this.userData && !this.userData.status) {
+                    this.redirectToPendingActive();
+                }
         }
     }, 100);
 }
