@@ -4342,7 +4342,9 @@ fileToBase64(file) {
 renderPendingActivePage() {
     const userEmail = this.userData?.email || 'user@example.com';
     const userName = this.userData?.name || 'Customer';
-    const userPhone = this.userData?.phone || '08123456789';
+    
+    // Inject CSS styles
+    this.injectQRISModalCSS();
     
     return `
         <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8">
@@ -4358,47 +4360,27 @@ renderPendingActivePage() {
 
                     <div class="p-6">
                         <div class="text-center mb-6">
-                            <div class="mb-4 flex justify-center">
-                                <div class="relative group">
-                                    <img 
-                                        src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" 
-                                        alt="Exclusive Offer"
-                                        class="w-32 h-32 rounded-full object-cover border-4 border-yellow-400 shadow-lg group-hover:scale-110 transition-transform duration-300"
-                                    >
-                                    <div class="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                                        VIP
-                                    </div>
-                                </div>
-                            </div>
-                            
                             <!-- Badge Diskon -->
-                            <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-bold px-4 py-2 rounded-full inline-block mb-4 relative">
+                            <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-bold px-4 py-2 rounded-full inline-block mb-4 relative overflow-hidden">
                                 ⚡ DISKON 80%
-                                <!-- Efek kilau -->
                                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
                             </div>
                             
-                            <div class="flex items-center justify-center space-x-4 mb-4">
+                            <div class="flex items-center justify-center space-x-4 mb-6">
                                 <div class="text-gray-500 line-through text-lg">Rp250.000</div>
                                 <div class="text-green-500 font-bold text-xl">→</div>
                                 <div class="text-3xl font-bold text-gray-800">Rp49.000</div>
                             </div>
                             
-                            <!-- Payment Method Selection -->
-                            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran:</label>
-                                <select id="paymentMethod" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                                    <option value="qris">QRIS (Semua E-Wallet & Mobile Banking)</option>
-                                    <option value="va">Virtual Account (Transfer Bank)</option>
-                                    <option value="cstore">Alfamart / Indomaret</option>
-                                </select>
-                            </div>
-                            
-                            <button class="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-4 px-6 rounded-lg hover:from-purple-600 hover:to-blue-700 transition-all shadow font-bold text-lg mb-3 transform hover:scale-105 duration-200" onclick="app.processIPaymuPayment()">
-                                💳 Upgrade Sekarang
+                            <button 
+                                class="qris-primary-btn"
+                                onclick="app.showQRISModal()"
+                            >
+                                <i class="fas fa-qrcode"></i>
+                                <span>Bayar dengan QRIS</span>
                             </button>
                             
-                            <p class="text-green-600 font-semibold text-sm">
+                            <p class="text-green-600 font-semibold text-sm mt-3">
                                 ✅ Hemat Rp 201.000
                             </p>
                         </div>
@@ -4406,19 +4388,19 @@ renderPendingActivePage() {
                         <div class="border-t pt-6">
                             <h3 class="font-bold text-gray-800 mb-4 text-center">✨ Benefit Premium:</h3>
                             <div class="grid grid-cols-2 gap-3 text-sm">
-                                <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-purple-50 transition-colors">
+                                <div class="benefit-item">
                                     <i class="fas fa-chart-line text-purple-500"></i>
                                     <span>Analisis Real-time</span>
                                 </div>
-                                <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-green-50 transition-colors">
+                                <div class="benefit-item">
                                     <i class="fas fa-receipt text-green-500"></i>
                                     <span>Scan Struk AI</span>
                                 </div>
-                                <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-blue-50 transition-colors">
+                                <div class="benefit-item">
                                     <i class="fas fa-piggy-bank text-blue-500"></i>
                                     <span>Investasi Smart</span>
                                 </div>
-                                <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-yellow-50 transition-colors">
+                                <div class="benefit-item">
                                     <i class="fas fa-headset text-yellow-500"></i>
                                     <span>Support 24/7</span>
                                 </div>
@@ -4433,20 +4415,114 @@ renderPendingActivePage() {
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Payment Processing Modal -->
-                <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-                    <div class="bg-white rounded-2xl p-6 max-w-sm mx-4">
-                        <div class="text-center">
-                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-800 mb-2">Memproses Pembayaran</h3>
-                            <p class="text-gray-600 text-sm mb-4">Sedang menghubungkan ke iPaymu...</p>
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                <p class="text-yellow-800 text-xs">Jangan tutup halaman ini selama proses pembayaran</p>
+        <!-- QRIS Modal -->
+        <div id="qrisModal" class="qris-modal hidden">
+            <div class="qris-modal-content">
+                <!-- Header -->
+                <div class="qris-modal-header">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas fa-qrcode text-2xl"></i>
+                            <div>
+                                <h3 class="text-xl font-bold">Pembayaran QRIS</h3>
+                                <p class="text-purple-100 text-sm">Scan kode QR di bawah</p>
                             </div>
                         </div>
+                        <button onclick="app.hideQRISModal()" class="qris-close-btn">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="qris-modal-body">
+                    <!-- Amount Info -->
+                    <div class="amount-info">
+                        <p class="amount-label">Total Pembayaran</p>
+                        <p class="amount-value">Rp 49.000</p>
+                    </div>
+
+                    <!-- QR Code -->
+                    <div class="qr-section">
+                        <div class="qr-container">
+                            <img 
+                                src="https://vlcrave.github.io/project/IMG_6927.jpeg" 
+                                alt="QR Code Pembayaran"
+                                class="qr-image"
+                                onerror="this.src='https://via.placeholder.com/256?text=QR+Code+Not+Found'"
+                            >
+                        </div>
+                        <p class="qr-instruction">Scan QR code dengan aplikasi e-wallet atau mobile banking</p>
+                    </div>
+
+                    <!-- Payment Steps -->
+                    <div class="payment-steps">
+                        <h4 class="steps-title">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Cara Pembayaran:
+                        </h4>
+                        <div class="steps-list">
+                            <div class="step-item">
+                                <span class="step-number">1</span>
+                                <span>Buka aplikasi e-wallet atau mobile banking Anda</span>
+                            </div>
+                            <div class="step-item">
+                                <span class="step-number">2</span>
+                                <span>Pilih fitur scan QR code</span>
+                            </div>
+                            <div class="step-item">
+                                <span class="step-number">3</span>
+                                <span>Arahkan kamera ke kode QR di atas</span>
+                            </div>
+                            <div class="step-item">
+                                <span class="step-number">4</span>
+                                <span>Konfirmasi pembayaran sebesar Rp 49.000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Supported Apps -->
+                    <div class="supported-apps">
+                        <h4 class="apps-title">Didukung oleh:</h4>
+                        <div class="apps-grid">
+                            <div class="app-item">
+                                <i class="fab fa-google-pay text-blue-500 text-xl mb-1"></i>
+                                <p class="app-name">Gopay</p>
+                            </div>
+                            <div class="app-item">
+                                <i class="fas fa-mobile-alt text-green-500 text-xl mb-1"></i>
+                                <p class="app-name">OVO</p>
+                            </div>
+                            <div class="app-item">
+                                <i class="fas fa-qrcode text-red-500 text-xl mb-1"></i>
+                                <p class="app-name">Dana</p>
+                            </div>
+                            <div class="app-item">
+                                <i class="fas fa-university text-purple-500 text-xl mb-1"></i>
+                                <p class="app-name">Bank</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button 
+                            onclick="app.handlePaymentSuccess()"
+                            class="success-btn"
+                        >
+                            <i class="fas fa-check-circle"></i>
+                            <span>Sudah Bayar</span>
+                        </button>
+                        
+                        <button 
+                            onclick="app.hideQRISModal()"
+                            class="cancel-btn"
+                        >
+                            Bayar Nanti
+                        </button>
                     </div>
                 </div>
             </div>
@@ -4454,111 +4530,485 @@ renderPendingActivePage() {
     `;
 }
 
-// ==================== IPAYMU PAYMENT INTEGRATION ====================
+// ==================== CSS INJECTION ====================
 
-async processIPaymuPayment() {
-    const paymentMethod = document.getElementById('paymentMethod')?.value || 'qris';
-    const amount = 49000; // Harga premium
-    const userEmail = this.userData?.email || 'user@example.com';
-    const userName = this.userData?.name || 'Customer';
-    const userPhone = this.userData?.phone || '08123456789';
-
-    // Show loading modal
-    this.showPaymentModal();
-
-    try {
-        const paymentData = {
-            amount: amount,
-            paymentMethod: paymentMethod,
-            product: 'VLFinance Premium Membership',
-            name: userName,
-            email: userEmail,
-            phone: userPhone
-        };
-
-        const result = await this.createIPaymuPayment(paymentData);
-
-        if (result.success) {
-            // Redirect to iPaymu payment page
-            window.location.href = result.redirectUrl;
-        } else {
-            this.hidePaymentModal();
-            this.showNotification(result.error || 'Gagal memproses pembayaran', 'error');
+injectQRISModalCSS() {
+    if (document.getElementById('qris-modal-styles')) return;
+    
+    const css = `
+        /* QRIS Modal Styles */
+        .qris-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 1rem;
+            backdrop-filter: blur(4px);
         }
-
-    } catch (error) {
-        console.error('Payment error:', error);
-        this.hidePaymentModal();
-        this.showNotification('Terjadi kesalahan saat memproses pembayaran', 'error');
-    }
+        
+        .qris-modal-content {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 28rem;
+            width: 100%;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        
+        .qris-modal.show .qris-modal-content {
+            transform: scale(1);
+        }
+        
+        .qris-modal-header {
+            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            color: white;
+            padding: 1.5rem;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+        }
+        
+        .qris-close-btn {
+            color: white;
+            transition: color 0.2s;
+            padding: 0.25rem;
+        }
+        
+        .qris-close-btn:hover {
+            color: #e9d5ff;
+        }
+        
+        .qris-modal-body {
+            padding: 1.5rem;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        /* Amount Info */
+        .amount-info {
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .amount-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .amount-value {
+            color: #1f2937;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        /* QR Section */
+        .qr-section {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .qr-container {
+            display: inline-block;
+            background: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 2px solid #f3f4f6;
+        }
+        
+        .qr-image {
+            width: 16rem;
+            height: 16rem;
+            border-radius: 0.5rem;
+        }
+        
+        .qr-instruction {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 0.75rem;
+        }
+        
+        /* Payment Steps */
+        .payment-steps {
+            background: #dbeafe;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .steps-title {
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .steps-list {
+            space-y: 0.5rem;
+        }
+        
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            space-x: 0.5rem;
+            color: #1e40af;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-number {
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+        
+        /* Supported Apps */
+        .supported-apps {
+            margin-bottom: 1.5rem;
+        }
+        
+        .apps-title {
+            color: #374151;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+        
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .app-item {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+        
+        .app-item:hover {
+            background: #e2e8f0;
+        }
+        
+        .app-name {
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+        
+        /* Buttons */
+        .qris-primary-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: bold;
+            font-size: 1.125rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            space-x: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .qris-primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(139, 92, 246, 0.4);
+        }
+        
+        .success-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: bold;
+            font-size: 1.125rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            space-x: 0.5rem;
+            cursor: pointer;
+            margin-bottom: 0.75rem;
+        }
+        
+        .success-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px -1px rgba(16, 185, 129, 0.4);
+        }
+        
+        .cancel-btn {
+            width: 100%;
+            background: #f1f5f9;
+            color: #374151;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .cancel-btn:hover {
+            background: #e2e8f0;
+        }
+        
+        /* Benefit Items */
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            space-x: 0.5rem;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            transition: background-color 0.2s;
+        }
+        
+        .benefit-item:hover {
+            background: #e2e8f0;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 640px) {
+            .qris-modal {
+                padding: 0.5rem;
+            }
+            
+            .qris-modal-body {
+                padding: 1rem;
+            }
+            
+            .qr-image {
+                width: 12rem;
+                height: 12rem;
+            }
+            
+            .apps-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .step-item {
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* Animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+        
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .space-x-2 > * + * { margin-left: 0.5rem; }
+        .space-x-3 > * + * { margin-left: 0.75rem; }
+        .space-y-2 > * + * { margin-top: 0.5rem; }
+        .grid { display: grid; }
+        .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .gap-3 { gap: 0.75rem; }
+        .text-center { text-align: center; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-3xl { font-size: 1.875rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .font-bold { font-weight: bold; }
+        .font-semibold { font-weight: 600; }
+        .font-medium { font-weight: 500; }
+        .rounded-2xl { border-radius: 1rem; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .rounded-full { border-radius: 9999px; }
+        .shadow-xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+        .bg-white { background-color: white; }
+        .bg-gray-50 { background-color: #f9fafb; }
+        .bg-purple-50 { background-color: #faf5ff; }
+        .bg-blue-50 { background-color: #eff6ff; }
+        .bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
+        .from-purple-50 { --tw-gradient-from: #faf5ff; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(250, 245, 255, 0)); }
+        .to-blue-50 { --tw-gradient-to: #eff6ff; }
+        .from-purple-600 { --tw-gradient-from: #7c3aed; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(124, 58, 237, 0)); }
+        .to-blue-600 { --tw-gradient-to: #2563eb; }
+        .from-red-500 { --tw-gradient-from: #ef4444; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(239, 68, 68, 0)); }
+        .to-pink-600 { --tw-gradient-to: #db2777; }
+        .text-white { color: white; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-800 { color: #1f2937; }
+        .text-purple-100 { color: #f3e8ff; }
+        .text-green-500 { color: #10b981; }
+        .text-green-600 { color: #059669; }
+        .text-yellow-300 { color: #fde047; }
+        .text-purple-500 { color: #8b5cf6; }
+        .text-blue-500 { color: #3b82f6; }
+        .text-green-500 { color: #10b981; }
+        .text-yellow-500 { color: #eab308; }
+        .text-red-500 { color: #ef4444; }
+        .border-t { border-top-width: 1px; border-top-color: #e5e7eb; }
+        .border-2 { border-width: 2px; }
+        .border-purple-100 { border-color: #f3e8ff; }
+        .p-6 { padding: 1.5rem; }
+        .p-4 { padding: 1rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-2 { padding: 0.5rem; }
+        .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .pt-6 { padding-top: 1.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mt-3 { margin-top: 0.75rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .mr-2 { margin-right: 0.5rem; }
+        .line-through { text-decoration: line-through; }
+        .overflow-hidden { overflow: hidden; }
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .container { width: 100%; margin-left: auto; margin-right: auto; }
+        .max-w-md { max-width: 28rem; }
+        .w-full { width: 100%; }
+        .inline-block { display: inline-block; }
+        .overflow-hidden { overflow: hidden; }
+    `;
+    
+    const style = document.createElement('style');
+    style.id = 'qris-modal-styles';
+    style.textContent = css;
+    document.head.appendChild(style);
 }
 
-async createIPaymuPayment(paymentData) {
-    try {
-        const response = await fetch('/ipaymu_create.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                amount: paymentData.amount,
-                paymentMethod: paymentData.paymentMethod,
-                product: paymentData.product,
-                name: paymentData.name,
-                email: paymentData.email,
-                phone: paymentData.phone,
-                userId: this.userData?.uid || 'unknown' // Kirim userId ke backend
-            })
-        });
+// ==================== QRIS MODAL METHODS ====================
 
-        if (!response.ok) {
-            throw new Error('HTTP ' + response.status);
-        }
-
-        const result = await response.json();
-        return result;
-
-    } catch (error) {
-        console.error('Create payment error:', error);
-        return {
-            success: false,
-            error: 'Gagal terhubung ke server pembayaran'
-        };
-    }
-}
-
-showPaymentModal() {
-    const modal = document.getElementById('paymentModal');
+showQRISModal() {
+    const modal = document.getElementById('qrisModal');
     if (modal) {
         modal.classList.remove('hidden');
+        modal.classList.add('show');
     }
 }
 
-hidePaymentModal() {
-    const modal = document.getElementById('paymentModal');
+hideQRISModal() {
+    const modal = document.getElementById('qrisModal');
     if (modal) {
-        modal.classList.add('hidden');
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
     }
 }
 
+async handlePaymentSuccess() {
+    try {
+        // Show loading state
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Memverifikasi...</span>';
+        button.disabled = true;
+
+        // Simulate API call to verify payment
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Update user status in Firestore
+        if (this.userData?.uid) {
+            await this.db.collection('users').doc(this.userData.uid).update({
+                status: true,
+                premiumActivated: true,
+                activatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                membershipType: 'premium'
+            });
+        }
+
+        // Update local user data
+        this.userData.status = true;
+        this.userData.premiumActivated = true;
+
+        // Show success notification
+        this.showNotification('🎉 Pembayaran berhasil! Akun premium Anda telah diaktifkan.', 'success');
+
+        // Hide modal
+        this.hideQRISModal();
+
+        // Redirect to dashboard after delay
+        setTimeout(() => {
+            this.navigateTo('dashboard');
+        }, 1500);
+
+    } catch (error) {
+        console.error('Payment verification error:', error);
+        this.showNotification('❌ Gagal memverifikasi pembayaran. Silakan coba lagi.', 'error');
+        
+        // Reset button
+        const button = event.target;
+        button.innerHTML = '<i class="fas fa-check-circle"></i><span>Sudah Bayar</span>';
+        button.disabled = false;
+    }
+}
 
 showNotification(message, type = 'info') {
-    // Your existing notification implementation
+    // Remove existing notifications
+    const existingToasts = document.querySelectorAll('.custom-toast');
+    existingToasts.forEach(toast => toast.remove());
+
+    // Create new toast
     const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-transform duration-300 ${
+    toast.className = `custom-toast fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium ${
         type === 'success' ? 'bg-green-500' :
-        type === 'error' ? 'bg-red-500' :
-        type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+        type === 'error' ? 'bg-red-500' : 'bg-blue-500'
     }`;
     toast.textContent = message;
+    toast.style.transform = 'translateX(100%)';
+    toast.style.transition = 'transform 0.3s ease';
     
     document.body.appendChild(toast);
     
+    // Animate in
     setTimeout(() => {
         toast.style.transform = 'translateX(0)';
     }, 100);
     
+    // Animate out after delay
     setTimeout(() => {
         toast.style.transform = 'translateX(100%)';
         setTimeout(() => {
@@ -4566,7 +5016,7 @@ showNotification(message, type = 'info') {
                 toast.parentNode.removeChild(toast);
             }
         }, 300);
-    }, 3000);
+    }, 5000);
 }
 
 // Save pemasukan ke Firebase - PERBAIKAN
