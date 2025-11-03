@@ -37,7 +37,7 @@ constructor() {
     this.currentEditId = null;
     this.scanResults = null;
 
-    // Invoice management - TAMBAHKAN INI
+    // Invoice management
     this.currentProducts = [];
     this.currentInvoiceData = null;
     this.currentShippingCost = 0;
@@ -49,7 +49,11 @@ constructor() {
     this.MODEL = "google/gemini-2.0-flash-001";
 
     // Invoice state
-    this.currentLogoUrl = null; // State untuk URL logo
+    this.currentLogoUrl = null;
+
+    // TAMBAHKAN STATE UNTUK DREAMS - INI YANG PERLU DITAMBAH
+    this.dreamsData = [];
+    this.dreamsUnsubscribe = null;
 
     this.init();
 }
@@ -696,6 +700,22 @@ setupPageSpecificFeatures() {
             case 'invoice':
                 this.renderSimpleInvoicePage();
                 break;
+            case 'dreams':
+                // Setup real-time listener untuk dreams page
+                this.setupDreamsRealtimeListener();
+                break;
+            case 'goals':
+                // Setup untuk goals page jika ada
+                if (typeof this.loadGoalsData === 'function') {
+                    this.loadGoalsData();
+                }
+                break;
+            case 'emergency':
+                // Setup untuk emergency fund page jika ada
+                if (typeof this.loadEmergencyFundData === 'function') {
+                    this.loadEmergencyFundData();
+                }
+                break;
         }
     }, 100);
 }
@@ -928,23 +948,139 @@ renderSimpleInvoicePage() {
         if (element) element.classList.add('hidden');
     }
 
-    async saveScannedItems() {
-        if (!this.scanResults) return;
+    // Hide Scan Receipt Modal
+hideScanReceiptModal() {
+    const modal = document.getElementById('scanReceiptModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
 
-        try {
-            for (const transaction of this.scanResults.transactions) {
-                await this.savePengeluaranToFirebase(transaction);
-            }
+// Update saveScannedItems dengan error handling yang better
+async saveScannedItems() {
+    try {
+        if (!this.currentScanResults || !this.currentScanResults.items) {
+            throw new Error('Tidak ada data scan yang valid');
+        }
 
-            this.showNotification('Berhasil menyimpan semua item dari struk!', 'success');
-            this.scanResults = null;
-            this.hideScanReceiptModal();
+        const saveButton = document.getElementById('scanSaveButton');
+        if (!saveButton) {
+            throw new Error('Tombol simpan tidak ditemukan');
+        }
+
+        const originalText = saveButton.innerHTML;
+        
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
+        saveButton.disabled = true;
+
+        const storeName = this.currentScanResults.storeName;
+        const transactionDate = this.currentScanResults.date;
+        
+        let savedCount = 0;
+        let totalAmount = 0;
+
+        // Save each item
+        for (const item of this.currentScanResults.items) {
+            const expenseData = {
+                amount: item.price,
+                description: `${item.name} - ${storeName}`,
+                category: item.category,
+                date: transactionDate,
+                paymentMethod: 'tunai',
+                storeName: storeName,
+                itemName: item.name,
+                type: 'pengeluaran',
+                source: 'scan_receipt',
+                userId: this.userData.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            await this.db.collection('pengeluaran').add(expenseData);
+            savedCount++;
+            totalAmount += item.price;
+        }
+
+        if (savedCount === 0) {
+            throw new Error('Tidak ada item yang berhasil disimpan');
+        }
+
+        this.showToast(
+            `✅ ${savedCount} item berhasil disimpan! Total: ${this.formatRupiah(totalAmount)}`,
+            'success'
+        );
+
+        // Tutup modal setelah berhasil simpan
+        this.hideScanReceiptModal();
+        
+        // Refresh data
+        setTimeout(() => {
             this.loadPengeluaranData();
+            this.refreshDashboardData();
+        }, 500);
 
-        } catch (error) {
-            this.showNotification('Gagal menyimpan item: ' + error.message, 'error');
+    } catch (error) {
+        console.error('Error saving scanned items:', error);
+        this.showToast('Gagal menyimpan: ' + error.message, 'error');
+        
+        // Reset button state on error
+        const saveButton = document.getElementById('scanSaveButton');
+        if (saveButton) {
+            saveButton.innerHTML = '<i class="fas fa-save"></i> Simpan ke Pengeluaran';
+            saveButton.disabled = false;
         }
     }
+}
+
+// Tambahkan juga fungsi formatRupiah jika belum ada
+formatRupiah(amount) {
+    const numberValue = Number(amount);
+    if (isNaN(numberValue)) return 'Rp 0';
+    
+    return `Rp ${this.formatNumber(numberValue)}`;
+}
+
+// Format number helper untuk Rupiah Indonesia
+formatNumber(num) {
+    return new Intl.NumberFormat('id-ID').format(num);
+}
+
+// Helper function untuk show toast notification
+showToast(message, type = 'info') {
+    // Remove existing toast
+    const existingToast = document.getElementById('financial-toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toast = document.createElement('div');
+    toast.id = 'financial-toast';
+    toast.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg border transform transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white border-green-600' :
+        type === 'error' ? 'bg-red-500 text-white border-red-600' :
+        'bg-blue-500 text-white border-blue-600'
+    }`;
+    
+    toast.innerHTML = `
+        <div class="flex items-center space-x-2">
+            <i class="fas ${
+                type === 'success' ? 'fa-check-circle' :
+                type === 'error' ? 'fa-exclamation-circle' :
+                'fa-info-circle'
+            }"></i>
+            <span class="text-sm font-medium">${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 4000);
+}
 
     // ==================== FIREBASE CRUD OPERATIONS ====================
     async savePengeluaranToFirebase(data) {
@@ -1334,31 +1470,37 @@ async loadPemasukanData() {
     }
 
     renderCurrentPage() {
-        switch (this.currentPage) {
-            case 'dashboard':
-                return this.isLoggedIn ? this.renderUserDashboard() : this.renderPublicDashboard();
-            case 'login':
-                return this.renderLoginPage();
-            case 'register':
-                return this.renderRegisterPage();
-            case 'pending-active':
-                return this.renderPendingActivePage();
-            case 'pemasukan':
-                return this.renderPemasukanPage();
-            case 'pengeluaran':
-                return this.renderPengeluaranPage();
-            case 'tabungan':
-                return this.renderTabunganPage();
-            case 'features':
-                return this.renderFeaturesPage();
-            case 'pricing':
-                return this.renderPricingPage();
-	    case 'invoice':
-                return this.renderInvoicePage();
-            default:
-                return this.isLoggedIn ? this.renderUserDashboard() : this.renderPublicDashboard();
-        }
+    switch (this.currentPage) {
+        case 'dashboard':
+            return this.isLoggedIn ? this.renderUserDashboard() : this.renderPublicDashboard();
+        case 'login':
+            return this.renderLoginPage();
+        case 'register':
+            return this.renderRegisterPage();
+        case 'pending-active':
+            return this.renderPendingActivePage();
+        case 'pemasukan':
+            return this.renderPemasukanPage();
+        case 'pengeluaran':
+            return this.renderPengeluaranPage();
+        case 'tabungan':
+            return this.renderTabunganPage();
+        case 'dream-planner':
+            return this.renderDreamPlannerPage();
+        case 'dana-darurat':
+            return this.renderDanaDaruratPage();
+        case 'goals':
+            return this.renderGoalsPage();
+        case 'features':
+            return this.renderFeaturesPage();
+        case 'pricing':
+            return this.renderPricingPage();
+        case 'invoice':
+            return this.renderInvoicePage();
+        default:
+            return this.isLoggedIn ? this.renderUserDashboard() : this.renderPublicDashboard();
     }
+}
 
     renderPublicDashboard() {
         return `
@@ -1414,9 +1556,14 @@ async loadPemasukanData() {
         `;
     }
 
-    renderUserDashboard() {
+renderUserDashboard() {
+    // Panggil loadDashboardData setelah render
+    setTimeout(() => {
+        this.loadDashboardData();
+    }, 100);
+    
     return `
-        <div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100/80">
+        <div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100/80 pb-20">
             <!-- App Bar -->
             <div class="bg-white/80 backdrop-blur-lg border-b border-gray-200/60 sticky top-0 z-40">
                 <div class="px-4 py-3">
@@ -1467,6 +1614,7 @@ async loadPemasukanData() {
                 </div>
             </div>
 
+
             <!-- Quick Stats Grid -->
             <div class="px-4 mt-6">
                 <div class="grid grid-cols-2 gap-3">
@@ -1489,7 +1637,6 @@ async loadPemasukanData() {
                             </div>
                         </div>
                     </div>
-
                     <!-- Pengeluaran Card -->
                     <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 active:scale-95" 
                          onclick="app.loadContent('pengeluaran')">
@@ -1509,6 +1656,77 @@ async loadPemasukanData() {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+	                       <!-- Financial Goals Section -->
+            <div class="px-4 mt-6">
+                <h3 class="text-gray-900 text-sm font-bold mb-3">Financial Goals</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Dream Planner -->
+                    <div class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 shadow-lg text-white hover:shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer" 
+                         onclick="app.loadContent('dream-planner')">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-star text-white text-sm"></i>
+                            </div>
+                            <div class="bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors">
+                                <i class="fas fa-chart-line text-white text-xs"></i>
+                            </div>
+                        </div>
+                        <p class="text-white/90 text-xs font-medium mb-1">Dream Planner</p>
+                        <p class="text-white text-lg font-bold" id="dreamPlannerProgress">Rp 0</p>
+                        <div class="flex items-center mt-2">
+                            <div class="w-full bg-white/30 rounded-full h-1.5">
+                                <div class="bg-white h-1.5 rounded-full" id="dreamPlannerBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-white/70 text-xs mt-1" id="dreamPlannerTarget">Target: Rp 0</p>
+                    </div>
+
+                    <!-- Dana Darurat -->
+                    <div class="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-4 shadow-lg text-white hover:shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer" 
+                         onclick="app.loadContent('dana-darurat')">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-shield-alt text-white text-sm"></i>
+                            </div>
+                            <div class="bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors">
+                                <i class="fas fa-chart-line text-white text-xs"></i>
+                            </div>
+                        </div>
+                        <p class="text-white/90 text-xs font-medium mb-1">Dana Darurat</p>
+                        <p class="text-white text-lg font-bold" id="danaDaruratProgress">Rp 0</p>
+                        <div class="flex items-center mt-2">
+                            <div class="w-full bg-white/30 rounded-full h-1.5">
+                                <div class="bg-white h-1.5 rounded-full" id="danaDaruratBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <p class="text-white/70 text-xs mt-1" id="danaDaruratTarget">Target: 6x pengeluaran</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabungan Section -->
+            <div class="px-4 mt-4">
+                <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 shadow-lg text-white hover:shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer" 
+                     onclick="app.loadContent('tabungan')">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-piggy-bank text-white text-sm"></i>
+                        </div>
+                        <div class="bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors">
+                            <i class="fas fa-chart-line text-white text-xs"></i>
+                        </div>
+                    </div>
+                    <p class="text-white/90 text-xs font-medium mb-1">Tabungan</p>
+                    <p class="text-white text-lg font-bold" id="tabunganProgress">Rp 0</p>
+                    <div class="flex items-center mt-2">
+                        <div class="w-full bg-white/30 rounded-full h-1.5">
+                            <div class="bg-white h-1.5 rounded-full" id="tabunganBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <p class="text-white/70 text-xs mt-1" id="tabunganTarget">Auto-save from income</p>
                 </div>
             </div>
 
@@ -1533,17 +1751,17 @@ async loadPemasukanData() {
                     </button>
                     
                     <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
-                            onclick="app.showInvoiceGeneratorModal()">
-                        <div class="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center mb-1">
-                            <i class="fas fa-receipt text-emerald-500 text-xs"></i>
+                            onclick="app.showGoalPlannerModal()">
+                        <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-bullseye text-purple-500 text-xs"></i>
                         </div>
-                        <span class="text-gray-600 text-xs font-medium">Invoice</span>
+                        <span class="text-gray-600 text-xs font-medium">Goals</span>
                     </button>
                     
                     <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
                             onclick="app.showScanReceiptModal()">
-                        <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-1">
-                            <i class="fas fa-camera text-purple-500 text-xs"></i>
+                        <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-camera text-green-500 text-xs"></i>
                         </div>
                         <span class="text-gray-600 text-xs font-medium">Scan</span>
                     </button>
@@ -1579,157 +1797,461 @@ async loadPemasukanData() {
                 </div>
             </div>
 
-           <!-- Bottom Navigation -->
-<div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-200/60 z-50">
-    <div class="grid grid-cols-4 gap-1 px-4 py-2">
-        <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'dashboard' ? 'text-blue-500 bg-blue-50' : 'text-gray-500'}"
-                onclick="app.loadContent('dashboard')">
-            <i class="fas fa-home text-sm mb-1"></i>
-            <span class="text-xs font-medium">Home</span>
-        </button>
-        <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'pemasukan' ? 'text-emerald-500 bg-emerald-50' : 'text-gray-500'}"
-                onclick="app.loadContent('pemasukan')">
-            <i class="fas fa-arrow-down text-sm mb-1"></i>
-            <span class="text-xs font-medium">Income</span>
-        </button>
-        <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'pengeluaran' ? 'text-rose-500 bg-rose-50' : 'text-gray-500'}"
-                onclick="app.loadContent('pengeluaran')">
-            <i class="fas fa-arrow-up text-sm mb-1"></i>
-            <span class="text-xs font-medium">Expense</span>
-        </button>
-        <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'invoice' ? 'text-purple-500 bg-purple-50' : 'text-gray-500'}"
-                onclick="app.loadContent('invoice')">
-            <i class="fas fa-receipt text-sm mb-1"></i>
-            <span class="text-xs font-medium">Invoice</span>
-        </button>
-    </div>
-</div>
-
-        <!-- Invoice Generator Modal -->
-        <div id="invoiceGeneratorModal" class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 hidden px-2 sm:px-0">
-            <style>
-                .invoice-modal-slide-up {
-                    animation: invoiceModalSlideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-                }
-                
-                @keyframes invoiceModalSlideUp {
-                    from { 
-                        transform: translateY(100%); 
-                        opacity: 0;
-                    }
-                    to { 
-                        transform: translateY(0); 
-                        opacity: 1;
-                    }
-                }
-            </style>
-            
-            <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden invoice-modal-slide-up">
-                <!-- Header -->
-                <div class="px-4 py-4 border-b border-gray-100 bg-white sticky top-0">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-bold text-gray-900">Create Invoice</h3>
-                        <button onclick="app.hideInvoiceGeneratorModal()" 
-                                class="p-2 hover:bg-gray-100 rounded-xl transition-colors active:bg-gray-200 touch-manipulation">
-                            <i class="fas fa-times text-gray-500 text-lg"></i>
-                        </button>
-                    </div>
+            <!-- Bottom Navigation -->
+            <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-200/60 z-50">
+                <div class="grid grid-cols-4 gap-1 px-4 py-2">
+                    <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'dashboard' ? 'text-blue-500 bg-blue-50' : 'text-gray-500'}"
+                            onclick="app.loadContent('dashboard')">
+                        <i class="fas fa-home text-sm mb-1"></i>
+                        <span class="text-xs font-medium">Home</span>
+                    </button>
+                    <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'pemasukan' ? 'text-emerald-500 bg-emerald-50' : 'text-gray-500'}"
+                            onclick="app.loadContent('pemasukan')">
+                        <i class="fas fa-arrow-down text-sm mb-1"></i>
+                        <span class="text-xs font-medium">Income</span>
+                    </button>
+                    <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'pengeluaran' ? 'text-rose-500 bg-rose-50' : 'text-gray-500'}"
+                            onclick="app.loadContent('pengeluaran')">
+                        <i class="fas fa-arrow-up text-sm mb-1"></i>
+                        <span class="text-xs font-medium">Expense</span>
+                    </button>
+                    <button class="flex flex-col items-center p-2 rounded-xl transition-all duration-200 ${this.currentPage === 'goals' ? 'text-purple-500 bg-purple-50' : 'text-gray-500'}"
+                            onclick="app.showGoalPlannerModal()">
+                        <i class="fas fa-bullseye text-sm mb-1"></i>
+                        <span class="text-xs font-medium">Goals</span>
+                    </button>
                 </div>
+            </div>
 
-                <!-- Invoice Form -->
-                <div class="p-4 space-y-4 overflow-y-auto bg-gray-50/50">
-                    <!-- Store Info -->
-                    <div class="bg-white rounded-xl p-4 border border-gray-200">
-                        <h4 class="text-sm font-bold text-gray-900 mb-3">Store Information</h4>
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-2">Store Name</label>
-                                <input type="text" id="storeName" 
-                                       class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
-                                       placeholder="Enter store name">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-2">Store Logo URL</label>
-                                <input type="url" id="storeLogo" 
-                                       class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
-                                       placeholder="https://example.com/logo.png">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Products -->
-                    <div class="bg-white rounded-xl p-4 border border-gray-200">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-sm font-bold text-gray-900">Products & Services</h4>
-                            <button onclick="app.addProductRow()" 
-                                    class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition-colors">
-                                <i class="fas fa-plus mr-1"></i> Add Item
+            <!-- Goal Planner Modal -->
+            <div id="goalPlannerModal" class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 hidden px-2 sm:px-0">
+                <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
+                    <div class="px-4 py-4 border-b border-gray-100 bg-white sticky top-0">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-900">Financial Goals</h3>
+                            <button onclick="app.hideGoalPlannerModal()" 
+                                    class="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                <i class="fas fa-times text-gray-500 text-lg"></i>
                             </button>
                         </div>
-                        <div id="productRows" class="space-y-3">
-                            <!-- Product rows will be added here -->
+                    </div>
+
+                    <div class="p-4 space-y-4 overflow-y-auto bg-gray-50/50">
+                        <!-- Dream Planner -->
+                        <div class="bg-white rounded-xl p-4 border border-gray-200">
+                            <h4 class="text-sm font-bold text-gray-900 mb-3">🎯 Dream Planner</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Dream Goal</label>
+                                    <input type="text" id="dreamGoal" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                           placeholder="Contoh: Beli mobil, Nikah, dll">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Target Amount</label>
+                                    <input type="number" id="dreamTarget" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                           placeholder="50000000">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Current Savings</label>
+                                    <input type="number" id="dreamCurrent" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                           placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dana Darurat -->
+                        <div class="bg-white rounded-xl p-4 border border-gray-200">
+                            <h4 class="text-sm font-bold text-gray-900 mb-3">🛡️ Dana Darurat</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Monthly Expenses</label>
+                                    <input type="number" id="monthlyExpenses" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-sm"
+                                           placeholder="Auto-calculated" readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Emergency Fund Target</label>
+                                    <input type="number" id="emergencyTarget" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-sm"
+                                           placeholder="Auto-calculated" readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Current Emergency Fund</label>
+                                    <input type="number" id="emergencyCurrent" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-sm"
+                                           placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabungan -->
+                        <div class="bg-white rounded-xl p-4 border border-gray-200">
+                            <h4 class="text-sm font-bold text-gray-900 mb-3">💰 Tabungan</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Auto-save Percentage</label>
+                                    <input type="number" id="savingsPercentage" min="0" max="100" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-sm"
+                                           placeholder="20" value="20">
+                                    <p class="text-xs text-gray-500 mt-1">Percentage of income to auto-save</p>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-2">Current Savings</label>
+                                    <input type="number" id="savingsCurrent" 
+                                           class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all text-sm"
+                                           placeholder="0">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Additional Charges -->
-                    <div class="bg-white rounded-xl p-4 border border-gray-200">
-                        <h4 class="text-sm font-bold text-gray-900 mb-3">Additional Charges</h4>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-2">Shipping</label>
-                                <input type="number" id="shippingFee" min="0" 
-                                       class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
-                                       placeholder="0">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-2">Tax (%)</label>
-                                <input type="number" id="taxRate" min="0" max="100" step="0.1"
-                                       class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
-                                       placeholder="0">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-2">Discount</label>
-                                <input type="number" id="discountAmount" min="0" 
-                                       class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
-                                       placeholder="0">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-2">Discount Type</label>
-                                <select id="discountType" 
-                                        class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm">
-                                    <option value="amount">Amount</option>
-                                    <option value="percentage">Percentage</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Preview Section -->
-                    <div class="bg-white rounded-xl p-4 border border-gray-200">
-                        <h4 class="text-sm font-bold text-gray-900 mb-3">Invoice Summary</h4>
-                        <div id="invoicePreview" class="text-sm text-gray-600">
-                            <!-- Preview will be updated here -->
-                            <p class="text-center py-4">Fill the form to see preview</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="px-4 py-4 border-t border-gray-100 bg-white sticky bottom-0">
-                    <div class="flex space-x-3">
-                        <button type="button" onclick="app.hideInvoiceGeneratorModal()"
-                                class="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 font-semibold text-sm touch-manipulation active:scale-95">
-                            Cancel
-                        </button>
-                        <button type="button" onclick="app.generateInvoiceWithAI()"
-                                class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-semibold text-sm shadow-lg touch-manipulation active:scale-95">
-                            <i class="fas fa-robot mr-2"></i>Generate with AI
+                    <div class="px-4 py-4 border-t border-gray-100 bg-white sticky bottom-0">
+                        <button onclick="app.saveFinancialGoals()"
+                                class="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-semibold text-sm shadow-lg">
+                            Save Goals
                         </button>
                     </div>
                 </div>
             </div>
+
+            <!-- Invoice Generator Modal -->
+            <!-- ... (keep existing invoice modal) ... -->
         </div>
     `;
+}
+
+// Load Dashboard Data
+async loadDashboardData() {
+    try {
+        console.log('Loading dashboard data...');
+        
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) {
+            console.log('User not authenticated');
+            return;
+        }
+
+        // 1. Load basic financial stats
+        await this.loadFinancialStats();
+        
+        // 2. Load financial goals
+        await this.loadFinancialGoals();
+        
+        // 3. Load recent activity
+        await this.loadRecentActivity();
+        
+        console.log('Dashboard data loaded successfully');
+        
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+// Load Financial Stats
+async loadFinancialStats() {
+    const currentUser = this.auth.currentUser;
+    
+    try {
+        // Get pemasukan data
+        const pemasukanSnapshot = await this.db.collection('pemasukan')
+            .where('userId', '==', currentUser.uid)
+            .get();
+        
+        const totalPemasukan = pemasukanSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+        document.getElementById('totalPemasukanDashboard').textContent = this.formatRupiah(totalPemasukan);
+        
+        // Get pengeluaran data
+        const pengeluaranSnapshot = await this.db.collection('pengeluaran')
+            .where('userId', '==', currentUser.uid)
+            .get();
+        
+        const totalPengeluaran = pengeluaranSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+        document.getElementById('totalPengeluaranDashboard').textContent = this.formatRupiah(totalPengeluaran);
+        
+        // Calculate balance and growth
+        const saldo = totalPemasukan - totalPengeluaran;
+        document.getElementById('saldoSaatIni').textContent = this.formatRupiah(saldo);
+        
+        // Simple growth calculation (you can make this more sophisticated)
+        const growth = totalPemasukan > 0 ? ((totalPemasukan - totalPengeluaran) / totalPemasukan * 100).toFixed(1) : 0;
+        document.getElementById('monthGrowth').textContent = `${growth}%`;
+        
+        // Update progress bars
+        const maxAmount = Math.max(totalPemasukan, totalPengeluaran, 1);
+        const pemasukanProgress = (totalPemasukan / maxAmount) * 100;
+        const pengeluaranProgress = (totalPengeluaran / maxAmount) * 100;
+        
+        document.getElementById('pemasukanProgress').style.width = `${pemasukanProgress}%`;
+        document.getElementById('pengeluaranProgress').style.width = `${pengeluaranProgress}%`;
+        
+    } catch (error) {
+        console.error('Error loading financial stats:', error);
+    }
+}
+
+// Load Financial Goals
+async loadFinancialGoals() {
+    const currentUser = this.auth.currentUser;
+    
+    try {
+        const goalsDoc = await this.db.collection('financial_goals')
+            .doc(currentUser.uid)
+            .get();
+        
+        if (goalsDoc.exists) {
+            const goals = goalsDoc.data();
+            
+            // Dream Planner
+            const dreamProgress = goals.dreamCurrent || 0;
+            const dreamTarget = goals.dreamTarget || 1;
+            const dreamPercentage = (dreamProgress / dreamTarget) * 100;
+            
+            document.getElementById('dreamPlannerProgress').textContent = this.formatRupiah(dreamProgress);
+            document.getElementById('dreamPlannerBar').style.width = `${Math.min(dreamPercentage, 100)}%`;
+            document.getElementById('dreamPlannerTarget').textContent = `Target: ${this.formatRupiah(dreamTarget)}`;
+            
+            // Dana Darurat
+            const emergencyProgress = goals.emergencyCurrent || 0;
+            const monthlyExpenses = goals.monthlyExpenses || 0;
+            const emergencyTarget = monthlyExpenses * 6; // 6x monthly expenses
+            const emergencyPercentage = emergencyTarget > 0 ? (emergencyProgress / emergencyTarget) * 100 : 0;
+            
+            document.getElementById('danaDaruratProgress').textContent = this.formatRupiah(emergencyProgress);
+            document.getElementById('danaDaruratBar').style.width = `${Math.min(emergencyPercentage, 100)}%`;
+            document.getElementById('danaDaruratTarget').textContent = `Target: ${this.formatRupiah(emergencyTarget)}`;
+            
+            // Tabungan
+            const savingsProgress = goals.savingsCurrent || 0;
+            const savingsPercentage = goals.savingsPercentage || 20;
+            const savingsTarget = (await this.getMonthlyIncome()) * (savingsPercentage / 100) * 12; // Yearly target
+            
+            document.getElementById('tabunganProgress').textContent = this.formatRupiah(savingsProgress);
+            document.getElementById('tabunganBar').style.width = `${savingsTarget > 0 ? Math.min((savingsProgress / savingsTarget) * 100, 100) : 0}%`;
+            document.getElementById('tabunganTarget').textContent = `Auto-save ${savingsPercentage}% from income`;
+            
+        } else {
+            // Set default values if no goals exist
+            this.setDefaultGoalValues();
+        }
+        
+    } catch (error) {
+        console.error('Error loading financial goals:', error);
+        this.setDefaultGoalValues();
+    }
+}
+
+// Helper function to get monthly income
+async getMonthlyIncome() {
+    const currentUser = this.auth.currentUser;
+    const currentDate = new Date();
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    
+    const pemasukanSnapshot = await this.db.collection('pemasukan')
+        .where('userId', '==', currentUser.uid)
+        .where('date', '>=', firstDay.toISOString().split('T')[0])
+        .where('date', '<=', lastDay.toISOString().split('T')[0])
+        .get();
+    
+    return pemasukanSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+}
+
+// Set default goal values
+setDefaultGoalValues() {
+    document.getElementById('dreamPlannerProgress').textContent = 'Rp 0';
+    document.getElementById('dreamPlannerBar').style.width = '0%';
+    document.getElementById('dreamPlannerTarget').textContent = 'Target: Rp 0';
+    
+    document.getElementById('danaDaruratProgress').textContent = 'Rp 0';
+    document.getElementById('danaDaruratBar').style.width = '0%';
+    document.getElementById('danaDaruratTarget').textContent = 'Target: 6x pengeluaran';
+    
+    document.getElementById('tabunganProgress').textContent = 'Rp 0';
+    document.getElementById('tabunganBar').style.width = '0%';
+    document.getElementById('tabunganTarget').textContent = 'Auto-save from income';
+}
+
+// Show Goal Planner Modal
+showGoalPlannerModal() {
+    const modal = document.getElementById('goalPlannerModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        this.loadGoalPlannerData();
+    }
+}
+
+// Hide Goal Planner Modal
+hideGoalPlannerModal() {
+    const modal = document.getElementById('goalPlannerModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Load data into goal planner modal
+async loadGoalPlannerData() {
+    const currentUser = this.auth.currentUser;
+    
+    try {
+        const goalsDoc = await this.db.collection('financial_goals')
+            .doc(currentUser.uid)
+            .get();
+        
+        if (goalsDoc.exists) {
+            const goals = goalsDoc.data();
+            
+            // Dream Planner
+            document.getElementById('dreamGoal').value = goals.dreamGoal || '';
+            document.getElementById('dreamTarget').value = goals.dreamTarget || '';
+            document.getElementById('dreamCurrent').value = goals.dreamCurrent || '';
+            
+            // Dana Darurat
+            const monthlyExpenses = goals.monthlyExpenses || await this.calculateMonthlyExpenses();
+            document.getElementById('monthlyExpenses').value = monthlyExpenses;
+            document.getElementById('emergencyTarget').value = monthlyExpenses * 6;
+            document.getElementById('emergencyCurrent').value = goals.emergencyCurrent || '';
+            
+            // Tabungan
+            document.getElementById('savingsPercentage').value = goals.savingsPercentage || 20;
+            document.getElementById('savingsCurrent').value = goals.savingsCurrent || '';
+            
+        }
+        
+    } catch (error) {
+        console.error('Error loading goal planner data:', error);
+    }
+}
+
+// Calculate monthly expenses
+async calculateMonthlyExpenses() {
+    const currentUser = this.auth.currentUser;
+    const currentDate = new Date();
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    
+    const pengeluaranSnapshot = await this.db.collection('pengeluaran')
+        .where('userId', '==', currentUser.uid)
+        .where('date', '>=', firstDay.toISOString().split('T')[0])
+        .where('date', '<=', lastDay.toISOString().split('T')[0])
+        .get();
+    
+    return pengeluaranSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+}
+
+// Save Financial Goals
+async saveFinancialGoals() {
+    try {
+        const currentUser = this.auth.currentUser;
+        
+        const goalsData = {
+            dreamGoal: document.getElementById('dreamGoal').value,
+            dreamTarget: parseFloat(document.getElementById('dreamTarget').value) || 0,
+            dreamCurrent: parseFloat(document.getElementById('dreamCurrent').value) || 0,
+            monthlyExpenses: parseFloat(document.getElementById('monthlyExpenses').value) || 0,
+            emergencyCurrent: parseFloat(document.getElementById('emergencyCurrent').value) || 0,
+            savingsPercentage: parseFloat(document.getElementById('savingsPercentage').value) || 20,
+            savingsCurrent: parseFloat(document.getElementById('savingsCurrent').value) || 0,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await this.db.collection('financial_goals')
+            .doc(currentUser.uid)
+            .set(goalsData, { merge: true });
+        
+        this.showToast('Financial goals saved successfully!', 'success');
+        this.hideGoalPlannerModal();
+        
+        // Refresh dashboard
+        this.loadFinancialGoals();
+        
+    } catch (error) {
+        console.error('Error saving financial goals:', error);
+        this.showToast('Failed to save goals', 'error');
+    }
+}
+
+// Load Recent Activity
+async loadRecentActivity() {
+    const currentUser = this.auth.currentUser;
+    
+    try {
+        // Get recent pemasukan
+        const pemasukanSnapshot = await this.db.collection('pemasukan')
+            .where('userId', '==', currentUser.uid)
+            .orderBy('date', 'desc')
+            .orderBy('createdAt', 'desc')
+            .limit(5)
+            .get();
+        
+        // Get recent pengeluaran
+        const pengeluaranSnapshot = await this.db.collection('pengeluaran')
+            .where('userId', '==', currentUser.uid)
+            .orderBy('date', 'desc')
+            .orderBy('createdAt', 'desc')
+            .limit(5)
+            .get();
+        
+        // Combine and sort by date
+        const activities = [
+            ...pemasukanSnapshot.docs.map(doc => ({
+                type: 'income',
+                data: doc.data(),
+                id: doc.id
+            })),
+            ...pengeluaranSnapshot.docs.map(doc => ({
+                type: 'expense',
+                data: doc.data(),
+                id: doc.id
+            }))
+        ].sort((a, b) => new Date(b.data.date) - new Date(a.data.date))
+         .slice(0, 5);
+        
+        const activityList = document.getElementById('recentActivityList');
+        
+        if (activities.length === 0) {
+            activityList.innerHTML = `
+                <div class="px-4 py-8 text-center">
+                    <i class="fas fa-receipt text-3xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 text-sm">No recent activity</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        activities.forEach(activity => {
+            const isIncome = activity.type === 'income';
+            const icon = isIncome ? 'arrow-down' : 'arrow-up';
+            const color = isIncome ? 'emerald' : 'rose';
+            const sign = isIncome ? '+' : '-';
+            
+            html += `
+                <div class="px-4 py-3 border-b border-gray-100 hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-${color}-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-${icon} text-${color}-500 text-xs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-gray-900 text-sm font-medium truncate">${activity.data.description}</p>
+                            <p class="text-gray-500 text-xs mt-1">${this.formatCategoryName(activity.data.category)} • ${this.formatDateDisplay(activity.data.date)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-${color}-500 text-sm font-semibold">${sign}${this.formatRupiah(activity.data.amount)}</p>
+                            <p class="text-gray-400 text-xs mt-1">${isIncome ? 'Income' : 'Expense'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        activityList.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading recent activity:', error);
+    }
 }
 
 async loadDashboardData() {
@@ -3753,6 +4275,8 @@ fileToBase64(file) {
     }
 renderPendingActivePage() {
     const userEmail = this.userData?.email || 'user@example.com';
+    const userName = this.userData?.name || 'Customer';
+    const userPhone = this.userData?.phone || '08123456789';
     
     return `
         <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8">
@@ -3768,18 +4292,18 @@ renderPendingActivePage() {
 
                     <div class="p-6">
                         <div class="text-center mb-6">
-<div class="mb-4 flex justify-center">
-    <div class="relative group">
-        <img 
-            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" 
-            alt="Exclusive Offer"
-            class="w-32 h-32 rounded-full object-cover border-4 border-yellow-400 shadow-lg group-hover:scale-110 transition-transform duration-300"
-        >
-        <div class="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-            VIP
-        </div>
-    </div>
-</div>
+                            <div class="mb-4 flex justify-center">
+                                <div class="relative group">
+                                    <img 
+                                        src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" 
+                                        alt="Exclusive Offer"
+                                        class="w-32 h-32 rounded-full object-cover border-4 border-yellow-400 shadow-lg group-hover:scale-110 transition-transform duration-300"
+                                    >
+                                    <div class="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                                        VIP
+                                    </div>
+                                </div>
+                            </div>
                             
                             <!-- Badge Diskon -->
                             <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-bold px-4 py-2 rounded-full inline-block mb-4 relative">
@@ -3794,7 +4318,17 @@ renderPendingActivePage() {
                                 <div class="text-3xl font-bold text-gray-800">Rp49.000</div>
                             </div>
                             
-                            <button class="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-4 px-6 rounded-lg hover:from-purple-600 hover:to-blue-700 transition-all shadow font-bold text-lg mb-3 transform hover:scale-105 duration-200" onclick="app.handleUpgrade()">
+                            <!-- Payment Method Selection -->
+                            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran:</label>
+                                <select id="paymentMethod" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                    <option value="qris">QRIS (Semua E-Wallet & Mobile Banking)</option>
+                                    <option value="va">Virtual Account (Transfer Bank)</option>
+                                    <option value="cstore">Alfamart / Indomaret</option>
+                                </select>
+                            </div>
+                            
+                            <button class="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-4 px-6 rounded-lg hover:from-purple-600 hover:to-blue-700 transition-all shadow font-bold text-lg mb-3 transform hover:scale-105 duration-200" onclick="app.processIPaymuPayment()">
                                 💳 Upgrade Sekarang
                             </button>
                             
@@ -3833,9 +4367,140 @@ renderPendingActivePage() {
                         </div>
                     </div>
                 </div>
+
+                <!-- Payment Processing Modal -->
+                <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                    <div class="bg-white rounded-2xl p-6 max-w-sm mx-4">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800 mb-2">Memproses Pembayaran</h3>
+                            <p class="text-gray-600 text-sm mb-4">Sedang menghubungkan ke iPaymu...</p>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p class="text-yellow-800 text-xs">Jangan tutup halaman ini selama proses pembayaran</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
+}
+
+// ==================== IPAYMU PAYMENT INTEGRATION ====================
+
+async processIPaymuPayment() {
+    const paymentMethod = document.getElementById('paymentMethod')?.value || 'qris';
+    const amount = 49000; // Harga premium
+    const userEmail = this.userData?.email || 'user@example.com';
+    const userName = this.userData?.name || 'Customer';
+    const userPhone = this.userData?.phone || '08123456789';
+
+    // Show loading modal
+    this.showPaymentModal();
+
+    try {
+        const paymentData = {
+            amount: amount,
+            paymentMethod: paymentMethod,
+            product: 'VLFinance Premium Membership',
+            name: userName,
+            email: userEmail,
+            phone: userPhone
+        };
+
+        const result = await this.createIPaymuPayment(paymentData);
+
+        if (result.success) {
+            // Redirect to iPaymu payment page
+            window.location.href = result.redirectUrl;
+        } else {
+            this.hidePaymentModal();
+            this.showNotification(result.error || 'Gagal memproses pembayaran', 'error');
+        }
+
+    } catch (error) {
+        console.error('Payment error:', error);
+        this.hidePaymentModal();
+        this.showNotification('Terjadi kesalahan saat memproses pembayaran', 'error');
+    }
+}
+
+async createIPaymuPayment(paymentData) {
+    try {
+        const response = await fetch('/ipaymu_create.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                amount: paymentData.amount,
+                paymentMethod: paymentData.paymentMethod,
+                product: paymentData.product,
+                name: paymentData.name,
+                email: paymentData.email,
+                phone: paymentData.phone,
+                userId: this.userData?.uid || 'unknown' // Kirim userId ke backend
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+        }
+
+        const result = await response.json();
+        return result;
+
+    } catch (error) {
+        console.error('Create payment error:', error);
+        return {
+            success: false,
+            error: 'Gagal terhubung ke server pembayaran'
+        };
+    }
+}
+
+showPaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+hidePaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+
+showNotification(message, type = 'info') {
+    // Your existing notification implementation
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-transform duration-300 ${
+        type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' :
+        type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+    }`;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
 }
 
 // Save pemasukan ke Firebase - PERBAIKAN
@@ -4022,6 +4687,2533 @@ renderInvoicePage() {
     this.loadInvoicesFromFirestore();
 }
 
+renderGoalsPage() {
+    return `
+        <div class="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100/80">
+            <!-- Header -->
+            <div class="bg-white/80 backdrop-blur-lg border-b border-gray-200/60 sticky top-0 z-40">
+                <div class="px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors" 
+                                    onclick="app.loadContent('dashboard')">
+                                <i class="fas fa-arrow-left text-gray-600"></i>
+                            </button>
+                            <div>
+                                <h1 class="text-lg font-bold text-gray-900">Financial Goals</h1>
+                                <p class="text-xs text-gray-500">Kelola target keuangan Anda</p>
+                            </div>
+                        </div>
+                        <button onclick="app.showAddGoalModal()" 
+                                class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Goals Overview -->
+            <div class="px-4 pt-6">
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- Total Goals -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-bullseye text-blue-500 text-lg"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">Total Goals</p>
+                            <p class="text-gray-900 text-lg font-bold" id="totalGoalsCount">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Completed Goals -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-check text-green-500 text-lg"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">Completed</p>
+                            <p class="text-gray-900 text-lg font-bold" id="completedGoalsCount">0</p>
+                        </div>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-spinner text-orange-500 text-lg"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">In Progress</p>
+                            <p class="text-gray-900 text-lg font-bold" id="progressGoalsCount">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access Cards -->
+            <div class="px-4 mt-6">
+                <h3 class="text-gray-900 text-sm font-bold mb-3">Quick Access</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Dream Planner -->
+                    <div class="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-4 shadow-lg text-white hover:shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer" 
+                         onclick="app.loadContent('dream-planner')">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-star text-white text-sm"></i>
+                            </div>
+                            <div class="bg-white/20 px-2 py-1 rounded-full">
+                                <i class="fas fa-arrow-right text-white text-xs"></i>
+                            </div>
+                        </div>
+                        <p class="text-white/90 text-xs font-medium mb-1">Dream Planner</p>
+                        <p class="text-white text-lg font-bold" id="dreamPlannerSummary">Rp 0</p>
+                        <div class="flex items-center mt-2">
+                            <div class="w-full bg-white/30 rounded-full h-1.5">
+                                <div class="bg-white h-1.5 rounded-full" id="dreamPlannerSummaryBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dana Darurat -->
+                    <div class="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-4 shadow-lg text-white hover:shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer" 
+                         onclick="app.loadContent('dana-darurat')">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-shield-alt text-white text-sm"></i>
+                            </div>
+                            <div class="bg-white/20 px-2 py-1 rounded-full">
+                                <i class="fas fa-arrow-right text-white text-xs"></i>
+                            </div>
+                        </div>
+                        <p class="text-white/90 text-xs font-medium mb-1">Dana Darurat</p>
+                        <p class="text-white text-lg font-bold" id="danaDaruratSummary">Rp 0</p>
+                        <div class="flex items-center mt-2">
+                            <div class="w-full bg-white/30 rounded-full h-1.5">
+                                <div class="bg-white h-1.5 rounded-full" id="danaDaruratSummaryBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabungan Section -->
+            <div class="px-4 mt-4">
+                <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-4 shadow-lg text-white hover:shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer" 
+                     onclick="app.loadContent('tabungan')">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-piggy-bank text-white text-sm"></i>
+                        </div>
+                        <div class="bg-white/20 px-2 py-1 rounded-full">
+                            <i class="fas fa-arrow-right text-white text-xs"></i>
+                        </div>
+                    </div>
+                    <p class="text-white/90 text-xs font-medium mb-1">Tabungan</p>
+                    <p class="text-white text-lg font-bold" id="tabunganSummary">Rp 0</p>
+                    <div class="flex items-center mt-2">
+                        <div class="w-full bg-white/30 rounded-full h-1.5">
+                            <div class="bg-white h-1.5 rounded-full" id="tabunganSummaryBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Goals List -->
+            <div class="px-4 mt-6 mb-6">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-900 text-sm font-bold">Active Goals</h3>
+                            <span class="text-blue-500 text-xs font-medium" id="activeGoalsCount">0 goals</span>
+                        </div>
+                    </div>
+                    <div id="activeGoalsList" class="divide-y divide-gray-100">
+                        <div class="px-4 py-4 text-center">
+                            <i class="fas fa-bullseye text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500 text-sm">Belum ada goals aktif</p>
+                            <button onclick="app.showAddGoalModal()" 
+                                    class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                                Tambah Goal Pertama
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Goal Modal -->
+            <div id="addGoalModal" class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 hidden px-2 sm:px-0">
+                <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
+                    <div class="px-4 py-4 border-b border-gray-100 bg-white sticky top-0">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-900">Tambah Goal Baru</h3>
+                            <button onclick="app.hideAddGoalModal()" 
+                                    class="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                <i class="fas fa-times text-gray-500 text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-4 space-y-4 overflow-y-auto bg-gray-50/50">
+                        <!-- Goal Type -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Tipe Goal</label>
+                            <select id="goalType" class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm">
+                                <option value="dream">🎯 Dream Planner</option>
+                                <option value="emergency">🛡️ Dana Darurat</option>
+                                <option value="savings">💰 Tabungan</option>
+                                <option value="custom">📝 Custom Goal</option>
+                            </select>
+                        </div>
+
+                        <!-- Goal Name -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Nama Goal</label>
+                            <input type="text" id="goalName" 
+                                   class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                                   placeholder="Contoh: Beli mobil, Dana pendidikan, dll">
+                        </div>
+
+                        <!-- Target Amount -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Target Amount</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                                <input type="number" id="goalTargetAmount" 
+                                       class="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                                       placeholder="0">
+                            </div>
+                        </div>
+
+                        <!-- Current Amount -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Current Amount</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                                <input type="number" id="goalCurrentAmount" 
+                                       class="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                                       placeholder="0" value="0">
+                            </div>
+                        </div>
+
+                        <!-- Target Date -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Target Date (Opsional)</label>
+                            <input type="date" id="goalTargetDate" 
+                                   class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm">
+                        </div>
+
+                        <!-- Priority -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Priority</label>
+                            <select id="goalPriority" class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm">
+                                <option value="low">🟢 Low</option>
+                                <option value="medium">🟡 Medium</option>
+                                <option value="high">🔴 High</option>
+                            </select>
+                        </div>
+
+                        <!-- Notes -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
+                            <textarea id="goalNotes" rows="3"
+                                      class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                                      placeholder="Tambahkan catatan tentang goal ini..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="px-4 py-4 border-t border-gray-100 bg-white sticky bottom-0">
+                        <button onclick="app.saveGoal()"
+                                class="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-semibold text-sm shadow-lg">
+                            Save Goal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function untuk load goals data
+async loadGoalsData() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        // Load goals summary
+        await this.loadGoalsSummary();
+        
+        // Load active goals list
+        await this.loadActiveGoals();
+        
+        // Load quick access data
+        await this.loadQuickAccessData();
+        
+    } catch (error) {
+        console.error('Error loading goals data:', error);
+    }
+}
+
+// Load goals summary
+async loadGoalsSummary() {
+    const currentUser = this.auth.currentUser;
+    
+    try {
+        const goalsSnapshot = await this.db.collection('goals')
+            .where('userId', '==', currentUser.uid)
+            .get();
+        
+        const totalGoals = goalsSnapshot.size;
+        const completedGoals = goalsSnapshot.docs.filter(doc => {
+            const data = doc.data();
+            return data.currentAmount >= data.targetAmount;
+        }).length;
+        
+        const progressGoals = totalGoals - completedGoals;
+        
+        document.getElementById('totalGoalsCount').textContent = totalGoals;
+        document.getElementById('completedGoalsCount').textContent = completedGoals;
+        document.getElementById('progressGoalsCount').textContent = progressGoals;
+        
+    } catch (error) {
+        console.error('Error loading goals summary:', error);
+    }
+}
+
+// Load active goals
+async loadActiveGoals() {
+    const currentUser = this.auth.currentUser;
+    
+    try {
+        const goalsSnapshot = await this.db.collection('goals')
+            .where('userId', '==', currentUser.uid)
+            .where('currentAmount', '<', this.db.collection('goals').doc('targetAmount'))
+            .orderBy('priority', 'desc')
+            .orderBy('createdAt', 'desc')
+            .get();
+        
+        const activeGoalsList = document.getElementById('activeGoalsList');
+        document.getElementById('activeGoalsCount').textContent = `${goalsSnapshot.size} goals`;
+        
+        if (goalsSnapshot.empty) {
+            activeGoalsList.innerHTML = `
+                <div class="px-4 py-4 text-center">
+                    <i class="fas fa-bullseye text-3xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 text-sm">Belum ada goals aktif</p>
+                    <button onclick="app.showAddGoalModal()" 
+                            class="mt-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                        Tambah Goal Pertama
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        goalsSnapshot.forEach(doc => {
+            const goal = doc.data();
+            const progress = (goal.currentAmount / goal.targetAmount) * 100;
+            const progressColor = progress >= 75 ? 'bg-green-500' : progress >= 50 ? 'bg-yellow-500' : 'bg-blue-500';
+            const priorityColor = goal.priority === 'high' ? 'text-red-500' : goal.priority === 'medium' ? 'text-yellow-500' : 'text-green-500';
+            const priorityIcon = goal.priority === 'high' ? '🔴' : goal.priority === 'medium' ? '🟡' : '🟢';
+            
+            html += `
+                <div class="px-4 py-4 hover:bg-gray-50 cursor-pointer" onclick="app.showGoalDetail('${doc.id}')">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm">${priorityIcon}</span>
+                            <h4 class="text-sm font-semibold text-gray-900">${goal.name}</h4>
+                        </div>
+                        <span class="text-xs font-medium ${priorityColor}">${goal.priority}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs text-gray-600">${this.formatRupiah(goal.currentAmount)}</span>
+                        <span class="text-xs text-gray-500">${progress.toFixed(1)}%</span>
+                        <span class="text-xs text-gray-600">${this.formatRupiah(goal.targetAmount)}</span>
+                    </div>
+                    
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div class="h-2 rounded-full ${progressColor} transition-all duration-500" style="width: ${Math.min(progress, 100)}%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500">${goal.type}</span>
+                        ${goal.targetDate ? `<span class="text-xs text-gray-500">${this.formatDateDisplay(goal.targetDate)}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        activeGoalsList.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading active goals:', error);
+    }
+}
+
+// Load quick access data
+async loadQuickAccessData() {
+    // Load data untuk quick access cards
+    // Implementasi sesuai dengan data yang sudah ada di dashboard
+}
+
+// Show add goal modal
+showAddGoalModal() {
+    const modal = document.getElementById('addGoalModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+// Hide add goal modal
+hideAddGoalModal() {
+    const modal = document.getElementById('addGoalModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Save goal
+async saveGoal() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        const goalData = {
+            userId: currentUser.uid,
+            type: document.getElementById('goalType').value,
+            name: document.getElementById('goalName').value,
+            targetAmount: parseFloat(document.getElementById('goalTargetAmount').value) || 0,
+            currentAmount: parseFloat(document.getElementById('goalCurrentAmount').value) || 0,
+            targetDate: document.getElementById('goalTargetDate').value || null,
+            priority: document.getElementById('goalPriority').value,
+            notes: document.getElementById('goalNotes').value || '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await this.db.collection('goals').add(goalData);
+        
+        this.showToast('Goal berhasil disimpan!', 'success');
+        this.hideAddGoalModal();
+        
+        // Refresh goals data
+        this.loadGoalsData();
+        
+    } catch (error) {
+        console.error('Error saving goal:', error);
+        this.showToast('Gagal menyimpan goal', 'error');
+    }
+}
+
+
+  // RENDER DREAM PLANNER PAGE - FINAL VERSION
+renderDreamPlannerPage() {
+    return `
+        <div class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+            <!-- Header dengan Tombol Refresh -->
+            <div class="bg-white/80 backdrop-blur-lg border-b border-gray-200/60 sticky top-0 z-40">
+                <div class="px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors" 
+                                    onclick="app.loadContent('goals')">
+                                <i class="fas fa-arrow-left text-gray-600"></i>
+                            </button>
+                            <div>
+                                <h1 class="text-lg font-bold text-gray-900">Dream Planner</h1>
+                                <p class="text-xs text-gray-500">Wujudkan impian Anda</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <!-- Tombol Refresh -->
+                            <button onclick="app.manualRefreshDreams()" 
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                                    title="Refresh data">
+                                <i class="fas fa-sync-alt text-sm"></i>
+                            </button>
+                            <button onclick="app.showAddDreamModal()" 
+                                    class="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg transition-colors">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Overview -->
+            <div class="px-4 pt-6">
+                <div class="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 shadow-xl text-white">
+                    <div class="text-center">
+                        <p class="text-white/90 text-sm font-medium mb-2">Total Dream Progress</p>
+                        <p class="text-white text-2xl font-bold mb-3" id="dreamTotalProgress">Rp 0</p>
+                        <div class="w-full bg-white/30 rounded-full h-3 mb-2">
+                            <div class="bg-white h-3 rounded-full transition-all duration-500" id="dreamOverallProgressBar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-white/70 text-xs" id="dreamOverallTarget">Target: Rp 0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="px-4 mt-6">
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- Total Dreams -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-star text-purple-500 text-sm"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">Total Dreams</p>
+                            <p class="text-gray-900 text-lg font-bold" id="totalDreamsCount">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Achieved -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-check text-green-500 text-sm"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">Achieved</p>
+                            <p class="text-gray-900 text-lg font-bold" id="achievedDreamsCount">0</p>
+                        </div>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-spinner text-orange-500 text-sm"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">In Progress</p>
+                            <p class="text-gray-900 text-lg font-bold" id="progressDreamsCount">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="px-4 mt-4">
+                <div class="flex items-center justify-center space-x-2 text-xs text-gray-500" id="dreamsStatus">
+                    <i class="fas fa-circle text-green-500 text-xs"></i>
+                    <span>Real-time updates active</span>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="px-4 mt-4">
+                <h3 class="text-gray-900 text-sm font-bold mb-3">Quick Actions</h3>
+                <div class="grid grid-cols-4 gap-2">
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.showAddDreamModal()">
+                        <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-plus text-purple-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Add Dream</span>
+                    </button>
+                    
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.showDreamInsights()">
+                        <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-chart-pie text-green-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Insights</span>
+                    </button>
+                    
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.exportDreams()">
+                        <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-download text-blue-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Export</span>
+                    </button>
+                    
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.manualRefreshDreams()">
+                        <div class="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-sync-alt text-orange-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Refresh</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dreams List -->
+            <div class="px-4 mt-4 mb-6">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-900 text-sm font-bold">My Dreams</h3>
+                            <span class="text-purple-500 text-xs font-medium" id="dreamsListCount">0 dreams</span>
+                        </div>
+                    </div>
+                    <div id="dreamsList" class="divide-y divide-gray-100">
+                        <div class="px-4 py-8 text-center">
+                            <i class="fas fa-star text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500 text-sm">Loading dreams...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Dream Modal -->
+            <div id="addDreamModal" class="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 hidden px-2 sm:px-0">
+                <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
+                    <div class="px-4 py-4 border-b border-gray-100 bg-white sticky top-0">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-gray-900">Tambah Dream Goal</h3>
+                            <button onclick="app.hideAddDreamModal()" 
+                                    class="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                <i class="fas fa-times text-gray-500 text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-4 space-y-4 overflow-y-auto bg-gray-50/50">
+                        <!-- Dream Icon -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Dream Icon</label>
+                            <div class="grid grid-cols-6 gap-2">
+                                <button type="button" class="p-2 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors" onclick="app.selectDreamIcon('🏠')">
+                                    🏠
+                                </button>
+                                <button type="button" class="p-2 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors" onclick="app.selectDreamIcon('🚗')">
+                                    🚗
+                                </button>
+                                <button type="button" class="p-2 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors" onclick="app.selectDreamIcon('✈️')">
+                                    ✈️
+                                </button>
+                                <button type="button" class="p-2 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors" onclick="app.selectDreamIcon('🎓')">
+                                    🎓
+                                </button>
+                                <button type="button" class="p-2 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors" onclick="app.selectDreamIcon('💍')">
+                                    💍
+                                </button>
+                                <button type="button" class="p-2 border-2 border-gray-200 rounded-lg hover:border-purple-500 transition-colors" onclick="app.selectDreamIcon('📱')">
+                                    📱
+                                </button>
+                            </div>
+                            <input type="hidden" id="dreamIcon" value="🎯">
+                        </div>
+
+                        <!-- Dream Name -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Nama Dream</label>
+                            <input type="text" id="dreamName" 
+                                   class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                   placeholder="Contoh: Beli mobil, Nikah, DP Rumah">
+                        </div>
+
+                        <!-- Category -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Kategori</label>
+                            <select id="dreamCategory" class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm">
+                                <option value="property">🏠 Property</option>
+                                <option value="vehicle">🚗 Kendaraan</option>
+                                <option value="education">🎓 Pendidikan</option>
+                                <option value="wedding">💍 Pernikahan</option>
+                                <option value="travel">✈️ Travel</option>
+                                <option value="gadget">📱 Gadget</option>
+                                <option value="business">💼 Bisnis</option>
+                                <option value="other">📝 Lainnya</option>
+                            </select>
+                        </div>
+
+                        <!-- Target Amount -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Target Amount</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                                <input type="number" id="dreamTargetAmount" 
+                                       class="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                       placeholder="50000000">
+                            </div>
+                        </div>
+
+                        <!-- Current Amount -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Current Savings</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                                <input type="number" id="dreamCurrentAmount" 
+                                       class="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                       placeholder="0" value="0">
+                            </div>
+                        </div>
+
+                        <!-- Target Date -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Target Date</label>
+                            <input type="date" id="dreamTargetDate" 
+                                   class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm">
+                        </div>
+
+                        <!-- Priority -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Priority</label>
+                            <select id="dreamPriority" class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm">
+                                <option value="low">🟢 Low - Bisa ditunda</option>
+                                <option value="medium">🟡 Medium - Penting</option>
+                                <option value="high">🔴 High - Sangat penting</option>
+                            </select>
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-2">Deskripsi (Opsional)</label>
+                            <textarea id="dreamDescription" rows="3"
+                                      class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
+                                      placeholder="Ceritakan lebih detail tentang impian Anda..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="px-4 py-4 border-t border-gray-100 bg-white sticky bottom-0">
+                        <button onclick="app.saveDreamGoal()"
+                                class="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 font-semibold text-sm shadow-lg">
+                            Save Dream Goal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== DREAMS REAL-TIME MANAGEMENT ====================
+
+// Setup real-time listener untuk dreams
+setupDreamsRealtimeListener() {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser) {
+        console.log('User not authenticated for dreams real-time');
+        return;
+    }
+
+    // Hapus listener sebelumnya jika ada
+    if (this.dreamsUnsubscribe) {
+        this.dreamsUnsubscribe();
+    }
+
+    try {
+        this.dreamsUnsubscribe = this.db.collection('dreams')
+            .where('userId', '==', currentUser.uid)
+            .orderBy('createdAt', 'desc')
+            .onSnapshot(
+                (snapshot) => {
+                    console.log('Dreams real-time update received');
+                    this.handleDreamsSnapshot(snapshot);
+                },
+                (error) => {
+                    console.error('Dreams real-time error:', error);
+                    this.showNotification('Error real-time dreams update', 'error');
+                }
+            );
+
+        console.log('Dreams real-time listener setup successfully');
+        
+    } catch (error) {
+        console.error('Error setting up dreams real-time listener:', error);
+    }
+}
+
+// Handle snapshot data
+handleDreamsSnapshot(snapshot) {
+    this.dreamsData = [];
+    
+    if (snapshot.empty) {
+        this.renderEmptyDreamsState();
+        this.updateDreamsOverview();
+        return;
+    }
+
+    snapshot.forEach(doc => {
+        const dreamData = {
+            id: doc.id,
+            ...doc.data()
+        };
+        
+        // Convert Firestore timestamps
+        if (dreamData.createdAt && dreamData.createdAt.toDate) {
+            dreamData.createdAt = dreamData.createdAt.toDate();
+        }
+        if (dreamData.targetDate && dreamData.targetDate.toDate) {
+            dreamData.targetDate = dreamData.targetDate.toDate();
+        }
+        if (dreamData.updatedAt && dreamData.updatedAt.toDate) {
+            dreamData.updatedAt = dreamData.updatedAt.toDate();
+        }
+        
+        this.dreamsData.push(dreamData);
+    });
+
+    console.log('Dreams updated in real-time:', this.dreamsData.length, 'dreams');
+    
+    // Update UI
+    this.updateDreamsOverview();
+    this.renderDreamsList();
+}
+
+// Update dreams overview
+updateDreamsOverview() {
+    if (!this.dreamsData || this.dreamsData.length === 0) {
+        this.setDefaultDreamsOverview();
+        return;
+    }
+
+    let totalCurrent = 0;
+    let totalTarget = 0;
+    let totalDreams = 0;
+    let achievedDreams = 0;
+    let progressDreams = 0;
+
+    this.dreamsData.forEach(dream => {
+        totalCurrent += dream.currentAmount || 0;
+        totalTarget += dream.targetAmount || 0;
+        totalDreams++;
+        
+        if ((dream.currentAmount || 0) >= (dream.targetAmount || 0)) {
+            achievedDreams++;
+        } else {
+            progressDreams++;
+        }
+    });
+
+    // Update overview elements
+    const totalProgressElement = document.getElementById('dreamTotalProgress');
+    const overallTargetElement = document.getElementById('dreamOverallTarget');
+    const progressBarElement = document.getElementById('dreamOverallProgressBar');
+    const totalDreamsElement = document.getElementById('totalDreamsCount');
+    const achievedElement = document.getElementById('achievedDreamsCount');
+    const progressElement = document.getElementById('progressDreamsCount');
+
+    if (totalProgressElement) {
+        totalProgressElement.textContent = this.formatRupiah(totalCurrent);
+    }
+    if (overallTargetElement) {
+        overallTargetElement.textContent = `Target: ${this.formatRupiah(totalTarget)}`;
+    }
+    if (progressBarElement) {
+        const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
+        progressBarElement.style.width = `${Math.min(overallProgress, 100)}%`;
+    }
+    if (totalDreamsElement) {
+        totalDreamsElement.textContent = totalDreams;
+    }
+    if (achievedElement) {
+        achievedElement.textContent = achievedDreams;
+    }
+    if (progressElement) {
+        progressElement.textContent = progressDreams;
+    }
+}
+
+// Render dreams list
+renderDreamsList() {
+    const dreamsList = document.getElementById('dreamsList');
+    const dreamsListCount = document.getElementById('dreamsListCount');
+    
+    if (!dreamsList) return;
+
+    if (!this.dreamsData || this.dreamsData.length === 0) {
+        dreamsList.innerHTML = this.renderEmptyDreamsState();
+        if (dreamsListCount) {
+            dreamsListCount.textContent = '0 dreams';
+        }
+        return;
+    }
+
+    if (dreamsListCount) {
+        dreamsListCount.textContent = `${this.dreamsData.length} dreams`;
+    }
+
+    let html = '';
+    this.dreamsData.forEach(dream => {
+        const progress = dream.targetAmount > 0 ? ((dream.currentAmount || 0) / dream.targetAmount) * 100 : 0;
+        const isCompleted = progress >= 100;
+        const progressColor = isCompleted ? 'bg-green-500' : progress >= 75 ? 'bg-purple-500' : progress >= 50 ? 'bg-yellow-500' : 'bg-blue-500';
+        const statusText = isCompleted ? 'Completed' : 'In Progress';
+        const statusColor = isCompleted ? 'text-green-500' : 'text-purple-500';
+        const daysLeft = dream.targetDate ? this.calculateDaysLeft(dream.targetDate) : null;
+        
+        html += `
+            <div class="px-4 py-4 hover:bg-gray-50 cursor-pointer transition-colors" onclick="app.showDreamDetail('${dream.id}')">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                            <span class="text-lg">${dream.icon || '🎯'}</span>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-900">${dream.name}</h4>
+                            <p class="text-xs text-gray-500 mt-1">${this.formatCategoryName(dream.category)}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-medium ${statusColor}">${statusText}</span>
+                </div>
+                
+                <!-- Progress -->
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs text-gray-600">${this.formatRupiah(dream.currentAmount || 0)}</span>
+                    <span class="text-xs text-gray-500">${progress.toFixed(1)}%</span>
+                    <span class="text-xs text-gray-600">${this.formatRupiah(dream.targetAmount)}</span>
+                </div>
+                
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                    <div class="h-2 rounded-full ${progressColor} transition-all duration-500" style="width: ${Math.min(progress, 100)}%"></div>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-xs text-gray-500">${this.getPriorityBadge(dream.priority)}</span>
+                        ${daysLeft !== null ? `
+                            <span class="text-xs ${daysLeft < 30 ? 'text-red-500' : 'text-gray-500'}">
+                                ${daysLeft} days left
+                            </span>
+                        ` : ''}
+                    </div>
+                    <button onclick="event.stopPropagation(); app.addToDream('${dream.id}')" 
+                            class="text-xs bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded transition-colors">
+                        + Add
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    dreamsList.innerHTML = html;
+}
+
+// ==================== DREAMS ACTIONS ====================
+
+// Manual refresh dreams
+async manualRefreshDreams() {
+    const refreshBtn = document.querySelector('button[onclick="app.manualRefreshDreams()"]');
+    
+    // Add loading animation
+    if (refreshBtn) {
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
+        refreshBtn.disabled = true;
+    }
+
+    try {
+        // Force reload data
+        await this.forceReloadDreams();
+        this.showNotification('Dreams data refreshed', 'success');
+        
+    } catch (error) {
+        console.error('Error manual refresh:', error);
+        this.showNotification('Refresh failed', 'error');
+    } finally {
+        // Restore button
+        if (refreshBtn) {
+            setTimeout(() => {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt text-sm"></i>';
+                refreshBtn.disabled = false;
+            }, 1000);
+        }
+    }
+}
+
+// Force reload dreams data
+async forceReloadDreams() {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+        const dreamsSnapshot = await this.db.collection('dreams')
+            .where('userId', '==', currentUser.uid)
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        this.handleDreamsSnapshot(dreamsSnapshot);
+        
+    } catch (error) {
+        console.error('Error force reloading dreams:', error);
+        throw error;
+    }
+}
+
+// Add to dream savings
+async addToDream(dreamId) {
+    this.showAddToDreamModal(dreamId);
+}
+
+// Process adding to dream savings
+async processAddToDream(dreamId) {
+    const amountInput = document.getElementById('dreamAddAmount');
+    const dateInput = document.getElementById('dreamAddDate');
+    const sourceInput = document.getElementById('dreamAddSource');
+
+    const amount = parseFloat(amountInput?.value);
+    const date = dateInput?.value;
+    const source = sourceInput?.value;
+
+    // Validation
+    if (!amount || amount <= 0) {
+        this.showNotification('Masukkan jumlah yang valid', 'error');
+        return;
+    }
+
+    if (!date) {
+        this.showNotification('Pilih tanggal transaksi', 'error');
+        return;
+    }
+
+    try {
+        const currentUser = this.auth.currentUser;
+        const dreamRef = this.db.collection('dreams').doc(dreamId);
+
+        // Get current dream data
+        const dreamDoc = await dreamRef.get();
+        if (!dreamDoc.exists) {
+            this.showNotification('Data impian tidak ditemukan', 'error');
+            return;
+        }
+
+        const dream = dreamDoc.data();
+        const currentAmount = dream.currentAmount || 0;
+        const newAmount = currentAmount + amount;
+        const targetAmount = dream.targetAmount || 0;
+
+        // Update dream savings
+        await dreamRef.update({
+            currentAmount: newAmount,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Add transaction record
+        const transactionRef = this.db.collection('dream_transactions').doc();
+        await transactionRef.set({
+            dreamId: dreamId,
+            userId: currentUser.uid,
+            type: 'deposit',
+            amount: amount,
+            date: new Date(date),
+            source: source,
+            balanceAfter: newAmount,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        this.showNotification(`Berhasil menambahkan Rp ${this.formatNumber(amount)} ke tabungan impian!`, 'success');
+        this.hideAddToDreamModal();
+        
+        // Data akan auto update via real-time listener, tidak perlu refresh manual
+        
+    } catch (error) {
+        console.error('Error adding to dream:', error);
+        this.showNotification('Gagal menambahkan ke tabungan impian', 'error');
+    }
+}
+
+// Save dream goal
+async saveDreamGoal() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        const dreamData = {
+            userId: currentUser.uid,
+            icon: document.getElementById('dreamIcon').value,
+            name: document.getElementById('dreamName').value,
+            category: document.getElementById('dreamCategory').value,
+            targetAmount: parseFloat(document.getElementById('dreamTargetAmount').value) || 0,
+            currentAmount: parseFloat(document.getElementById('dreamCurrentAmount').value) || 0,
+            targetDate: document.getElementById('dreamTargetDate').value || null,
+            priority: document.getElementById('dreamPriority').value,
+            description: document.getElementById('dreamDescription').value || '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Validation
+        if (!dreamData.name) {
+            this.showNotification('Nama dream harus diisi', 'error');
+            return;
+        }
+
+        if (dreamData.targetAmount <= 0) {
+            this.showNotification('Target amount harus lebih dari 0', 'error');
+            return;
+        }
+
+        await this.db.collection('dreams').add(dreamData);
+        
+        this.showNotification('Dream goal berhasil disimpan! ✨', 'success');
+        this.hideAddDreamModal();
+        
+        // Data akan auto update via real-time listener
+        
+    } catch (error) {
+        console.error('Error saving dream goal:', error);
+        this.showNotification('Gagal menyimpan dream goal', 'error');
+    }
+}
+
+// ==================== HELPER METHODS ====================
+
+// Set default dreams overview
+setDefaultDreamsOverview() {
+    const elements = {
+        'dreamTotalProgress': 'Rp 0',
+        'dreamOverallTarget': 'Target: Rp 0',
+        'totalDreamsCount': '0',
+        'achievedDreamsCount': '0',
+        'progressDreamsCount': '0'
+    };
+
+    Object.keys(elements).forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = elements[id];
+        }
+    });
+
+    const progressBar = document.getElementById('dreamOverallProgressBar');
+    if (progressBar) {
+        progressBar.style.width = '0%';
+    }
+}
+
+// Render empty state
+renderEmptyDreamsState() {
+    return `
+        <div class="px-4 py-8 text-center">
+            <i class="fas fa-star text-3xl text-gray-300 mb-3"></i>
+            <p class="text-gray-500 text-sm">Belum ada dream goals</p>
+            <p class="text-gray-400 text-xs mt-1">Mulai wujudkan impian Anda</p>
+            <button onclick="app.showAddDreamModal()" 
+                    class="mt-3 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
+                Tambah Dream Pertama
+            </button>
+        </div>
+    `;
+}
+
+// Helper functions
+formatCategoryName(category) {
+    const categories = {
+        'property': 'Property',
+        'vehicle': 'Kendaraan',
+        'education': 'Pendidikan',
+        'wedding': 'Pernikahan',
+        'travel': 'Travel',
+        'gadget': 'Gadget',
+        'business': 'Bisnis',
+        'other': 'Lainnya'
+    };
+    return categories[category] || 'Lainnya';
+}
+
+getPriorityBadge(priority) {
+    const badges = {
+        'low': '🟢 Low',
+        'medium': '🟡 Medium',
+        'high': '🔴 High'
+    };
+    return badges[priority] || '🟢 Low';
+}
+
+calculateDaysLeft(targetDate) {
+    const today = new Date();
+    const target = new Date(targetDate);
+    const diffTime = target - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+}
+
+formatRupiah(amount) {
+    return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+}
+
+formatNumber(number) {
+    return new Intl.NumberFormat('id-ID').format(number);
+}
+
+// ==================== MODAL MANAGEMENT ====================
+
+showAddDreamModal() {
+    const modal = document.getElementById('addDreamModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Reset form
+        document.getElementById('dreamIcon').value = '🎯';
+        document.getElementById('dreamName').value = '';
+        document.getElementById('dreamCategory').value = 'other';
+        document.getElementById('dreamTargetAmount').value = '';
+        document.getElementById('dreamCurrentAmount').value = '0';
+        document.getElementById('dreamTargetDate').value = '';
+        document.getElementById('dreamPriority').value = 'medium';
+        document.getElementById('dreamDescription').value = '';
+    }
+}
+
+hideAddDreamModal() {
+    const modal = document.getElementById('addDreamModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+selectDreamIcon(icon) {
+    document.getElementById('dreamIcon').value = icon;
+}
+
+// Tambahkan method yang hilang untuk modal add to dream
+showAddToDreamModal(dreamId) {
+    // Implementasi modal untuk menambah tabungan dream
+    this.showNotification(`Modal tambah tabungan untuk dream ${dreamId} akan ditampilkan`, 'info');
+}
+
+hideAddToDreamModal() {
+    // Implementasi sembunyikan modal tambah tabungan
+    console.log('Hide add to dream modal');
+}
+
+showNotification(message, type = 'info') {
+    // Your existing notification implementation
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transform transition-transform duration-300 ${
+        type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' :
+        type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+    }`;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Placeholder methods untuk fungsi yang belum diimplementasi
+showDreamDetail(dreamId) {
+    this.showNotification(`Detail dream ${dreamId} akan ditampilkan`, 'info');
+}
+
+showDreamInsights() {
+    this.showNotification('Dream insights akan ditampilkan', 'info');
+}
+
+exportDreams() {
+    this.showNotification('Fitur export dreams akan datang', 'info');
+}
+
+filterDreams(filter) {
+    this.showNotification(`Filter dreams: ${filter}`, 'info');
+}
+
+renderDanaDaruratPage() {
+    return `
+        <div class="min-h-screen bg-gradient-to-br from-orange-50 to-red-50">
+            <!-- Header -->
+            <div class="bg-white/80 backdrop-blur-lg border-b border-gray-200/60 sticky top-0 z-40">
+                <div class="px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors" 
+                                    onclick="app.loadContent('goals')">
+                                <i class="fas fa-arrow-left text-gray-600"></i>
+                            </button>
+                            <div>
+                                <h1 class="text-lg font-bold text-gray-900">Dana Darurat</h1>
+                                <p class="text-xs text-gray-500">Siap untuk keadaan tak terduga</p>
+                            </div>
+                        </div>
+                        <button onclick="app.showEmergencyFundModal()" 
+                                class="bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="pb-20">
+                <!-- Emergency Fund Overview -->
+                <div class="px-4 pt-6">
+                    <div class="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-5 shadow-xl text-white relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+                        <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
+                        
+                        <div class="relative z-10 text-center">
+                            <p class="text-white/90 text-sm font-medium mb-2">Dana Darurat Tersedia</p>
+                            <p class="text-white text-3xl font-bold mb-4" id="emergencyFundAmount">Rp 0</p>
+                            <div class="w-full bg-white/30 rounded-full h-3 mb-3">
+                                <div class="bg-white h-3 rounded-full transition-all duration-500" id="emergencyProgressBar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-white/70 text-xs" id="emergencyTargetInfo">Target: 6x pengeluaran bulanan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency Fund Stats -->
+                <div class="px-4 mt-6">
+                    <div class="grid grid-cols-3 gap-3">
+                        <!-- Monthly Expenses -->
+                        <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                            <div class="text-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-money-bill-wave text-blue-500 text-sm"></i>
+                                </div>
+                                <p class="text-gray-500 text-xs font-medium mb-1">Pengeluaran Bulanan</p>
+                                <p class="text-gray-900 text-lg font-bold" id="monthlyExpensesAmount">Rp 0</p>
+                            </div>
+                        </div>
+
+                        <!-- Target Fund -->
+                        <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                            <div class="text-center">
+                                <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-bullseye text-orange-500 text-sm"></i>
+                                </div>
+                                <p class="text-gray-500 text-xs font-medium mb-1">Target Dana</p>
+                                <p class="text-gray-900 text-lg font-bold" id="targetEmergencyFund">Rp 0</p>
+                            </div>
+                        </div>
+
+                        <!-- Months Covered -->
+                        <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                            <div class="text-center">
+                                <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                    <i class="fas fa-calendar-alt text-green-500 text-sm"></i>
+                                </div>
+                                <p class="text-gray-500 text-xs font-medium mb-1">Bulan Tercover</p>
+                                <p class="text-gray-900 text-lg font-bold" id="monthsCovered">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emergency Fund Recommendation -->
+                <div class="px-4 mt-6">
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-lightbulb text-yellow-500 text-sm"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-sm font-bold text-gray-900 mb-1">Rekomendasi Dana Darurat</h4>
+                                <p class="text-xs text-gray-600 leading-relaxed" id="emergencyRecommendation">
+                                    Dana darurat ideal adalah 6x pengeluaran bulanan. Mulai bangun dana darurat Anda.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="px-4 mt-6">
+                    <h3 class="text-gray-900 text-sm font-bold mb-3">Aksi Cepat</h3>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center group"
+                                onclick="app.showEmergencyFundModal()">
+                            <div class="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center mb-1 group-hover:bg-orange-100 transition-colors">
+                                <i class="fas fa-plus text-orange-500 text-xs"></i>
+                            </div>
+                            <span class="text-gray-600 text-xs font-medium group-hover:text-orange-600 transition-colors">Tambah</span>
+                        </button>
+                        
+                        <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center group"
+                                onclick="app.showEmergencyWithdrawModal()">
+                            <div class="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center mb-1 group-hover:bg-red-100 transition-colors">
+                                <i class="fas fa-download text-red-500 text-xs"></i>
+                            </div>
+                            <span class="text-gray-600 text-xs font-medium group-hover:text-red-600 transition-colors">Tarik</span>
+                        </button>
+                        
+                        <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center group"
+                                onclick="app.showEmergencySettings()">
+                            <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mb-1 group-hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-cog text-blue-500 text-xs"></i>
+                            </div>
+                            <span class="text-gray-600 text-xs font-medium group-hover:text-blue-600 transition-colors">Pengaturan</span>
+                        </button>
+                        
+                        <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center group"
+                                onclick="app.showEmergencyGuide()">
+                            <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-1 group-hover:bg-purple-100 transition-colors">
+                                <i class="fas fa-book text-purple-500 text-xs"></i>
+                            </div>
+                            <span class="text-gray-600 text-xs font-medium group-hover:text-purple-600 transition-colors">Panduan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emergency Scenarios -->
+                <div class="px-4 mt-6">
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-gray-900 text-sm font-bold">Skenario Darurat</h3>
+                                <span class="text-orange-500 text-xs font-medium">Coverage</span>
+                            </div>
+                        </div>
+                        <div class="divide-y divide-gray-100">
+                            <!-- Medical Emergency -->
+                            <div class="px-4 py-3 hover:bg-orange-50 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-plus-square text-red-500 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Darurat Medis</p>
+                                            <p class="text-xs text-gray-500">Rumah sakit & pengobatan</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-semibold text-green-500" id="medicalCoverage">100%</p>
+                                        <p class="text-xs text-gray-500">Tercover</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Job Loss -->
+                            <div class="px-4 py-3 hover:bg-orange-50 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-briefcase text-yellow-500 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Kehilangan Pekerjaan</p>
+                                            <p class="text-xs text-gray-500">6 bulan pengeluaran</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-semibold text-green-500" id="jobLossCoverage">100%</p>
+                                        <p class="text-xs text-gray-500">Tercover</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Home Repair -->
+                            <div class="px-4 py-3 hover:bg-orange-50 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-home text-blue-500 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Perbaikan Rumah</p>
+                                            <p class="text-xs text-gray-500">Perbaikan mendadak</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-semibold text-green-500" id="homeRepairCoverage">100%</p>
+                                        <p class="text-xs text-gray-500">Tercover</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Emergency Transactions -->
+                <div class="px-4 mt-4 mb-6">
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-gray-900 text-sm font-bold">Transaksi Terbaru</h3>
+                                <button class="text-orange-500 text-xs font-medium hover:text-orange-600 transition-colors" 
+                                        onclick="app.showAllEmergencyTransactions()">
+                                    Lihat Semua
+                                </button>
+                            </div>
+                        </div>
+                        <div id="emergencyTransactionsList" class="divide-y divide-gray-100">
+                            <div class="px-4 py-8 text-center">
+                                <i class="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>
+                                <p class="text-gray-500 text-sm">Belum ada transaksi dana darurat</p>
+                                <button onclick="app.showEmergencyFundModal()" 
+                                        class="mt-3 bg-orange-500 hover:bg-orange-600 text-white text-xs px-4 py-2 rounded-lg transition-colors">
+                                    Tambah Dana Pertama
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Emergency Fund Modal -->
+        <div id="emergencyFundModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-overlay-emergency" onclick="app.hideEmergencyFundModal()"></div>
+            <div class="modal-container-emergency">
+                <div class="modal-content-emergency">
+                    <!-- Header -->
+                    <div class="modal-header-emergency">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="modal-title-emergency">Tambah Dana Darurat</h3>
+                                <p class="modal-subtitle-emergency">Tambah dana untuk keadaan darurat</p>
+                            </div>
+                            <button onclick="app.hideEmergencyFundModal()" class="modal-close-btn-emergency">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="modal-body-emergency">
+                        <div class="space-y-4">
+                            <!-- Amount -->
+                            <div class="form-group-emergency">
+                                <label class="form-label-emergency">Jumlah Dana</label>
+                                <div class="relative">
+                                    <span class="currency-symbol-emergency">Rp</span>
+                                    <input type="number" id="emergencyAmount" 
+                                           class="form-input-emergency with-currency"
+                                           placeholder="0"
+                                           min="0"
+                                           step="1000">
+                                </div>
+                            </div>
+
+                            <!-- Date -->
+                            <div class="form-group-emergency">
+                                <label class="form-label-emergency">Tanggal</label>
+                                <input type="date" id="emergencyDate" 
+                                       class="form-input-emergency">
+                            </div>
+
+                            <!-- Source -->
+                            <div class="form-group-emergency">
+                                <label class="form-label-emergency">Sumber Dana</label>
+                                <select id="emergencySource" class="form-select-emergency">
+                                    <option value="salary">💰 Gaji</option>
+                                    <option value="bonus">🎁 Bonus</option>
+                                    <option value="investment">📈 Investasi</option>
+                                    <option value="savings">🏦 Tabungan</option>
+                                    <option value="other">📝 Lainnya</option>
+                                </select>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="form-group-emergency">
+                                <label class="form-label-emergency">Keterangan (Opsional)</label>
+                                <textarea id="emergencyDescription" rows="3"
+                                          class="form-textarea-emergency"
+                                          placeholder="Tambahkan keterangan..."></textarea>
+                            </div>
+
+                            <!-- Quick Amounts -->
+                            <div class="quick-amounts-section-emergency">
+                                <label class="form-label-emergency">Jumlah Cepat</label>
+                                <div class="quick-amounts-grid-emergency">
+                                    <button type="button" class="quick-amount-btn-emergency" onclick="app.setEmergencyQuickAmount(500000)">500K</button>
+                                    <button type="button" class="quick-amount-btn-emergency" onclick="app.setEmergencyQuickAmount(1000000)">1JT</button>
+                                    <button type="button" class="quick-amount-btn-emergency" onclick="app.setEmergencyQuickAmount(2000000)">2JT</button>
+                                    <button type="button" class="quick-amount-btn-emergency" onclick="app.setEmergencyQuickAmount(5000000)">5JT</button>
+                                </div>
+                            </div>
+
+                            <!-- Progress Update -->
+                            <div class="progress-update-section">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-sm font-medium text-gray-700">Progress Update</span>
+                                    <span class="text-sm font-bold text-orange-600" id="progressPercentage">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-orange-500 h-2 rounded-full transition-all duration-500" id="progressBar" style="width: 0%"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1" id="progressText">Menuju target dana darurat</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="modal-actions-emergency">
+                        <button type="button" onclick="app.hideEmergencyFundModal()" class="btn-secondary-emergency">
+                            <i class="fas fa-times mr-2"></i>
+                            Batal
+                        </button>
+                        <button type="button" onclick="app.saveEmergencyFund()" class="btn-primary-emergency">
+                            <i class="fas fa-shield-alt mr-2"></i>
+                            Simpan Dana Darurat
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdraw Emergency Fund Modal -->
+        <div id="emergencyWithdrawModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-overlay-emergency" onclick="app.hideEmergencyWithdrawModal()"></div>
+            <div class="modal-container-emergency">
+                <div class="modal-content-emergency">
+                    <div class="modal-header-emergency">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="modal-title-emergency">Tarik Dana Darurat</h3>
+                                <p class="modal-subtitle-emergency">Hanya untuk keadaan darurat</p>
+                            </div>
+                            <button onclick="app.hideEmergencyWithdrawModal()" class="modal-close-btn-emergency">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="modal-body-emergency">
+                        <div class="space-y-4">
+                            <!-- Warning -->
+                            <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <i class="fas fa-exclamation-triangle text-red-500"></i>
+                                    <p class="text-red-800 text-sm font-medium">Peringatan</p>
+                                </div>
+                                <p class="text-red-700 text-xs">Dana darurat hanya untuk keadaan darurat yang tidak terduga. Pastikan ini benar-benar kebutuhan mendesak.</p>
+                            </div>
+
+                            <!-- Available Balance -->
+                            <div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-shield-alt text-orange-500"></i>
+                                    <p class="text-orange-800 text-sm font-medium">Saldo Tersedia</p>
+                                </div>
+                                <p class="text-orange-700 text-lg font-bold mt-2" id="availableEmergencyBalance">Rp 0</p>
+                            </div>
+
+                            <!-- Amount -->
+                            <div class="form-group-emergency">
+                                <label class="form-label-emergency">Jumlah Penarikan</label>
+                                <div class="relative">
+                                    <span class="currency-symbol-emergency">Rp</span>
+                                    <input type="number" id="emergencyWithdrawAmount" 
+                                           class="form-input-emergency with-currency"
+                                           placeholder="0"
+                                           min="0"
+                                           step="1000">
+                                </div>
+                            </div>
+
+                            <!-- Emergency Type -->
+                            <div class="form-group-emergency">
+                                <label class="form-label-emergency">Jenis Keadaan Darurat</label>
+                                <select id="emergencyType" class="form-select-emergency">
+                                    <option value="medical">🏥 Kesehatan & Medis</option>
+                                    <option value="job_loss">💼 Kehilangan Pekerjaan</option>
+                                    <option value="home_repair">🏠 Perbaikan Rumah</option>
+                                    <option value="vehicle">🚗 Kendaraan</option>
+                                    <option value="family">👨‍👩‍👧‍👦 Keluarga</option>
+                                    <option value="other">📝 Lainnya</option>
+                                </select>
+                            </div>
+
+                            <!-- Emergency Description -->
+                            <div class="form-group-emergency">
+                                <label class="form-label-emergency">Deskripsi Keadaan Darurat</label>
+                                <textarea id="emergencyWithdrawDescription" rows="3"
+                                          class="form-textarea-emergency"
+                                          placeholder="Jelaskan keadaan darurat yang terjadi..."
+                                          required></textarea>
+                            </div>
+
+                            <!-- Confirmation -->
+                            <div class="flex items-start space-x-2">
+                                <input type="checkbox" id="emergencyConfirmation" class="mt-1 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                <label for="emergencyConfirmation" class="text-xs text-gray-600">
+                                    Saya menyatakan bahwa ini adalah keadaan darurat yang sesungguhnya dan membutuhkan dana darurat.
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-emergency">
+                        <button type="button" onclick="app.hideEmergencyWithdrawModal()" class="btn-secondary-emergency">
+                            <i class="fas fa-times mr-2"></i>
+                            Batal
+                        </button>
+                        <button type="button" onclick="app.processEmergencyWithdrawal()" class="btn-warning-emergency">
+                            <i class="fas fa-download mr-2"></i>
+                            Tarik Dana Darurat
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Transactions Modal -->
+        <div id="allEmergencyTransactionsModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-overlay-emergency" onclick="app.hideAllEmergencyTransactions()"></div>
+            <div class="modal-container-emergency">
+                <div class="modal-content-emergency">
+                    <div class="modal-header-emergency">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="modal-title-emergency">Semua Transaksi Dana Darurat</h3>
+                                <p class="modal-subtitle-emergency">Riwayat lengkap transaksi</p>
+                            </div>
+                            <button onclick="app.hideAllEmergencyTransactions()" class="modal-close-btn-emergency">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="modal-body-emergency">
+                        <div id="allEmergencyTransactionsList" class="space-y-3">
+                            <!-- Transactions will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-emergency">
+                        <button type="button" onclick="app.hideAllEmergencyTransactions()" class="btn-secondary-emergency">
+                            <i class="fas fa-times mr-2"></i>
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// CSS Injection untuk Dana Darurat Modal
+injectEmergencyModalCSS() {
+    if (!document.getElementById('emergency-modal-css')) {
+        const style = document.createElement('style');
+        style.id = 'emergency-modal-css';
+        style.textContent = `
+            /* Emergency Modal Base Styles */
+            .modal-overlay-emergency {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                animation: emergencyFadeIn 0.3s ease-out;
+                z-index: 50;
+            }
+            
+            .modal-container-emergency {
+                position: fixed;
+                inset: 0;
+                z-index: 50;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                padding: 0;
+                margin: 0;
+            }
+            
+            @media (min-width: 640px) {
+                .modal-container-emergency {
+                    align-items: center;
+                    padding: 1rem;
+                }
+            }
+            
+            .modal-content-emergency {
+                background: white;
+                border-radius: 24px 24px 0 0;
+                box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.15);
+                border: 1px solid #e5e7eb;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                margin: 0;
+                transform: translateY(0);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            @media (min-width: 640px) {
+                .modal-content-emergency {
+                    border-radius: 24px;
+                    max-width: 480px;
+                    max-height: 85vh;
+                    margin: auto;
+                }
+            }
+            
+            /* Header */
+            .modal-header-emergency {
+                background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 24px 24px 0 0;
+                flex-shrink: 0;
+            }
+            
+            .modal-title-emergency {
+                font-size: 1.25rem;
+                font-weight: 700;
+                line-height: 1.2;
+            }
+            
+            .modal-subtitle-emergency {
+                font-size: 0.875rem;
+                opacity: 0.9;
+                margin-top: 0.25rem;
+            }
+            
+            .modal-close-btn-emergency {
+                width: 2.5rem;
+                height: 2.5rem;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                transition: all 0.2s ease;
+                border: none;
+                cursor: pointer;
+            }
+            
+            .modal-close-btn-emergency:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: scale(1.05);
+            }
+            
+            /* Body */
+            .modal-body-emergency {
+                flex: 1;
+                overflow-y: auto;
+                padding: 1.5rem;
+                background: #f8fafc;
+            }
+            
+            /* Form Styles */
+            .form-group-emergency {
+                margin-bottom: 1.25rem;
+            }
+            
+            .form-label-emergency {
+                display: block;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 0.5rem;
+            }
+            
+            .form-input-emergency {
+                width: 100%;
+                padding: 0.875rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 16px;
+                font-size: 1rem;
+                background: white;
+                transition: all 0.3s ease;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+            
+            .form-input-emergency:focus {
+                outline: none;
+                border-color: #f97316;
+                box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+                transform: translateY(-1px);
+            }
+            
+            .form-input-emergency.with-currency {
+                padding-left: 2.5rem;
+            }
+            
+            .currency-symbol-emergency {
+                position: absolute;
+                left: 1rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #6b7280;
+                font-weight: 600;
+                font-size: 0.875rem;
+            }
+            
+            .form-select-emergency {
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+                background-position: right 1rem center;
+                background-repeat: no-repeat;
+                background-size: 1rem;
+                cursor: pointer;
+            }
+            
+            .form-textarea-emergency {
+                width: 100%;
+                padding: 0.875rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 16px;
+                font-size: 0.875rem;
+                background: white;
+                transition: all 0.3s ease;
+                resize: vertical;
+                min-height: 80px;
+            }
+            
+            .form-textarea-emergency:focus {
+                outline: none;
+                border-color: #f97316;
+                box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+            }
+            
+            /* Quick Amounts */
+            .quick-amounts-section-emergency {
+                margin-top: 1.5rem;
+            }
+            
+            .quick-amounts-grid-emergency {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+            
+            @media (min-width: 640px) {
+                .quick-amounts-grid-emergency {
+                    grid-template-columns: repeat(4, 1fr);
+                }
+            }
+            
+            .quick-amount-btn-emergency {
+                padding: 0.75rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 12px;
+                background: white;
+                color: #374151;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .quick-amount-btn-emergency:hover {
+                border-color: #f97316;
+                color: #f97316;
+                transform: translateY(-1px);
+            }
+            
+            .quick-amount-btn-emergency:active {
+                transform: translateY(0);
+            }
+            
+            /* Progress Section */
+            .progress-update-section {
+                background: white;
+                border: 2px solid #fef3c7;
+                border-radius: 16px;
+                padding: 1rem;
+                margin-top: 1rem;
+            }
+            
+            /* Actions */
+            .modal-actions-emergency {
+                background: white;
+                padding: 1.25rem 1.5rem;
+                border-top: 1px solid #e5e7eb;
+                display: flex;
+                gap: 0.75rem;
+                flex-shrink: 0;
+            }
+            
+            .btn-primary-emergency {
+                flex: 1;
+                background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);
+                color: white;
+                border: none;
+                padding: 1rem 1.5rem;
+                border-radius: 16px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+            }
+            
+            .btn-primary-emergency:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+            }
+            
+            .btn-primary-emergency:active {
+                transform: translateY(0);
+            }
+            
+            .btn-secondary-emergency {
+                flex: 1;
+                background: white;
+                color: #374151;
+                border: 2px solid #e5e7eb;
+                padding: 1rem 1.5rem;
+                border-radius: 16px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .btn-secondary-emergency:hover {
+                border-color: #f97316;
+                color: #f97316;
+                transform: translateY(-1px);
+            }
+            
+            .btn-warning-emergency {
+                flex: 1;
+                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                color: white;
+                border: none;
+                padding: 1rem 1.5rem;
+                border-radius: 16px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            }
+            
+            .btn-warning-emergency:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+            }
+            
+            /* Animations */
+            @keyframes emergencyFadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes emergencySlideUp {
+                from { 
+                    transform: translateY(100%);
+                    opacity: 0;
+                }
+                to { 
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            
+            .modal-content-emergency {
+                animation: emergencySlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            /* Mobile Optimizations */
+            @media (max-width: 640px) {
+                .modal-body-emergency {
+                    padding: 1.25rem;
+                }
+                
+                .modal-actions-emergency {
+                    padding: 1rem 1.25rem;
+                }
+                
+                .form-input-emergency,
+                .form-select-emergency,
+                .form-textarea-emergency {
+                    font-size: 16px;
+                }
+                
+                .quick-amounts-grid-emergency {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+            
+            /* Scrollbar Styling */
+            .modal-body-emergency::-webkit-scrollbar {
+                width: 4px;
+            }
+            
+            .modal-body-emergency::-webkit-scrollbar-track {
+                background: #f1f5f9;
+                border-radius: 2px;
+            }
+            
+            .modal-body-emergency::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 2px;
+            }
+            
+            .modal-body-emergency::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+            
+            /* Touch Improvements */
+            @media (hover: none) {
+                .btn-primary-emergency:hover,
+                .btn-secondary-emergency:hover,
+                .btn-warning-emergency:hover,
+                .quick-amount-btn-emergency:hover {
+                    transform: none;
+                }
+                
+                .modal-close-btn-emergency:hover {
+                    transform: none;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// ==================== EMERGENCY FUND METHODS ====================
+
+// Show emergency fund modal
+showEmergencyFundModal() {
+    const modal = document.getElementById('emergencyFundModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        this.injectEmergencyModalCSS();
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('emergencyDate').value = today;
+    }
+}
+
+// Hide emergency fund modal
+hideEmergencyFundModal() {
+    const modal = document.getElementById('emergencyFundModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Show emergency withdraw modal
+showEmergencyWithdrawModal() {
+    const modal = document.getElementById('emergencyWithdrawModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        this.injectEmergencyModalCSS();
+        // Set available balance
+        const availableBalance = document.getElementById('availableEmergencyBalance');
+        if (availableBalance) {
+            const currentAmount = document.getElementById('emergencyFundAmount').textContent;
+            availableBalance.textContent = currentAmount;
+        }
+    }
+}
+
+// Hide emergency withdraw modal
+hideEmergencyWithdrawModal() {
+    const modal = document.getElementById('emergencyWithdrawModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Show all emergency transactions
+showAllEmergencyTransactions() {
+    const modal = document.getElementById('allEmergencyTransactionsModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        this.injectEmergencyModalCSS();
+        this.loadAllEmergencyTransactions();
+    }
+}
+
+// Hide all emergency transactions
+hideAllEmergencyTransactions() {
+    const modal = document.getElementById('allEmergencyTransactionsModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Set emergency quick amount
+setEmergencyQuickAmount(amount) {
+    const amountInput = document.getElementById('emergencyAmount');
+    if (amountInput) {
+        amountInput.value = amount;
+        // Trigger progress update
+        this.updateEmergencyProgress();
+    }
+}
+
+// Update emergency progress
+updateEmergencyProgress() {
+    const amountInput = document.getElementById('emergencyAmount');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercentage = document.getElementById('progressPercentage');
+    const progressText = document.getElementById('progressText');
+    
+    if (amountInput && progressBar && progressPercentage && progressText) {
+        const amount = parseFloat(amountInput.value) || 0;
+        // This would typically compare with target amount
+        const targetAmount = 10000000; // Example target
+        const progress = Math.min((amount / targetAmount) * 100, 100);
+        
+        progressBar.style.width = `${progress}%`;
+        progressPercentage.textContent = `${progress.toFixed(1)}%`;
+        
+        if (progress >= 100) {
+            progressText.textContent = 'Target tercapai!';
+        } else {
+            progressText.textContent = 'Menuju target dana darurat';
+        }
+    }
+}
+
+// Save emergency fund
+async saveEmergencyFund() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        const amount = parseFloat(document.getElementById('emergencyAmount').value);
+        const date = document.getElementById('emergencyDate').value;
+        const source = document.getElementById('emergencySource').value;
+        const description = document.getElementById('emergencyDescription').value;
+
+        // Validation
+        if (!amount || amount <= 0) {
+            this.showNotification('Masukkan jumlah yang valid', 'error');
+            return;
+        }
+
+        if (!date) {
+            this.showNotification('Pilih tanggal transaksi', 'error');
+            return;
+        }
+
+        const emergencyData = {
+            userId: currentUser.uid,
+            type: 'deposit',
+            amount: amount,
+            date: new Date(date),
+            source: source,
+            description: description,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await this.db.collection('emergency_funds').add(emergencyData);
+        
+        this.showNotification('Dana darurat berhasil ditambahkan! 🛡️', 'success');
+        this.hideEmergencyFundModal();
+        
+        // Refresh data
+        this.loadEmergencyFundData();
+        
+    } catch (error) {
+        console.error('Error saving emergency fund:', error);
+        this.showNotification('Gagal menambah dana darurat', 'error');
+    }
+}
+
+// Process emergency withdrawal
+async processEmergencyWithdrawal() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        const amount = parseFloat(document.getElementById('emergencyWithdrawAmount').value);
+        const emergencyType = document.getElementById('emergencyType').value;
+        const description = document.getElementById('emergencyWithdrawDescription').value;
+        const confirmation = document.getElementById('emergencyConfirmation').checked;
+
+        // Validation
+        if (!amount || amount <= 0) {
+            this.showNotification('Masukkan jumlah yang valid', 'error');
+            return;
+        }
+
+        if (!description) {
+            this.showNotification('Deskripsi keadaan darurat harus diisi', 'error');
+            return;
+        }
+
+        if (!confirmation) {
+            this.showNotification('Konfirmasi keadaan darurat diperlukan', 'error');
+            return;
+        }
+
+        const withdrawalData = {
+            userId: currentUser.uid,
+            type: 'withdrawal',
+            amount: amount,
+            emergencyType: emergencyType,
+            description: description,
+            date: new Date(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await this.db.collection('emergency_funds').add(withdrawalData);
+        
+        this.showNotification('Penarikan dana darurat berhasil diproses', 'success');
+        this.hideEmergencyWithdrawModal();
+        
+        // Refresh data
+        this.loadEmergencyFundData();
+        
+    } catch (error) {
+        console.error('Error processing emergency withdrawal:', error);
+        this.showNotification('Gagal memproses penarikan dana darurat', 'error');
+    }
+}
+
+// Load emergency fund data
+async loadEmergencyFundData() {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+        // Load emergency fund transactions
+        const snapshot = await this.db.collection('emergency_funds')
+            .where('userId', '==', currentUser.uid)
+            .orderBy('date', 'desc')
+            .limit(10)
+            .get();
+
+        this.updateEmergencyFundUI(snapshot);
+        
+    } catch (error) {
+        console.error('Error loading emergency fund data:', error);
+    }
+}
+
+// Update emergency fund UI
+updateEmergencyFundUI(snapshot) {
+    let totalBalance = 0;
+    const transactions = [];
+
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.type === 'deposit') {
+            totalBalance += data.amount;
+        } else if (data.type === 'withdrawal') {
+            totalBalance -= data.amount;
+        }
+        transactions.push({
+            id: doc.id,
+            ...data
+        });
+    });
+
+    // Update UI elements
+    this.updateEmergencyFundElements(totalBalance, transactions);
+}
+
+// Update emergency fund elements
+updateEmergencyFundElements(totalBalance, transactions) {
+    // Update main balance
+    const balanceElement = document.getElementById('emergencyFundAmount');
+    if (balanceElement) {
+        balanceElement.textContent = this.formatRupiah(totalBalance);
+    }
+
+    // Update progress bar (example calculation)
+    const monthlyExpenses = 5000000; // This should come from user settings
+    const targetAmount = monthlyExpenses * 6;
+    const progress = Math.min((totalBalance / targetAmount) * 100, 100);
+    
+    const progressBar = document.getElementById('emergencyProgressBar');
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
+
+    // Update stats
+    const monthlyExpensesElement = document.getElementById('monthlyExpensesAmount');
+    const targetFundElement = document.getElementById('targetEmergencyFund');
+    const monthsCoveredElement = document.getElementById('monthsCovered');
+
+    if (monthlyExpensesElement) {
+        monthlyExpensesElement.textContent = this.formatRupiah(monthlyExpenses);
+    }
+    if (targetFundElement) {
+        targetFundElement.textContent = this.formatRupiah(targetAmount);
+    }
+    if (monthsCoveredElement) {
+        const monthsCovered = Math.floor(totalBalance / monthlyExpenses);
+        monthsCoveredElement.textContent = monthsCovered;
+    }
+
+    // Update recommendation
+    this.updateEmergencyRecommendation(totalBalance, targetAmount);
+
+    // Update transactions list
+    this.renderEmergencyTransactions(transactions);
+}
+
+// Update emergency recommendation
+updateEmergencyRecommendation(currentBalance, targetAmount) {
+    const recommendationElement = document.getElementById('emergencyRecommendation');
+    if (!recommendationElement) return;
+
+    const progress = (currentBalance / targetAmount) * 100;
+    
+    if (progress >= 100) {
+        recommendationElement.textContent = 'Dana darurat Anda sudah ideal! Pertahankan untuk keamanan finansial.';
+    } else if (progress >= 75) {
+        recommendationElement.textContent = 'Dana darurat hampir mencapai target ideal. Tingkatkan sedikit lagi!';
+    } else if (progress >= 50) {
+        recommendationElement.textContent = 'Dana darurat sudah setengah jalan. Lanjutkan konsisten menabung!';
+    } else if (progress >= 25) {
+        recommendationElement.textContent = 'Dana darurat sudah mulai terbentuk. Tetap semangat menabung!';
+    } else {
+        recommendationElement.textContent = 'Mulai bangun dana darurat Anda. Target ideal adalah 6x pengeluaran bulanan.';
+    }
+}
+
+// Render emergency transactions
+renderEmergencyTransactions(transactions) {
+    const transactionsList = document.getElementById('emergencyTransactionsList');
+    if (!transactionsList) return;
+
+    if (transactions.length === 0) {
+        transactionsList.innerHTML = `
+            <div class="px-4 py-8 text-center">
+                <i class="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500 text-sm">Belum ada transaksi dana darurat</p>
+                <button onclick="app.showEmergencyFundModal()" 
+                        class="mt-3 bg-orange-500 hover:bg-orange-600 text-white text-xs px-4 py-2 rounded-lg transition-colors">
+                    Tambah Dana Pertama
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    transactions.slice(0, 5).forEach(transaction => {
+        const isDeposit = transaction.type === 'deposit';
+        const amountClass = isDeposit ? 'text-green-500' : 'text-red-500';
+        const amountPrefix = isDeposit ? '+' : '-';
+        const icon = isDeposit ? 'fa-plus-circle' : 'fa-download';
+        const iconColor = isDeposit ? 'text-green-500' : 'text-red-500';
+        
+        html += `
+            <div class="px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <i class="fas ${icon} ${iconColor} text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">
+                                ${isDeposit ? 'Setoran Dana' : 'Penarikan Darurat'}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                ${this.formatDate(transaction.date)}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold ${amountClass}">
+                            ${amountPrefix} ${this.formatRupiah(transaction.amount)}
+                        </p>
+                        <p class="text-xs text-gray-500">
+                            ${transaction.source || transaction.emergencyType || ''}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    transactionsList.innerHTML = html;
+}
+
+// Load all emergency transactions
+async loadAllEmergencyTransactions() {
+    const currentUser = this.auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+        const snapshot = await this.db.collection('emergency_funds')
+            .where('userId', '==', currentUser.uid)
+            .orderBy('date', 'desc')
+            .get();
+
+        this.renderAllEmergencyTransactions(snapshot);
+        
+    } catch (error) {
+        console.error('Error loading all emergency transactions:', error);
+    }
+}
+
+// Render all emergency transactions
+renderAllEmergencyTransactions(snapshot) {
+    const transactionsList = document.getElementById('allEmergencyTransactionsList');
+    if (!transactionsList) return;
+
+    if (snapshot.empty) {
+        transactionsList.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-shield-alt text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500 text-sm">Belum ada transaksi dana darurat</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    snapshot.forEach(doc => {
+        const transaction = doc.data();
+        const isDeposit = transaction.type === 'deposit';
+        const amountClass = isDeposit ? 'text-green-500' : 'text-red-500';
+        const amountPrefix = isDeposit ? '+' : '-';
+        const icon = isDeposit ? 'fa-plus-circle' : 'fa-download';
+        const iconColor = isDeposit ? 'text-green-500' : 'text-red-500';
+        const typeText = isDeposit ? 'Setoran' : 'Penarikan Darurat';
+        const description = transaction.description || transaction.source || transaction.emergencyType || '';
+        
+        html += `
+            <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <i class="fas ${icon} ${iconColor}"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">${typeText}</p>
+                            <p class="text-xs text-gray-500">${description}</p>
+                            <p class="text-xs text-gray-400 mt-1">${this.formatDate(transaction.date)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-bold ${amountClass}">
+                            ${amountPrefix} ${this.formatRupiah(transaction.amount)}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    transactionsList.innerHTML = html;
+}
+
+// Format date helper
+formatDate(date) {
+    if (!date) return '';
+    
+    const dateObj = date.toDate ? date.toDate() : new Date(date);
+    return dateObj.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+}
+
+// Placeholder methods for unimplemented features
+showEmergencySettings() {
+    this.showNotification('Pengaturan dana darurat akan datang', 'info');
+}
+
+showEmergencyGuide() {
+    this.showNotification('Panduan dana darurat akan datang', 'info');
+}
 
 renderPemasukanPage() {
     return `
@@ -5077,6 +8269,113 @@ refreshPengeluaranAIAnalysis() {
     }
 }
 
+async loadPengeluaranData() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        // 1. Load stats
+        await this.loadPengeluaranStats();
+        
+        // 2. Load transaction list
+        await this.loadPengeluaranTransactions();
+        
+        // 3. Load AI analysis
+        await this.updatePengeluaranAIAnalysis();
+        
+    } catch (error) {
+        console.error('Error loading pengeluaran data:', error);
+    }
+}
+
+async loadPengeluaranStats() {
+    const currentUser = this.auth.currentUser;
+    
+    // Total semua pengeluaran
+    const totalSnapshot = await this.db.collection('pengeluaran')
+        .where('userId', '==', currentUser.uid)
+        .get();
+    
+    const totalAmount = totalSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+    document.getElementById('totalPengeluaran').textContent = this.formatRupiah(totalAmount);
+    
+    // Pengeluaran bulan ini
+    const currentDate = new Date();
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    
+    const monthSnapshot = await this.db.collection('pengeluaran')
+        .where('userId', '==', currentUser.uid)
+        .where('date', '>=', firstDay.toISOString().split('T')[0])
+        .where('date', '<=', lastDay.toISOString().split('T')[0])
+        .get();
+    
+    const monthAmount = monthSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+    document.getElementById('pengeluaranBulanIni').textContent = this.formatRupiah(monthAmount);
+    
+    // Jumlah transaksi
+    document.getElementById('jumlahTransaksiPengeluaran').textContent = totalSnapshot.size;
+    
+    // Rata-rata
+    const average = totalSnapshot.size > 0 ? totalAmount / totalSnapshot.size : 0;
+    document.getElementById('rataRataPengeluaran').textContent = this.formatRupiah(average);
+}
+
+async loadPengeluaranTransactions() {
+    const currentUser = this.auth.currentUser;
+    
+    const transactionsSnapshot = await this.db.collection('pengeluaran')
+        .where('userId', '==', currentUser.uid)
+        .orderBy('date', 'desc')
+        .orderBy('createdAt', 'desc')
+        .limit(10)
+        .get();
+    
+    const tableBody = document.getElementById('pengeluaranTableBody');
+    
+    if (transactionsSnapshot.empty) {
+        tableBody.innerHTML = `
+            <div class="py-8 text-center">
+                <i class="fas fa-receipt text-3xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500 text-sm">Belum ada transaksi</p>
+                <button onclick="app.showTambahPengeluaranModal()" 
+                        class="mt-3 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                    Tambah Pengeluaran Pertama
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    transactionsSnapshot.forEach(doc => {
+        const data = doc.data();
+        html += `
+            <div class="px-4 py-3 border-b border-gray-100 hover:bg-gray-50">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                                <i class="fas fa-${this.getCategoryIcon(data.category)} text-red-500 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${data.description}</p>
+                                <p class="text-xs text-gray-500">${this.formatCategoryName(data.category)} • ${this.formatDateDisplay(data.date)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-red-600">-${this.formatRupiah(data.amount)}</p>
+                        <p class="text-xs text-gray-500">${data.paymentMethod}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+    document.getElementById('totalTransaksiDisplay').textContent = transactionsSnapshot.size;
+}
 // Show Modal Tambah Pengeluaran
 showTambahPengeluaranModal() {
     const modal = document.getElementById('pengeluaranModal');
@@ -5383,293 +8682,119 @@ hidePengeluaranModal() {
 }
 
 
-// Save pengeluaran ke Firebase
-async savePengeluaran() {
-    try {
-        const jumlahInput = document.getElementById('jumlahPengeluaran');
-        const deskripsiInput = document.getElementById('deskripsiPengeluaran');
-        const kategoriInput = document.getElementById('kategoriPengeluaran');
-        const tanggalInput = document.getElementById('tanggalPengeluaran');
-        const metodeInput = document.getElementById('metodePembayaran');
 
-        if (!jumlahInput || !deskripsiInput || !kategoriInput || !tanggalInput || !metodeInput) {
-            throw new Error('Form elements tidak ditemukan');
-        }
 
-        const formData = {
-            amount: parseFloat(jumlahInput.value) || 0,
-            description: deskripsiInput.value.trim(),
-            category: kategoriInput.value,
-            date: tanggalInput.value,
-            paymentMethod: metodeInput.value,
-            userId: this.userData.uid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        // Validasi
-        if (formData.amount <= 0) {
-            throw new Error('Jumlah pengeluaran harus lebih dari 0');
-        }
-        if (!formData.description) {
-            throw new Error('Deskripsi tidak boleh kosong');
-        }
-        if (!formData.category) {
-            throw new Error('Kategori harus dipilih');
-        }
-        if (!formData.date) {
-            throw new Error('Tanggal harus diisi');
-        }
-
-        console.log('Saving pengeluaran to Firebase:', formData);
-
-        // Simpan ke Firebase
-        await this.db.collection('pengeluaran').add(formData);
-        
-        this.showToast('Pengeluaran berhasil disimpan!', 'success');
-        this.hidePengeluaranModal();
-        
-        // Reload data real dari Firebase
-        setTimeout(() => this.loadPengeluaranData(), 500);
-        
-    } catch (error) {
-        console.error('Error saving pengeluaran:', error);
-        this.showToast('Gagal menyimpan pengeluaran: ' + error.message, 'error');
-    }
-}
-
-// Show Scan Receipt Modal
+// Show Scan Receipt Modal - Minimalis & Modern
 showScanReceiptModal() {
     const modal = document.getElementById('scanReceiptModal');
     if (modal) {
-        // Inject CSS modern untuk scan modal
+        // Inject CSS minimalis
         if (!document.getElementById('scan-modal-css')) {
             const style = document.createElement('style');
             style.id = 'scan-modal-css';
             style.textContent = `
-                /* Scan Modal Base Styles */
+                /* VLFinance Scan Modal - Minimalis */
                 .scan-modal-overlay {
-                    background: rgba(0, 0, 0, 0.7);
-                    backdrop-filter: blur(12px);
-                    -webkit-backdrop-filter: blur(12px);
-                    animation: scanFadeIn 0.3s ease-out;
-                    padding: 0;
-                    margin: 0;
+                    background: rgba(0, 0, 0, 0.8);
+                    backdrop-filter: blur(8px);
+                    animation: scanFadeIn 0.2s ease-out;
                 }
                 
                 .scan-modal-container {
-                    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-                    border-radius: 28px 28px 0 0;
-                    box-shadow: 0 -25px 50px -12px rgba(0, 0, 0, 0.25);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    max-height: 90vh;
+                    background: #ffffff;
+                    border-radius: 20px 20px 0 0;
+                    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+                    max-height: 85vh;
                     display: flex;
                     flex-direction: column;
-                    width: 100%;
-                    margin: 0;
                 }
                 
                 @media (min-width: 640px) {
                     .scan-modal-container {
-                        border-radius: 28px;
-                        max-width: 480px;
-                        max-height: 85vh;
-                        margin: auto;
+                        border-radius: 20px;
+                        max-width: 420px;
                     }
                 }
                 
                 .scan-modal-header {
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     color: white;
-                    padding: 24px;
-                    border-radius: 28px 28px 0 0;
-                    position: relative;
+                    padding: 20px;
+                    border-radius: 20px 20px 0 0;
                     flex-shrink: 0;
-                }
-                
-                .scan-modal-header::after {
-                    content: '';
-                    position: absolute;
-                    bottom: -6px;
-                    left: 24px;
-                    right: 24px;
-                    height: 3px;
-                    background: rgba(255, 255, 255, 0.3);
-                    border-radius: 2px;
                 }
                 
                 .scan-modal-content {
                     flex: 1;
                     overflow-y: auto;
-                    padding: 24px;
-                    background: #fafafa;
-                    scrollbar-width: thin;
-                    scrollbar-color: #cbd5e1 #f1f5f9;
-                }
-                
-                .scan-modal-content::-webkit-scrollbar {
-                    width: 4px;
-                }
-                
-                .scan-modal-content::-webkit-scrollbar-track {
-                    background: #f1f5f9;
-                    border-radius: 2px;
-                }
-                
-                .scan-modal-content::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-                    border-radius: 2px;
+                    padding: 20px;
+                    background: #f8fafc;
                 }
                 
                 .scan-modal-actions {
                     background: white;
-                    padding: 20px 24px;
+                    padding: 16px 20px;
                     border-top: 1px solid #e5e7eb;
-                    display: flex;
-                    gap: 12px;
                     flex-shrink: 0;
                 }
                 
-                /* Upload Options */
-                .upload-options-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                }
-                
-                .upload-option-card {
-                    background: white;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 20px;
-                    padding: 20px;
-                    text-align: center;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 12px;
-                }
-                
-                .upload-option-card:hover {
-                    border-color: #667eea;
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
-                }
-                
-                .upload-option-card:active {
-                    transform: translateY(0);
-                }
-                
-                .upload-option-icon {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 20px;
-                }
-                
-                .upload-camera .upload-option-icon {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                }
-                
-                .upload-gallery .upload-option-icon {
-                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                    color: white;
-                }
-                
-                .upload-option-text {
-                    font-weight: 600;
-                    font-size: 14px;
-                    color: #374151;
-                }
-                
-                .upload-option-desc {
-                    font-size: 12px;
-                    color: #6b7280;
-                }
-                
-                /* Upload Area */
+                /* Upload Area - Minimalis */
                 .scan-upload-area {
-                    border: 3px dashed #d1d5db;
-                    border-radius: 24px;
+                    border: 2px dashed #d1d5db;
+                    border-radius: 16px;
                     padding: 40px 20px;
                     text-align: center;
                     background: #f8fafc;
-                    transition: all 0.3s ease;
                     cursor: pointer;
-                    margin-bottom: 20px;
+                    transition: all 0.2s ease;
+                    margin-bottom: 16px;
+                }
+                
+                .scan-upload-area:active {
+                    transform: scale(0.98);
                 }
                 
                 .scan-upload-area:hover {
                     border-color: #667eea;
                     background: #f0f4ff;
-                    transform: translateY(-1px);
                 }
                 
-                .scan-upload-area.dragover {
-                    border-color: #667eea;
-                    background: #e0e7ff;
-                    transform: scale(1.02);
-                }
-                
-                .upload-area-icon {
-                    font-size: 48px;
-                    color: #9ca3af;
-                    margin-bottom: 16px;
-                }
-                
-                .upload-area-text {
-                    font-size: 16px;
-                    font-weight: 600;
-                    color: #374151;
-                    margin-bottom: 8px;
-                }
-                
-                .upload-area-desc {
-                    font-size: 14px;
-                    color: #6b7280;
-                    margin-bottom: 16px;
-                }
-                
-                /* Progress & Results */
+                /* Progress & Results - Minimalis */
                 .scan-progress {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: #667eea;
                     color: white;
-                    border-radius: 20px;
-                    padding: 24px;
-                    text-align: center;
-                    margin-bottom: 20px;
-                }
-                
-                .scan-results-container {
-                    background: white;
-                    border: 2px solid #e5e7eb;
-                    border-radius: 20px;
-                    padding: 20px;
-                    max-height: 400px;
-                    overflow-y: auto;
-                }
-                
-                .scan-store-info {
-                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                     border-radius: 16px;
+                    padding: 20px;
+                    text-align: center;
+                    margin-bottom: 16px;
+                }
+                
+                .scan-results {
+                    background: white;
+                    border-radius: 16px;
+                    padding: 0;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                }
+                
+                .scan-store-header {
+                    background: #f8fafc;
                     padding: 16px;
-                    margin-bottom: 20px;
-                    border: 1px solid #e5e7eb;
+                    border-radius: 16px 16px 0 0;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+                
+                .scan-items-list {
+                    max-height: 300px;
+                    overflow-y: auto;
+                    padding: 0 16px;
                 }
                 
                 .scan-item {
                     display: flex;
                     justify-content: space-between;
-                    align-items: flex-start;
-                    padding: 16px 0;
+                    align-items: center;
+                    padding: 12px 0;
                     border-bottom: 1px solid #f1f5f9;
-                    gap: 12px;
                 }
                 
                 .scan-item:last-child {
@@ -5681,134 +8806,72 @@ showScanReceiptModal() {
                 }
                 
                 .scan-item-name {
-                    font-weight: 600;
+                    font-weight: 500;
                     color: #374151;
-                    margin-bottom: 4px;
-                    font-size: 15px;
+                    font-size: 14px;
+                    margin-bottom: 2px;
                 }
                 
                 .scan-item-category {
-                    font-size: 12px;
+                    font-size: 11px;
                     color: #6b7280;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
                 }
                 
                 .scan-item-price {
-                    text-align: right;
-                    flex-shrink: 0;
-                }
-                
-                .scan-item-amount {
-                    font-weight: 700;
+                    font-weight: 600;
                     color: #374151;
-                    font-size: 15px;
+                    font-size: 14px;
                 }
                 
                 .scan-total {
-                    background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
-                    border: 2px solid #fecaca;
-                    border-radius: 16px;
-                    padding: 20px;
-                    margin-top: 20px;
+                    background: #fef2f2;
+                    margin: 16px;
+                    padding: 16px;
+                    border-radius: 12px;
+                    border: 1px solid #fecaca;
                 }
                 
-                /* Buttons */
-                .btn-scan-primary {
+                /* Buttons - Minimalis */
+                .btn-scan-save {
                     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
                     color: white;
                     border: none;
-                    padding: 18px 24px;
-                    border-radius: 18px;
+                    padding: 14px 20px;
+                    border-radius: 14px;
                     font-weight: 600;
-                    font-size: 16px;
+                    font-size: 14px;
                     cursor: pointer;
-                    transition: all 0.3s ease;
+                    transition: all 0.2s ease;
                     width: 100%;
-                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 8px;
+                    gap: 6px;
                 }
                 
-                .btn-scan-primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+                .btn-scan-save:active {
+                    transform: scale(0.98);
                 }
                 
-                .btn-scan-primary:active {
-                    transform: translateY(0);
-                }
-                
-                .btn-scan-primary:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                    transform: none;
-                }
-                
-                .btn-scan-secondary {
+                .btn-scan-close {
                     background: white;
                     color: #374151;
-                    border: 2px solid #e5e7eb;
-                    padding: 18px 24px;
-                    border-radius: 18px;
+                    border: 1.5px solid #e5e7eb;
+                    padding: 14px 20px;
+                    border-radius: 14px;
                     font-weight: 600;
-                    font-size: 16px;
+                    font-size: 14px;
                     cursor: pointer;
-                    transition: all 0.3s ease;
+                    transition: all 0.2s ease;
                     width: 100%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 8px;
+                    gap: 6px;
                 }
                 
-                .btn-scan-secondary:hover {
-                    border-color: #667eea;
-                    color: #667eea;
-                    transform: translateY(-1px);
-                }
-                
-                /* Camera Preview */
-                .camera-preview {
-                    background: #000;
-                    border-radius: 16px;
-                    overflow: hidden;
-                    margin-bottom: 20px;
-                    position: relative;
-                }
-                
-                .camera-controls {
-                    position: absolute;
-                    bottom: 20px;
-                    left: 0;
-                    right: 0;
-                    display: flex;
-                    justify-content: center;
-                    gap: 16px;
-                    z-index: 10;
-                }
-                
-                .camera-btn {
-                    width: 60px;
-                    height: 60px;
-                    border-radius: 50%;
-                    border: 3px solid white;
-                    background: rgba(255, 255, 255, 0.2);
-                    backdrop-filter: blur(10px);
-                    color: white;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                }
-                
-                .camera-btn:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                    transform: scale(1.1);
+                .btn-scan-close:active {
+                    background: #f9fafb;
                 }
                 
                 /* Animations */
@@ -5818,299 +8881,401 @@ showScanReceiptModal() {
                 }
                 
                 @keyframes slideUp {
-                    from { 
-                        transform: translateY(100%);
-                        opacity: 0;
-                    }
-                    to { 
-                        transform: translateY(0);
-                        opacity: 1;
-                    }
+                    from { transform: translateY(100%); }
+                    to { transform: translateY(0); }
                 }
                 
                 .scan-modal-container {
-                    animation: slideUp 0.3s ease-out;
+                    animation: slideUp 0.25s ease-out;
                 }
                 
                 /* Mobile Optimizations */
                 @media (max-width: 640px) {
                     .scan-modal-content {
-                        padding: 20px;
-                    }
-                    
-                    .upload-options-grid {
-                        grid-template-columns: 1fr;
-                        gap: 8px;
-                    }
-                    
-                    .upload-option-card {
                         padding: 16px;
+                    background: #ffffff;
+                    border-radius: 20px 20px 0 0;
+                        max-height: 85vh;
+                        display: flex;
+                        flex-direction: column;
                     }
                     
+                    .scan-modal-container {
+                        border-radius: 20px 20px 0 0;
+                        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+                        max-height: 85vh;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    
+                    @media (min-width: 640px) {
+                        .scan-modal-container {
+                            border-radius: 20px;
+                            max-width: 420px;
+                        }
+                    }
+                    
+                    .scan-modal-header {
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 20px;
+                        border-radius: 20px 20px 0 0;
+                        flex-shrink: 0;
+                    }
+                    
+                    .scan-modal-content {
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 20px;
+                        background: #f8fafc;
+                    }
+                    
+                    .scan-modal-actions {
+                        background: white;
+                        padding: 16px 20px;
+                        border-top: 1px solid #e5e7eb;
+                        flex-shrink: 0;
+                    }
+                    
+                    /* Upload Area - Minimalis */
                     .scan-upload-area {
-                        padding: 30px 16px;
+                        border: 2px dashed #d1d5db;
+                        border-radius: 16px;
+                        padding: 40px 20px;
+                        text-align: center;
+                        background: #f8fafc;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        margin-bottom: 16px;
                     }
                     
-                    .scan-results-container {
+                    .scan-upload-area:active {
+                        transform: scale(0.98);
+                    }
+                    
+                    .scan-upload-area:hover {
+                        border-color: #667eea;
+                        background: #f0f4ff;
+                    }
+                    
+                    /* Progress & Results - Minimalis */
+                    .scan-progress {
+                        background: #667eea;
+                        color: white;
+                        border-radius: 16px;
+                        padding: 20px;
+                        text-align: center;
+                        margin-bottom: 16px;
+                    }
+                    
+                    .scan-results {
+                        background: white;
+                        border-radius: 16px;
+                        padding: 0;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                    }
+                    
+                    .scan-store-header {
+                        background: #f8fafc;
+                        padding: 16px;
+                        border-radius: 16px 16px 0 0;
+                        border-bottom: 1px solid #e5e7eb;
+                    }
+                    
+                    .scan-items-list {
                         max-height: 300px;
+                        overflow-y: auto;
+                        padding: 0 16px;
                     }
                     
                     .scan-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
                         padding: 12px 0;
-                    }
-                }
-                
-                /* Touch Improvements */
-                @media (hover: none) {
-                    .upload-option-card:hover {
-                        transform: none;
+                        border-bottom: 1px solid #f1f5f9;
                     }
                     
-                    .btn-scan-primary:hover,
-                    .btn-scan-secondary:hover {
-                        transform: none;
+                    .scan-item:last-child {
+                        border-bottom: none;
                     }
-                }
-            `;
+                    
+                    .scan-item-info {
+                        flex: 1;
+                    }
+                    
+                    .scan-item-name {
+                        font-weight: 500;
+                        color: #374151;
+                        font-size: 14px;
+                        margin-bottom: 2px;
+                    }
+                    
+                    .scan-item-category {
+                        font-size: 11px;
+                        color: #6b7280;
+                    }
+                    
+                    .scan-item-price {
+                        font-weight: 600;
+                        color: #374151;
+                        font-size: 14px;
+                    }
+                    
+                    .scan-total {
+                        background: #fef2f2;
+                        margin: 16px;
+                        padding: 16px;
+                        border-radius: 12px;
+                        border: 1px solid #fecaca;
+                    }
+                    
+                    /* Buttons - Minimalis */
+                    .btn-scan-save {
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        color: white;
+                        border: none;
+                        padding: 14px 20px;
+                        border-radius: 14px;
+                        font-weight: 600;
+                        font-size: 14px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 6px;
+                    }
+                    
+                    .btn-scan-save:active {
+                        transform: scale(0.98);
+                    }
+                    
+                    .btn-scan-close {
+                        background: white;
+                        color: #374151;
+                        border: 1.5px solid #e5e7eb;
+                        padding: 14px 20px;
+                        border-radius: 14px;
+                        font-weight: 600;
+                        font-size: 14px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        width: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 6px;
+                    }
+                    
+                    .btn-scan-close:active {
+                        background: #f9fafb;
+                    }
+                    
+                    /* Animations */
+                    @keyframes scanFadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    
+                    @keyframes slideUp {
+                        from { transform: translateY(100%); }
+                        to { transform: translateY(0); }
+                    }
+                    
+                    .scan-modal-container {
+                        animation: slideUp 0.25s ease-out;
+                    }
+                    
+                    /* Mobile Optimizations */
+                    @media (max-width: 640px) {
+                        .scan-modal-content {
+                            padding: 16px;
+                        }
+                        
+                        .scan-upload-area {
+                            padding: 30px 16px;
+                        }
+                        
+                        .scan-items-list {
+                            max-height: 250px;
+                        }
+                        
+                        .scan-item {
+                            padding: 10px 0;
+                        }
+                    }
+                `;
             document.head.appendChild(style);
         }
 
-        // Apply classes ke modal
-        modal.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center px-2 sm:px-0 scan-modal-overlay';
+        modal.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 sm:px-0 scan-modal-overlay';
         
         const modalContent = modal.querySelector('div');
         if (modalContent) {
             modalContent.className = 'scan-modal-container w-full max-w-md';
             
-            // Apply styling ke bagian-bagian modal
-            const header = modalContent.querySelector('.px-4.py-4.border-b');
-            if (header) header.className = 'scan-modal-header';
-            
-            const content = modalContent.querySelector('.p-4.space-y-4');
-            if (content) {
-                content.className = 'scan-modal-content';
-                
-                // Replace content dengan upload options yang lebih baik
-                this.initializeScanModalContent(content);
-            }
-            
-            const actions = modalContent.querySelector('.px-4.py-4.border-t');
-            if (actions) {
-                actions.className = 'scan-modal-actions';
-                
-                const buttons = actions.querySelectorAll('button');
-                buttons.forEach((button, index) => {
-                    if (index === 0) {
-                        button.className = 'btn-scan-secondary';
-                        button.innerHTML = '<i class="fas fa-times mr-2"></i>Tutup';
-                    } else {
-                        button.className = 'btn-scan-primary';
-                        button.innerHTML = '<i class="fas fa-save mr-2"></i>Simpan Semua Item';
-                    }
-                });
-            }
+            // Update modal structure
+            this.initializeMinimalScanModal(modalContent);
         }
 
         modal.classList.remove('hidden');
-        
-        // Reset modal state
         this.resetScanModal();
-        
-        // Setup event listeners
-        this.setupScanModalEvents();
     }
 }
 
-// Initialize scan modal content dengan options yang lebih baik
-initializeScanModalContent(contentElement) {
-    contentElement.innerHTML = `
-        <!-- Upload Options -->
-        <div class="upload-options-grid">
-            <div class="upload-option-card upload-camera" onclick="app.openCamera()">
-                <div class="upload-option-icon">
-                    <i class="fas fa-camera"></i>
-                </div>
+// Initialize minimal scan modal dengan 1 opsi unggah file
+initializeMinimalScanModal(modalContent) {
+    modalContent.innerHTML = `
+        <!-- Header -->
+        <div class="scan-modal-header">
+            <div class="flex items-center justify-between">
                 <div>
-                    <div class="upload-option-text">Ambil Foto</div>
-                    <div class="upload-option-desc">Gunakan kamera</div>
+                    <h3 class="text-lg font-semibold">Scan Struk</h3>
+                    <p class="text-blue-100 text-sm mt-1">Unggah foto struk untuk analisa otomatis</p>
+                </div>
+                <button onclick="app.hideScanReceiptModal()" class="p-2 text-white/80 hover:text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="scan-modal-content">
+            <!-- Upload Area -->
+            <div id="uploadSection">
+                <div class="scan-upload-area" onclick="document.getElementById('receiptImage').click()">
+                    <i class="fas fa-receipt text-3xl text-gray-400 mb-3"></i>
+                    <p class="text-gray-600 font-medium text-sm mb-1">Unggah Foto Struk</p>
+                    <p class="text-gray-500 text-xs mb-3">Format: JPG, PNG (Maks. 5MB)</p>
+                    <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Pilih File
+                    </button>
                 </div>
             </div>
+
+            <!-- Hidden File Input -->
+            <input type="file" id="receiptImage" accept="image/*" class="hidden" onchange="app.handleImageUpload(event)">
             
-            <div class="upload-option-card upload-gallery" onclick="app.openGallery()">
-                <div class="upload-option-icon">
-                    <i class="fas fa-images"></i>
-                </div>
-                <div>
-                    <div class="upload-option-text">Pilih Foto</div>
-                    <div class="upload-option-desc">Dari galeri</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Upload Area -->
-        <div class="scan-upload-area" onclick="document.getElementById('receiptImage').click()">
-            <div class="upload-area-icon">
-                <i class="fas fa-cloud-upload-alt"></i>
-            </div>
-            <div class="upload-area-text">Unggah Foto Struk</div>
-            <div class="upload-area-desc">Seret file ke sini atau klik untuk memilih</div>
-            <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-colors">
-                Pilih File
-            </button>
-        </div>
-        
-        <!-- Hidden File Input -->
-        <input type="file" id="receiptImage" accept="image/*" class="hidden" onchange="app.handleImageUpload(event)">
-        
-        <!-- Camera Preview (akan ditampilkan saat kamera aktif) -->
-        <div id="cameraPreview" class="camera-preview hidden">
-            <video id="cameraVideo" autoplay playsinline class="w-full h-64 object-cover"></video>
-            <div class="camera-controls">
-                <button class="camera-btn" onclick="app.capturePhoto()">
-                    <i class="fas fa-camera text-xl"></i>
-                </button>
-                <button class="camera-btn" onclick="app.closeCamera()">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Progress Indicator -->
-        <div id="scanProgress" class="scan-progress hidden">
-            <div class="flex items-center justify-center space-x-3">
-                <i class="fas fa-spinner fa-spin text-2xl"></i>
-                <div>
-                    <div class="font-semibold">Memproses Struk</div>
-                    <div class="text-sm opacity-90">AI sedang menganalisis gambar...</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Error Display -->
-        <div id="scanError" class="hidden bg-red-50 border border-red-200 rounded-xl p-4">
-            <div class="flex items-center space-x-3">
-                <i class="fas fa-exclamation-triangle text-red-500 text-lg"></i>
-                <div>
-                    <div class="font-semibold text-red-800" id="scanErrorMessage">Error message</div>
-                    <div class="text-sm text-red-600 mt-1">Silakan coba lagi dengan gambar yang lebih jelas</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Results Display -->
-        <div id="scanResults" class="hidden">
-            <div class="scan-store-info">
-                <div class="flex justify-between items-center">
+            <!-- Progress -->
+            <div id="scanProgress" class="scan-progress hidden">
+                <div class="flex items-center justify-center gap-3">
+                    <i class="fas fa-spinner fa-spin text-xl"></i>
                     <div>
-                        <div class="font-semibold text-gray-900" id="scanStoreName">Toko</div>
-                        <div class="text-sm text-gray-600" id="scanDate">Tanggal</div>
-                    </div>
-                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                        <i class="fas fa-check-circle mr-1"></i> Berhasil
+                        <div class="font-semibold text-sm">Memproses Struk</div>
+                        <div class="text-xs opacity-90">AI sedang menganalisis...</div>
                     </div>
                 </div>
             </div>
-            
-            <div class="scan-results-container">
-                <div class="text-sm font-semibold text-gray-700 mb-4">Item yang Terdeteksi:</div>
-                <div id="scanItemsList">
-                    <!-- Items akan diisi dinamis -->
+
+            <!-- Error -->
+            <div id="scanError" class="hidden bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-sm"></i>
+                    <div class="text-red-800 text-sm" id="scanErrorMessage"></div>
                 </div>
             </div>
+
+            <!-- Results -->
+            <div id="scanResults" class="hidden">
+                <div class="scan-results">
+                    <div class="scan-store-header">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="font-semibold text-gray-900 text-sm" id="scanStoreName">Toko</div>
+                                <div class="text-gray-600 text-xs mt-1" id="scanDate">Tanggal</div>
+                            </div>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                <i class="fas fa-check mr-1"></i>Berhasil
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="scan-items-list">
+                        <div class="text-xs font-medium text-gray-500 py-3">ITEM YANG TERDETEKSI</div>
+                        <div id="scanItemsList">
+                            <!-- Items will be populated here -->
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="scan-modal-actions">
+            <button id="scanSaveButton" onclick="app.saveScannedItems()" class="btn-scan-save hidden">
+                <i class="fas fa-save"></i>
+                Simpan ke Pengeluaran
+            </button>
+            <button onclick="app.hideScanReceiptModal()" class="btn-scan-close">
+                <i class="fas fa-times"></i>
+                Tutup
+            </button>
         </div>
     `;
 }
 
-// Setup event listeners untuk scan modal
-setupScanModalEvents() {
-    // Setup drag and drop
-    const uploadArea = document.querySelector('.scan-upload-area');
-    if (uploadArea) {
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
+// Update handleImageUpload untuk hide upload section
+async handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-        uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-        });
+    // Validasi file
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    const maxSize = 5 * 1024 * 1024;
 
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                this.handleImageUpload({ target: { files: files } });
-            }
-        });
+    if (!validTypes.includes(file.type)) {
+        this.showScanError('Format file tidak didukung. Gunakan JPG atau PNG.');
+        return;
     }
-}
 
-// Open Camera
-async openCamera() {
+    if (file.size > maxSize) {
+        this.showScanError('File terlalu besar. Maksimal 5MB.');
+        return;
+    }
+
+    // Hide upload section, show progress
+    document.getElementById('uploadSection').classList.add('hidden');
+    this.showScanProgress(file);
+    
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: 'environment',
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            } 
-        });
-        
-        const cameraPreview = document.getElementById('cameraPreview');
-        const cameraVideo = document.getElementById('cameraVideo');
-        
-        cameraVideo.srcObject = stream;
-        cameraPreview.classList.remove('hidden');
-        
-        // Sembunyikan upload options
-        document.querySelector('.upload-options-grid').classList.add('hidden');
-        document.querySelector('.scan-upload-area').classList.add('hidden');
-        
+        await this.processReceiptWithAI(file);
+        // Show save button when results are ready
+        document.getElementById('scanSaveButton').classList.remove('hidden');
     } catch (error) {
-        console.error('Camera error:', error);
-        this.showScanError('Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.');
+        console.error('Scan failed:', error);
+        this.showScanError(error.message);
+        // Show upload section again on error
+        document.getElementById('uploadSection').classList.remove('hidden');
     }
 }
 
-// Close Camera
-closeCamera() {
-    const cameraPreview = document.getElementById('cameraPreview');
-    const cameraVideo = document.getElementById('cameraVideo');
+// Show scan progress
+showScanProgress(file) {
+    document.getElementById('scanProgress').classList.remove('hidden');
+    document.getElementById('scanError').classList.add('hidden');
+    document.getElementById('scanResults').classList.add('hidden');
     
-    if (cameraVideo.srcObject) {
-        cameraVideo.srcObject.getTracks().forEach(track => track.stop());
-    }
-    
-    cameraPreview.classList.add('hidden');
-    
-    // Tampilkan kembali upload options
-    document.querySelector('.upload-options-grid').classList.remove('hidden');
-    document.querySelector('.scan-upload-area').classList.remove('hidden');
-}
-
-// Capture Photo dari kamera
-capturePhoto() {
-    const cameraVideo = document.getElementById('cameraVideo');
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    
-    canvas.width = cameraVideo.videoWidth;
-    canvas.height = cameraVideo.videoHeight;
-    context.drawImage(cameraVideo, 0, 0);
-    
-    canvas.toBlob((blob) => {
-        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-        this.handleImageUpload({ target: { files: [file] } });
-        this.closeCamera();
-    }, 'image/jpeg', 0.8);
-}
-
-// Open Gallery (sama seperti klik file input)
-openGallery() {
-    document.getElementById('receiptImage').click();
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const uploadArea = document.querySelector('.scan-upload-area');
+        if (uploadArea) {
+            uploadArea.innerHTML = `
+                <div class="mb-3">
+                    <img src="${e.target.result}" alt="Preview" class="max-h-32 mx-auto rounded-lg">
+                </div>
+                <p class="text-gray-600 text-sm mb-2">${file.name}</p>
+                <div class="flex items-center justify-center gap-2">
+                    <i class="fas fa-spinner fa-spin text-blue-500 text-sm"></i>
+                    <span class="text-blue-600 text-sm font-medium">Memproses...</span>
+                </div>
+            `;
+        }
+    };
+    reader.readAsDataURL(file);
 }
 
 // Reset Scan Modal
@@ -6118,70 +9283,26 @@ resetScanModal() {
     document.getElementById('scanProgress').classList.add('hidden');
     document.getElementById('scanError').classList.add('hidden');
     document.getElementById('scanResults').classList.add('hidden');
-    document.getElementById('cameraPreview').classList.add('hidden');
+    document.getElementById('scanSaveButton').classList.add('hidden');
     document.getElementById('receiptImage').value = '';
     
-    // Tampilkan upload options
-    const uploadOptions = document.querySelector('.upload-options-grid');
-    const uploadArea = document.querySelector('.scan-upload-area');
-    if (uploadOptions) uploadOptions.classList.remove('hidden');
-    if (uploadArea) uploadArea.classList.remove('hidden');
-}
-
-// Hide Scan Receipt Modal
-hideScanReceiptModal() {
-    const modal = document.getElementById('scanReceiptModal');
-    if (modal) {
-        modal.classList.add('hidden');
-    }
-}
-
-// Reset Scan Modal State
-resetScanModal() {
-    document.getElementById('scanProgress').classList.add('hidden');
-    document.getElementById('scanError').classList.add('hidden');
-    document.getElementById('scanResults').classList.add('hidden');
-    document.getElementById('receiptImage').value = '';
+    // Show upload section
+    document.getElementById('uploadSection').classList.remove('hidden');
     
+    // Reset upload area
     const uploadArea = document.querySelector('.scan-upload-area');
     if (uploadArea) {
         uploadArea.innerHTML = `
-            <i class="fas fa-receipt text-4xl text-gray-400 mb-4"></i>
-            <p class="text-gray-600 font-medium mb-2">Unggah Foto Struk</p>
-            <p class="text-sm text-gray-500 mb-4">Format: JPG, PNG (Maks. 10MB)</p>
-            <button onclick="document.getElementById('receiptImage').click()" 
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-colors">
+            <i class="fas fa-receipt text-3xl text-gray-400 mb-3"></i>
+            <p class="text-gray-600 font-medium text-sm mb-1">Unggah Foto Struk</p>
+            <p class="text-gray-500 text-xs mb-3">Format: JPG, PNG (Maks. 5MB)</p>
+            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Pilih File
             </button>
         `;
     }
 }
 
-// Setup Drag and Drop
-setupDragAndDrop() {
-    const uploadArea = document.querySelector('.scan-upload-area');
-    if (!uploadArea) return;
-
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-    });
-
-    uploadArea.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            this.handleImageUpload({ target: { files: files } });
-        }
-    });
-}
 
 // Handle Image Upload
 async handleImageUpload(event) {
@@ -6370,7 +9491,7 @@ fileToBase64(file) {
 validateScanResults(results) {
     const validated = {
         storeName: 'Toko',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toISOString().split('T')[0], // Selalu gunakan hari ini
         items: [],
         total: 0
     };
@@ -6380,21 +9501,38 @@ validateScanResults(results) {
         validated.storeName = results.storeName.trim();
     }
 
-    // Validate date
-    if (results.date && this.isValidDate(results.date)) {
-        validated.date = results.date;
-    }
+    // Selalu gunakan tanggal hari ini, abaikan tanggal dari AI
+    // Tidak perlu validasi date karena selalu pakai hari ini
 
-    // Validate items dengan format baru
+    // Validate items - handle both number and string formats
     if (results.items && Array.isArray(results.items)) {
         validated.items = results.items
-            .filter(item => item && item.description && typeof item.amount === 'number' && item.amount > 0)
-            .map(item => ({
-                name: String(item.description).trim(),
-                price: Math.abs(Number(item.amount)),
-                quantity: 1, // Default quantity untuk format baru
-                category: item.category || 'belanja' // Default category
-            }));
+            .filter(item => item && item.description && item.amount) // Remove typeof check
+            .map(item => {
+                // Parse amount correctly for both number and string formats
+                let priceValue;
+                
+                if (typeof item.amount === 'number') {
+                    // If already a number, use directly
+                    priceValue = item.amount;
+                } else if (typeof item.amount === 'string') {
+                    // Handle string format like "13.000" -> 13000
+                    const cleanAmount = item.amount
+                        .replace(/\./g, '') // Remove dots (thousands separator in Indonesia)
+                        .replace(',', '.'); // Replace comma with dot for decimal (if any)
+                    priceValue = parseFloat(cleanAmount);
+                } else {
+                    priceValue = 0;
+                }
+                
+                return {
+                    name: String(item.description).trim(),
+                    price: Math.abs(priceValue),
+                    quantity: 1,
+                    category: item.category || 'belanja'
+                };
+            })
+            .filter(item => item.price > 0); // Filter valid prices after parsing
     }
 
     // Calculate total
@@ -6405,10 +9543,12 @@ validateScanResults(results) {
         throw new Error('Tidak ditemukan item yang valid pada struk');
     }
 
+    console.log('Validated scan results:', validated);
     return validated;
 }
 
-// Update displayScanResults untuk menampilkan category
+
+// Update displayScanResults untuk format Rupiah yang benar
 displayScanResults(results) {
     document.getElementById('scanProgress').classList.add('hidden');
     
@@ -6439,7 +9579,7 @@ displayScanResults(results) {
                 </div>
             </div>
             <div class="text-right">
-                <div class="font-semibold text-gray-900">Rp ${this.formatNumber(itemTotal)}</div>
+                <div class="font-semibold text-gray-900">${this.formatRupiah(itemTotal)}</div>
             </div>
         `;
         itemsList.appendChild(itemElement);
@@ -6451,12 +9591,25 @@ displayScanResults(results) {
     totalElement.innerHTML = `
         <div class="flex justify-between items-center">
             <div class="font-bold text-gray-900">Total Belanja</div>
-            <div class="font-bold text-lg text-red-600">Rp ${this.formatNumber(totalAmount)}</div>
+            <div class="font-bold text-lg text-red-600">${this.formatRupiah(totalAmount)}</div>
         </div>
     `;
     itemsList.appendChild(totalElement);
     
     document.getElementById('scanResults').classList.remove('hidden');
+}
+
+// Tambahkan juga fungsi formatRupiah jika belum ada
+formatRupiah(amount) {
+    const numberValue = Number(amount);
+    if (isNaN(numberValue)) return 'Rp 0';
+    
+    return `Rp ${this.formatNumber(numberValue)}`;
+}
+
+// Format number helper untuk Rupiah Indonesia
+formatNumber(num) {
+    return new Intl.NumberFormat('id-ID').format(num);
 }
 
 // Helper function untuk icon kategori
@@ -6563,20 +9716,903 @@ async saveScannedItems() {
     }
 }
 
-    renderTabunganPage() {
-        return `
-            <div class="container mx-auto px-4 py-6">
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 text-center">
-                    <i class="fas fa-piggy-bank text-4xl text-blue-600 mb-4"></i>
-                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Fitur Tabungan</h2>
-                    <p class="text-gray-600 mb-4">Fitur tabungan akan segera hadir dalam update berikutnya</p>
-                    <button class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors" onclick="app.loadContent('dashboard')">
-                        Kembali ke Dashboard
+  renderTabunganPage() {
+    return `
+        <div class="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
+            <!-- Header -->
+            <div class="bg-white/80 backdrop-blur-lg border-b border-gray-200/60 sticky top-0 z-40">
+                <div class="px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors" 
+                                    onclick="app.loadContent('goals')">
+                                <i class="fas fa-arrow-left text-gray-600"></i>
+                            </button>
+                            <div>
+                                <h1 class="text-lg font-bold text-gray-900">Tabungan</h1>
+                                <p class="text-xs text-gray-500">Bangun masa depan finansial</p>
+                            </div>
+                        </div>
+                        <button onclick="app.showAddSavingsModal()" 
+                                class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Savings Overview -->
+            <div class="px-4 pt-6">
+                <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-5 shadow-xl text-white">
+                    <div class="text-center">
+                        <p class="text-white/90 text-sm font-medium mb-2">Total Tabungan</p>
+                        <p class="text-white text-2xl font-bold mb-3" id="totalSavingsAmount">Rp 0</p>
+                        <div class="w-full bg-white/30 rounded-full h-3 mb-2">
+                            <div class="bg-white h-3 rounded-full transition-all duration-500" id="savingsProgressBar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-white/70 text-xs" id="savingsTargetInfo">Auto-save: 20% dari pemasukan</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Savings Stats -->
+            <div class="px-4 mt-6">
+                <div class="grid grid-cols-3 gap-3">
+                    <!-- Monthly Target -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-bullseye text-green-500 text-sm"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">Monthly Target</p>
+                            <p class="text-gray-900 text-lg font-bold" id="monthlySavingsTarget">Rp 0</p>
+                        </div>
+                    </div>
+
+                    <!-- This Month -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-calendar text-blue-500 text-sm"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">This Month</p>
+                            <p class="text-gray-900 text-lg font-bold" id="thisMonthSavings">Rp 0</p>
+                        </div>
+                    </div>
+
+                    <!-- Growth -->
+                    <div class="bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                        <div class="text-center">
+                            <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fas fa-chart-line text-orange-500 text-sm"></i>
+                            </div>
+                            <p class="text-gray-500 text-xs font-medium mb-1">Growth</p>
+                            <p class="text-gray-900 text-lg font-bold" id="savingsGrowth">0%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="px-4 mt-6">
+                <h3 class="text-gray-900 text-sm font-bold mb-3">Quick Actions</h3>
+                <div class="grid grid-cols-4 gap-2">
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.showAddSavingsModal()">
+                        <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-plus text-green-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Add</span>
+                    </button>
+                    
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.showWithdrawModal()">
+                        <div class="w-8 h-8 bg-yellow-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-minus text-yellow-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Withdraw</span>
+                    </button>
+                    
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.showAutoSaveSettings()">
+                        <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-cog text-blue-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Auto-save</span>
+                    </button>
+                    
+                    <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
+                            onclick="app.showSavingsReport()">
+                        <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center mb-1">
+                            <i class="fas fa-chart-bar text-purple-500 text-xs"></i>
+                        </div>
+                        <span class="text-gray-600 text-xs font-medium">Report</span>
                     </button>
                 </div>
             </div>
+
+            <!-- Savings Goals -->
+            <div class="px-4 mt-6">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-900 text-sm font-bold">Savings Goals</h3>
+                            <span class="text-green-500 text-xs font-medium" id="savingsGoalsCount">0 goals</span>
+                        </div>
+                    </div>
+                    <div id="savingsGoalsList" class="divide-y divide-gray-100">
+                        <div class="px-4 py-4 text-center">
+                            <i class="fas fa-piggy-bank text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500 text-sm">Belum ada savings goals</p>
+                            <button onclick="app.showAddSavingsGoalModal()" 
+                                    class="mt-3 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                                Tambah Goal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="px-4 mt-4 mb-6">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-gray-900 text-sm font-bold">Recent Transactions</h3>
+                            <span class="text-blue-500 text-xs font-medium">View All</span>
+                        </div>
+                    </div>
+                    <div id="savingsTransactionsList" class="divide-y divide-gray-100">
+                        <div class="px-4 py-4 text-center">
+                            <i class="fas fa-exchange-alt text-3xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500 text-sm">Belum ada transaksi</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Savings Modal -->
+        <div id="addSavingsModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-overlay-savings" onclick="app.hideAddSavingsModal()"></div>
+            <div class="modal-container-savings">
+                <div class="modal-content-savings">
+                    <!-- Header -->
+                    <div class="modal-header-savings">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="modal-title-savings">Tambah Tabungan</h3>
+                                <p class="modal-subtitle-savings">Tambah dana ke tabungan Anda</p>
+                            </div>
+                            <button onclick="app.hideAddSavingsModal()" class="modal-close-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="modal-body-savings">
+                        <div class="space-y-4">
+                            <!-- Amount -->
+                            <div class="form-group-savings">
+                                <label class="form-label-savings">Jumlah</label>
+                                <div class="relative">
+                                    <span class="currency-symbol">Rp</span>
+                                    <input type="number" id="savingsAmount" 
+                                           class="form-input-savings with-currency"
+                                           placeholder="0"
+                                           min="0">
+                                </div>
+                            </div>
+
+                            <!-- Date -->
+                            <div class="form-group-savings">
+                                <label class="form-label-savings">Tanggal</label>
+                                <input type="date" id="savingsDate" 
+                                       class="form-input-savings">
+                            </div>
+
+                            <!-- Category -->
+                            <div class="form-group-savings">
+                                <label class="form-label-savings">Kategori</label>
+                                <select id="savingsCategory" class="form-select-savings">
+                                    <option value="regular">💵 Tabungan Reguler</option>
+                                    <option value="emergency">🛡️ Dana Darurat</option>
+                                    <option value="investment">📈 Investasi</option>
+                                    <option value="goal">🎯 Goal Specific</option>
+                                    <option value="other">📝 Lainnya</option>
+                                </select>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="form-group-savings">
+                                <label class="form-label-savings">Deskripsi (Opsional)</label>
+                                <textarea id="savingsDescription" rows="3"
+                                          class="form-textarea-savings"
+                                          placeholder="Tambahkan catatan..."></textarea>
+                            </div>
+
+                            <!-- Quick Amounts -->
+                            <div class="quick-amounts-section">
+                                <label class="form-label-savings">Quick Amount</label>
+                                <div class="quick-amounts-grid">
+                                    <button type="button" class="quick-amount-btn" onclick="app.setQuickAmount(50000)">50K</button>
+                                    <button type="button" class="quick-amount-btn" onclick="app.setQuickAmount(100000)">100K</button>
+                                    <button type="button" class="quick-amount-btn" onclick="app.setQuickAmount(500000)">500K</button>
+                                    <button type="button" class="quick-amount-btn" onclick="app.setQuickAmount(1000000)">1JT</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="modal-actions-savings">
+                        <button type="button" onclick="app.hideAddSavingsModal()" class="btn-secondary-savings">
+                            <i class="fas fa-times mr-2"></i>
+                            Batal
+                        </button>
+                        <button type="button" onclick="app.saveSavings()" class="btn-primary-savings">
+                            <i class="fas fa-save mr-2"></i>
+                            Simpan Tabungan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdraw Modal -->
+        <div id="withdrawModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-overlay-savings" onclick="app.hideWithdrawModal()"></div>
+            <div class="modal-container-savings">
+                <div class="modal-content-savings">
+                    <div class="modal-header-savings">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="modal-title-savings">Tarik Tabungan</h3>
+                                <p class="modal-subtitle-savings">Tarik dana dari tabungan</p>
+                            </div>
+                            <button onclick="app.hideWithdrawModal()" class="modal-close-btn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="modal-body-savings">
+                        <div class="space-y-4">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+                                    <p class="text-yellow-800 text-sm font-medium">Saldo Tersedia</p>
+                                </div>
+                                <p class="text-yellow-700 text-lg font-bold mt-2" id="availableBalance">Rp 0</p>
+                            </div>
+
+                            <div class="form-group-savings">
+                                <label class="form-label-savings">Jumlah Penarikan</label>
+                                <div class="relative">
+                                    <span class="currency-symbol">Rp</span>
+                                    <input type="number" id="withdrawAmount" 
+                                           class="form-input-savings with-currency"
+                                           placeholder="0"
+                                           min="0">
+                                </div>
+                            </div>
+
+                            <div class="form-group-savings">
+                                <label class="form-label-savings">Alasan Penarikan</label>
+                                <select id="withdrawReason" class="form-select-savings">
+                                    <option value="emergency">🚨 Kebutuhan Darurat</option>
+                                    <option value="investment">📈 Investasi</option>
+                                    <option value="purchase">🛒 Pembelian</option>
+                                    <option value="transfer">🏦 Transfer</option>
+                                    <option value="other">📝 Lainnya</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group-savings">
+                                <label class="form-label-savings">Keterangan (Opsional)</label>
+                                <textarea id="withdrawNotes" rows="2"
+                                          class="form-textarea-savings"
+                                          placeholder="Tambahkan keterangan penarikan..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-savings">
+                        <button type="button" onclick="app.hideWithdrawModal()" class="btn-secondary-savings">
+                            Batal
+                        </button>
+                        <button type="button" onclick="app.processWithdrawal()" class="btn-warning-savings">
+                            <i class="fas fa-download mr-2"></i>
+                            Tarik Dana
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// CSS Modal Injection untuk Tabungan
+injectSavingsModalCSS() {
+    if (!document.getElementById('savings-modal-css')) {
+        const style = document.createElement('style');
+        style.id = 'savings-modal-css';
+        style.textContent = `
+            /* Savings Modal Base Styles */
+            .modal-overlay-savings {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                animation: savingsFadeIn 0.3s ease-out;
+                z-index: 50;
+            }
+            
+            .modal-container-savings {
+                position: fixed;
+                inset: 0;
+                z-index: 50;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                padding: 0;
+                margin: 0;
+            }
+            
+            @media (min-width: 640px) {
+                .modal-container-savings {
+                    align-items: center;
+                    padding: 1rem;
+                }
+            }
+            
+            .modal-content-savings {
+                background: white;
+                border-radius: 24px 24px 0 0;
+                box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.15);
+                border: 1px solid #e5e7eb;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                margin: 0;
+                transform: translateY(0);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            @media (min-width: 640px) {
+                .modal-content-savings {
+                    border-radius: 24px;
+                    max-width: 480px;
+                    max-height: 85vh;
+                    margin: auto;
+                }
+            }
+            
+            /* Header */
+            .modal-header-savings {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 24px 24px 0 0;
+                flex-shrink: 0;
+            }
+            
+            .modal-title-savings {
+                font-size: 1.25rem;
+                font-weight: 700;
+                line-height: 1.2;
+            }
+            
+            .modal-subtitle-savings {
+                font-size: 0.875rem;
+                opacity: 0.9;
+                margin-top: 0.25rem;
+            }
+            
+            .modal-close-btn {
+                width: 2.5rem;
+                height: 2.5rem;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                transition: all 0.2s ease;
+                border: none;
+                cursor: pointer;
+            }
+            
+            .modal-close-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: scale(1.05);
+            }
+            
+            /* Body */
+            .modal-body-savings {
+                flex: 1;
+                overflow-y: auto;
+                padding: 1.5rem;
+                background: #f8fafc;
+            }
+            
+            /* Form Styles */
+            .form-group-savings {
+                margin-bottom: 1.25rem;
+            }
+            
+            .form-label-savings {
+                display: block;
+                font-size: 0.875rem;
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 0.5rem;
+            }
+            
+            .form-input-savings {
+                width: 100%;
+                padding: 0.875rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 16px;
+                font-size: 1rem;
+                background: white;
+                transition: all 0.3s ease;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+            
+            .form-input-savings:focus {
+                outline: none;
+                border-color: #10b981;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+                transform: translateY(-1px);
+            }
+            
+            .form-input-savings.with-currency {
+                padding-left: 2.5rem;
+            }
+            
+            .currency-symbol {
+                position: absolute;
+                left: 1rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #6b7280;
+                font-weight: 600;
+                font-size: 0.875rem;
+            }
+            
+            .form-select-savings {
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+                background-position: right 1rem center;
+                background-repeat: no-repeat;
+                background-size: 1rem;
+                cursor: pointer;
+            }
+            
+            .form-textarea-savings {
+                width: 100%;
+                padding: 0.875rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 16px;
+                font-size: 0.875rem;
+                background: white;
+                transition: all 0.3s ease;
+                resize: vertical;
+                min-height: 80px;
+            }
+            
+            .form-textarea-savings:focus {
+                outline: none;
+                border-color: #10b981;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            }
+            
+            /* Quick Amounts */
+            .quick-amounts-section {
+                margin-top: 1.5rem;
+            }
+            
+            .quick-amounts-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+            
+            @media (min-width: 640px) {
+                .quick-amounts-grid {
+                    grid-template-columns: repeat(4, 1fr);
+                }
+            }
+            
+            .quick-amount-btn {
+                padding: 0.75rem 1rem;
+                border: 2px solid #e5e7eb;
+                border-radius: 12px;
+                background: white;
+                color: #374151;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .quick-amount-btn:hover {
+                border-color: #10b981;
+                color: #10b981;
+                transform: translateY(-1px);
+            }
+            
+            .quick-amount-btn:active {
+                transform: translateY(0);
+            }
+            
+            /* Actions */
+            .modal-actions-savings {
+                background: white;
+                padding: 1.25rem 1.5rem;
+                border-top: 1px solid #e5e7eb;
+                display: flex;
+                gap: 0.75rem;
+                flex-shrink: 0;
+            }
+            
+            .btn-primary-savings {
+                flex: 1;
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                color: white;
+                border: none;
+                padding: 1rem 1.5rem;
+                border-radius: 16px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+            
+            .btn-primary-savings:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            }
+            
+            .btn-primary-savings:active {
+                transform: translateY(0);
+            }
+            
+            .btn-secondary-savings {
+                flex: 1;
+                background: white;
+                color: #374151;
+                border: 2px solid #e5e7eb;
+                padding: 1rem 1.5rem;
+                border-radius: 16px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .btn-secondary-savings:hover {
+                border-color: #10b981;
+                color: #10b981;
+                transform: translateY(-1px);
+            }
+            
+            .btn-warning-savings {
+                flex: 1;
+                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+                color: white;
+                border: none;
+                padding: 1rem 1.5rem;
+                border-radius: 16px;
+                font-weight: 600;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            }
+            
+            .btn-warning-savings:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+            }
+            
+            /* Animations */
+            @keyframes savingsFadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes savingsSlideUp {
+                from { 
+                    transform: translateY(100%);
+                    opacity: 0;
+                }
+                to { 
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            
+            .modal-content-savings {
+                animation: savingsSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            /* Mobile Optimizations */
+            @media (max-width: 640px) {
+                .modal-body-savings {
+                    padding: 1.25rem;
+                }
+                
+                .modal-actions-savings {
+                    padding: 1rem 1.25rem;
+                }
+                
+                .form-input-savings,
+                .form-select-savings,
+                .form-textarea-savings {
+                    font-size: 16px; /* Prevent zoom on iOS */
+                }
+                
+                .quick-amounts-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+            
+            /* Scrollbar Styling */
+            .modal-body-savings::-webkit-scrollbar {
+                width: 4px;
+            }
+            
+            .modal-body-savings::-webkit-scrollbar-track {
+                background: #f1f5f9;
+                border-radius: 2px;
+            }
+            
+            .modal-body-savings::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 2px;
+            }
+            
+            .modal-body-savings::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+            
+            /* Touch Improvements */
+            @media (hover: none) {
+                .btn-primary-savings:hover,
+                .btn-secondary-savings:hover,
+                .btn-warning-savings:hover,
+                .quick-amount-btn:hover {
+                    transform: none;
+                }
+                
+                .modal-close-btn:hover {
+                    transform: none;
+                }
+            }
         `;
+        document.head.appendChild(style);
     }
+}
+
+// Modal Functions untuk Tabungan
+showAddSavingsModal() {
+    this.injectSavingsModalCSS();
+    const modal = document.getElementById('addSavingsModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('savingsDate').value = today;
+    }
+}
+
+hideAddSavingsModal() {
+    const modal = document.getElementById('addSavingsModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+showWithdrawModal() {
+    this.injectSavingsModalCSS();
+    const modal = document.getElementById('withdrawModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        // Load available balance
+        this.loadAvailableBalance();
+    }
+}
+
+hideWithdrawModal() {
+    const modal = document.getElementById('withdrawModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Helper Functions
+setQuickAmount(amount) {
+    document.getElementById('savingsAmount').value = amount;
+}
+
+async loadAvailableBalance() {
+    // Implementasi load balance dari Firebase
+    const currentUser = this.auth.currentUser;
+    try {
+        const savingsDoc = await this.db.collection('savings')
+            .doc(currentUser.uid)
+            .get();
+        
+        if (savingsDoc.exists) {
+            const savings = savingsDoc.data();
+            document.getElementById('availableBalance').textContent = this.formatRupiah(savings.currentAmount || 0);
+        }
+    } catch (error) {
+        console.error('Error loading available balance:', error);
+    }
+}
+
+async saveSavings() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        const savingsData = {
+            userId: currentUser.uid,
+            amount: parseFloat(document.getElementById('savingsAmount').value) || 0,
+            date: document.getElementById('savingsDate').value,
+            category: document.getElementById('savingsCategory').value,
+            description: document.getElementById('savingsDescription').value || '',
+            type: 'deposit',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Validation
+        if (savingsData.amount <= 0) {
+            this.showToast('Jumlah harus lebih dari 0', 'error');
+            return;
+        }
+
+        await this.db.collection('savings_transactions').add(savingsData);
+        
+        // Update total savings
+        await this.updateTotalSavings(savingsData.amount, 'add');
+        
+        this.showToast('Tabungan berhasil ditambahkan! 💰', 'success');
+        this.hideAddSavingsModal();
+        
+        // Refresh data
+        this.loadTabunganData();
+        
+    } catch (error) {
+        console.error('Error saving savings:', error);
+        this.showToast('Gagal menambah tabungan', 'error');
+    }
+}
+
+async processWithdrawal() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        const withdrawData = {
+            userId: currentUser.uid,
+            amount: parseFloat(document.getElementById('withdrawAmount').value) || 0,
+            reason: document.getElementById('withdrawReason').value,
+            notes: document.getElementById('withdrawNotes').value || '',
+            type: 'withdrawal',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Check available balance
+        const savingsDoc = await this.db.collection('savings')
+            .doc(currentUser.uid)
+            .get();
+        
+        const currentBalance = savingsDoc.exists ? savingsDoc.data().currentAmount || 0 : 0;
+        
+        if (withdrawData.amount > currentBalance) {
+            this.showToast('Saldo tidak mencukupi', 'error');
+            return;
+        }
+
+        if (withdrawData.amount <= 0) {
+            this.showToast('Jumlah harus lebih dari 0', 'error');
+            return;
+        }
+
+        await this.db.collection('savings_transactions').add(withdrawData);
+        
+        // Update total savings
+        await this.updateTotalSavings(withdrawData.amount, 'subtract');
+        
+        this.showToast('Penarikan berhasil diproses!', 'success');
+        this.hideWithdrawModal();
+        
+        // Refresh data
+        this.loadTabunganData();
+        
+    } catch (error) {
+        console.error('Error processing withdrawal:', error);
+        this.showToast('Gagal memproses penarikan', 'error');
+    }
+}
+
+async updateTotalSavings(amount, operation) {
+    const currentUser = this.auth.currentUser;
+    const savingsRef = this.db.collection('savings').doc(currentUser.uid);
+    
+    try {
+        const savingsDoc = await savingsRef.get();
+        
+        if (savingsDoc.exists) {
+            const currentData = savingsDoc.data();
+            const newAmount = operation === 'add' 
+                ? (currentData.currentAmount || 0) + amount
+                : (currentData.currentAmount || 0) - amount;
+                
+            await savingsRef.update({
+                currentAmount: newAmount,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            // Create new savings document
+            await savingsRef.set({
+                userId: currentUser.uid,
+                currentAmount: operation === 'add' ? amount : -amount,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    } catch (error) {
+        console.error('Error updating total savings:', error);
+    }
+}
+
+// Load tabungan data
+async loadTabunganData() {
+    try {
+        const currentUser = this.auth.currentUser;
+        if (!currentUser) return;
+
+        await this.loadSavingsOverview();
+        await this.loadSavingsGoals();
+        await this.loadSavingsTransactions();
+        
+    } catch (error) {
+        console.error('Error loading tabungan data:', error);
+    }
+}
+
+async loadSavingsOverview() {
+    // Implementasi load savings overview dari Firebase
+    // ...
+}
+
+async loadSavingsGoals() {
+    // Implementasi load savings goals dari Firebase
+    // ...
+}
+
+async loadSavingsTransactions() {
+    // Implementasi load savings transactions dari Firebase
+    // ...
+}
 
     renderFeaturesPage() {
         return `
