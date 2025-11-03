@@ -2536,8 +2536,9 @@ async downloadAsPNG() {
 
         const data = this.currentInvoiceData;
 
-        // Buat container struk dengan inline styling lengkap
+        // Buat container struk dengan styling lengkap
         const receiptContainer = document.createElement('div');
+        receiptContainer.id = 'invoice-receipt-container';
         receiptContainer.style.cssText = `
             width: 380px;
             min-height: 600px;
@@ -2551,87 +2552,219 @@ async downloadAsPNG() {
             border-radius: 16px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
             position: fixed;
-            top: 0;
-            left: 0;
-            z-index: -9999;
-            opacity: 0;
-            pointer-events: none;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            opacity: 1;
             box-sizing: border-box;
+            overflow: hidden;
         `;
 
-        receiptContainer.innerHTML = `
-            <!-- Header dengan Logo saja -->
-            <div style="text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f1f5f9; box-sizing: border-box;">
-                <img src="https://vlcrave.github.io/project/img/icon.png" 
-                     alt="VLCrave Express" 
-                     style="width: 60px; height: 60px; display: block; margin: 0 auto 12px auto;">
-                <div style="font-weight: 800; font-size: 18px; color: #1e293b; letter-spacing: -0.5px; margin-bottom: 4px;">
-                    VLCrave Express
-                </div>
-                <div style="font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
-                    Premium Delivery Service
-                </div>
+        // HTML content untuk receipt
+        receiptContainer.innerHTML = this.generateReceiptHTML(data);
+
+        // Tambahkan ke DOM
+        document.body.appendChild(receiptContainer);
+
+        // Tunggu untuk memastikan DOM terrender dan gambar load
+        await this.waitForImages(receiptContainer);
+        
+        // Tunggu sedikit lagi untuk memastikan semua elemen terrender
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Konfigurasi html2canvas yang lebih robust
+        const canvas = await html2canvas(receiptContainer, {
+            scale: 2, // Scale yang optimal
+            useCORS: true,
+            logging: true, // Enable logging untuk debugging
+            backgroundColor: '#ffffff',
+            width: receiptContainer.offsetWidth,
+            height: receiptContainer.offsetHeight,
+            scrollX: 0,
+            scrollY: 0,
+            allowTaint: true,
+            foreignObjectRendering: false,
+            imageTimeout: 15000,
+            onclone: (clonedDoc, element) => {
+                // Pastikan semua styling konsisten
+                const allElements = element.querySelectorAll('*');
+                allElements.forEach(el => {
+                    const computedStyle = window.getComputedStyle(el);
+                    el.style.boxSizing = 'border-box';
+                    el.style.visibility = 'visible';
+                    el.style.opacity = '1';
+                    el.style.display = computedStyle.display;
+                    
+                    // Force repaint untuk elemen yang mungkin hidden
+                    if (computedStyle.display === 'none') {
+                        el.style.display = 'block';
+                    }
+                });
+
+                // Handle gambar external
+                const images = element.querySelectorAll('img');
+                images.forEach(img => {
+                    img.crossOrigin = 'Anonymous';
+                    if (!img.complete) {
+                        // Fallback jika gambar gagal load
+                        img.onerror = function() {
+                            this.style.display = 'none';
+                        };
+                    }
+                });
+            }
+        });
+
+        // Validasi canvas
+        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            throw new Error('Canvas tidak berhasil dibuat');
+        }
+
+        // Convert to PNG dan download
+        const pngData = canvas.toDataURL('image/png', 1.0);
+        
+        // Validasi data URL
+        if (!pngData || pngData === 'data:,') {
+            throw new Error('Data URL tidak valid');
+        }
+
+        const link = document.createElement('a');
+        link.download = `invoice-${data.invoiceNumber}-${new Date().getTime()}.png`;
+        link.href = pngData;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Cleanup
+        this.cleanupReceiptContainer();
+        
+        this.showNotification(`✅ Invoice ${data.invoiceNumber} berhasil didownload!`, 'success');
+        
+    } catch (error) {
+        console.error('Error in downloadAsPNG:', error);
+        this.showNotification('❌ Gagal download invoice: ' + error.message, 'error');
+        
+        // Cleanup jika error
+        this.cleanupReceiptContainer();
+    }
+}
+
+// Helper function untuk generate HTML receipt
+generateReceiptHTML(data) {
+    return `
+        <!-- Header dengan Logo -->
+        <div style="text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f1f5f9; box-sizing: border-box;">
+            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; color: white; font-weight: bold; font-size: 20px;">
+                VL
             </div>
-
-            <!-- Invoice Info Card -->
-            <div style="background: linear-gradient(135deg, #fef7ed 0%, #fefce8 100%); border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
-                <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
-                    <div style="box-sizing: border-box;">
-                        <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
-                            Invoice No
-                        </div>
-                        <div style="font-family: 'Courier New', monospace; font-weight: 800; font-size: 14px; color: #1e293b; box-sizing: border-box;">
-                            ${data.invoiceNumber}
-                        </div>
-                    </div>
-                    <div style="text-align: right; box-sizing: border-box;">
-                        <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
-                            Tanggal
-                        </div>
-                        <div style="font-weight: 600; font-size: 12px; color: #475569; box-sizing: border-box;">
-                            ${data.date}
-                        </div>
-                    </div>
-                </div>
+            <div style="font-weight: 800; font-size: 18px; color: #1e293b; letter-spacing: -0.5px; margin-bottom: 4px;">
+                VLCrave Express
             </div>
+            <div style="font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
+                Premium Delivery Service
+            </div>
+        </div>
 
-            <!-- Products Section -->
-            <div style="margin-bottom: 20px; box-sizing: border-box;">
-                <!-- Header -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; box-sizing: border-box;">
-                    <div style="font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
-                        Detail Pesanan
-                    </div>
-                    <div style="display: flex; gap: 25px; font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
-                        <span style="width: 30px; text-align: center; box-sizing: border-box;">Qty</span>
-                        <span style="width: 70px; text-align: right; box-sizing: border-box;">Harga</span>
-                    </div>
-                </div>
-
-                <!-- Products List -->
+        <!-- Invoice Info Card -->
+        <div style="background: linear-gradient(135deg, #fef7ed 0%, #fefce8 100%); border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
                 <div style="box-sizing: border-box;">
-                    ${data.products.map(product => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 12px; margin-bottom: 6px; box-sizing: border-box;">
-                            <div style="flex: 1; min-width: 0; box-sizing: border-box;">
-                                <div style="font-weight: 600; font-size: 12px; color: #1e293b; margin-bottom: 2px; line-height: 1.3; box-sizing: border-box;">
-                                    ${product.name}
-                                </div>
-                            </div>
-                            <div style="display: flex; gap: 25px; align-items: center; flex-shrink: 0; box-sizing: border-box;">
-                                <span style="width: 30px; text-align: center; font-weight: 700; color: #475569; font-size: 11px; box-sizing: border-box;">
-                                    ${product.quantity}
-                                </span>
-                                <span style="width: 70px; text-align: right; font-weight: 700; color: #1e293b; font-size: 11px; box-sizing: border-box;">
-                                    ${this.formatCurrencyNoSymbol(product.price)}
-                                </span>
-                            </div>
-                        </div>
-                    `).join('')}
+                    <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
+                        Invoice No
+                    </div>
+                    <div style="font-family: 'Courier New', monospace; font-weight: 800; font-size: 14px; color: #1e293b; box-sizing: border-box;">
+                        ${data.invoiceNumber}
+                    </div>
+                </div>
+                <div style="text-align: right; box-sizing: border-box;">
+                    <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
+                        Tanggal
+                    </div>
+                    <div style="font-weight: 600; font-size: 12px; color: #475569; box-sizing: border-box;">
+                        ${data.date}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Section -->
+        <div style="margin-bottom: 20px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; box-sizing: border-box;">
+                <div style="font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
+                    Detail Pesanan
+                </div>
+                <div style="display: flex; gap: 25px; font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
+                    <span style="width: 30px; text-align: center; box-sizing: border-box;">Qty</span>
+                    <span style="width: 70px; text-align: right; box-sizing: border-box;">Harga</span>
                 </div>
             </div>
 
-            <!-- Payment Method Card - TUNAI -->
-            ${data.paymentMethod === 'tunai' ? `
+            <div style="box-sizing: border-box;">
+                ${data.products.map(product => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 12px; margin-bottom: 6px; box-sizing: border-box;">
+                        <div style="flex: 1; min-width: 0; box-sizing: border-box;">
+                            <div style="font-weight: 600; font-size: 12px; color: #1e293b; margin-bottom: 2px; line-height: 1.3; box-sizing: border-box;">
+                                ${product.name}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 25px; align-items: center; flex-shrink: 0; box-sizing: border-box;">
+                            <span style="width: 30px; text-align: center; font-weight: 700; color: #475569; font-size: 11px; box-sizing: border-box;">
+                                ${product.quantity}
+                            </span>
+                            <span style="width: 70px; text-align: right; font-weight: 700; color: #1e293b; font-size: 11px; box-sizing: border-box;">
+                                ${this.formatCurrencyNoSymbol(product.price)}
+                            </span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+
+        <!-- Payment Method -->
+        ${this.generatePaymentMethodHTML(data)}
+
+        <!-- Summary Card -->
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
+                <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Subtotal</span>
+                <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.subtotal)}</span>
+            </div>
+            ${data.shippingCost > 0 ? `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
+                <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Biaya Pengiriman</span>
+                <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.shippingCost)}</span>
+            </div>
+            ` : ''}
+            <div style="border-top: 1px solid #475569; padding-top: 12px; margin-top: 8px; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+                    <span style="font-weight: 800; font-size: 14px; color: white; box-sizing: border-box;">Total Pembayaran</span>
+                    <span style="font-weight: 800; font-size: 16px; color: white; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.total)}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding-top: 16px; border-top: 2px dashed #e2e8f0; box-sizing: border-box;">
+            <div style="font-size: 10px; color: #64748b; line-height: 1.4; margin-bottom: 8px; box-sizing: border-box;">
+                Terima kasih telah mempercayai layanan pengiriman premium kami
+            </div>
+            <div style="font-weight: 800; font-size: 12px; color: #f97316; letter-spacing: -0.5px; box-sizing: border-box;">
+                VLCrave Express Delivery
+            </div>
+            <div style="font-size: 9px; color: #94a3b8; margin-top: 4px; box-sizing: border-box;">
+                ✨ Premium Delivery Experience
+            </div>
+        </div>
+    `;
+}
+
+// Helper function untuk generate payment method HTML
+generatePaymentMethodHTML(data) {
+    if (data.paymentMethod === 'tunai') {
+        return `
             <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; box-sizing: border-box;">
                     <div style="width: 32px; height: 32px; background: #ea580c; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
@@ -2655,8 +2788,9 @@ async downloadAsPNG() {
                     </div>
                 </div>
             </div>
-            ` : `
-            <!-- Payment Method Card - TRANSFER -->
+        `;
+    } else {
+        return `
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; box-sizing: border-box;">
                     <div style="width: 32px; height: 32px; background: #16a34a; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
@@ -2680,105 +2814,30 @@ async downloadAsPNG() {
                     </div>
                 </div>
             </div>
-            `}
-
-            <!-- Summary Card -->
-            <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; box-sizing: border-box;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
-                    <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Subtotal</span>
-                    <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.subtotal)}</span>
-                </div>
-                ${data.shippingCost > 0 ? `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
-                    <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Biaya Pengiriman</span>
-                    <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.shippingCost)}</span>
-                </div>
-                ` : ''}
-                <div style="border-top: 1px solid #475569; padding-top: 12px; margin-top: 8px; box-sizing: border-box;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
-                        <span style="font-weight: 800; font-size: 14px; color: white; box-sizing: border-box;">Total Pembayaran</span>
-                        <span style="font-weight: 800; font-size: 16px; color: white; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.total)}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div style="text-align: center; padding-top: 16px; border-top: 2px dashed #e2e8f0; box-sizing: border-box;">
-                <div style="font-size: 10px; color: #64748b; line-height: 1.4; margin-bottom: 8px; box-sizing: border-box;">
-                    Terima kasih telah mempercayai layanan pengiriman premium kami
-                </div>
-                <div style="font-weight: 800; font-size: 12px; color: #f97316; letter-spacing: -0.5px; box-sizing: border-box;">
-                    VLCrave Express Delivery
-                </div>
-                <div style="font-size: 9px; color: #94a3b8; margin-top: 4px; box-sizing: border-box;">
-                    ✨ Premium Delivery Experience
-                </div>
-            </div>
         `;
+    }
+}
 
-        // Tambahkan ke DOM
-        document.body.appendChild(receiptContainer);
-
-        // Tunggu sebentar untuk memastikan DOM terrender
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Gunakan html2canvas dengan konfigurasi optimal
-        const canvas = await html2canvas(receiptContainer, {
-            scale: 3,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            width: receiptContainer.scrollWidth,
-            height: receiptContainer.scrollHeight,
-            scrollX: 0,
-            scrollY: 0,
-            onclone: function(clonedDoc, element) {
-                // Force semua styling untuk konsistensi
-                const allElements = element.querySelectorAll('*');
-                allElements.forEach(el => {
-                    el.style.boxSizing = 'border-box';
-                    el.style.visibility = 'visible';
-                    el.style.opacity = '1';
-                });
-                
-                // Pastikan gambar logo load
-                const logo = element.querySelector('img');
-                if (logo) {
-                    logo.style.display = 'block';
-                    logo.style.visibility = 'visible';
-                }
-            }
-        });
-
-        // Convert to PNG dan download
-        const pngData = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `invoice-${data.invoiceNumber}-${new Date().getTime()}.png`;
-        link.href = pngData;
-        
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Cleanup - hapus container sementara
-        setTimeout(() => {
-            if (document.body.contains(receiptContainer)) {
-                document.body.removeChild(receiptContainer);
-            }
-        }, 100);
-        
-        this.showNotification(`✅ Invoice ${data.invoiceNumber} berhasil didownload!`, 'success');
-        
-    } catch (error) {
-        console.error('Error in downloadAsPNG:', error);
-        this.showNotification('❌ Gagal download invoice: ' + error.message, 'error');
-        
-        // Cleanup jika error
-        const receiptContainer = document.querySelector('[style*="z-index: -9999"]');
-        if (receiptContainer && document.body.contains(receiptContainer)) {
-            document.body.removeChild(receiptContainer);
+// Helper function untuk menunggu gambar load
+waitForImages(container) {
+    const images = container.querySelectorAll('img');
+    const promises = Array.from(images).map(img => {
+        if (img.complete) {
+            return Promise.resolve();
         }
+        return new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = resolve; // Jangan reject jika gambar gagal load
+        });
+    });
+    return Promise.all(promises);
+}
+
+// Helper function untuk cleanup
+cleanupReceiptContainer() {
+    const container = document.getElementById('invoice-receipt-container');
+    if (container && document.body.contains(container)) {
+        document.body.removeChild(container);
     }
 }
 
