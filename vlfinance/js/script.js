@@ -573,38 +573,75 @@ getTimeBasedGreeting() {
 }
 
     async loadUserData(uid) {
-        try {
-            const userDoc = await this.db.collection('users').doc(uid).get();
+    try {
+        const userDoc = await this.db.collection('users').doc(uid).get();
+        
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            this.userData = { 
+                ...userData,
+                status: userData.status || false
+            };
             
-            if (userDoc.exists) {
-                this.userData = { 
-                    ...userDoc.data(),
-                    status: userDoc.data().status || false
-                };
-            } else {
-                const currentUser = this.auth.currentUser;
-                const newUserData = {
-                    uid: uid,
-                    email: currentUser?.email || '',
-                    displayName: currentUser?.displayName || 'User',
-                    status: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-                    preferences: {
-                        currency: 'IDR',
-                        language: 'id',
-                        theme: 'light'
-                    }
-                };
-                
-                await this.db.collection('users').doc(uid).set(newUserData);
-                this.userData = newUserData;
+            // Cek jika status false, arahkan ke pending-active
+            if (!this.userData.status) {
+                // Redirect ke halaman pending-active atau trigger event
+                this.redirectToPendingActive();
+                return; // Stop execution, jangan lanjut ke loadDashboard
             }
-        } catch (error) {
-            console.error('Error loading user data:', error);
+            
+        } else {
+            const currentUser = this.auth.currentUser;
+            const newUserData = {
+                uid: uid,
+                email: currentUser?.email || '',
+                displayName: currentUser?.displayName || 'User',
+                status: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                preferences: {
+                    currency: 'IDR',
+                    language: 'id',
+                    theme: 'light'
+                }
+            };
+            
+            await this.db.collection('users').doc(uid).set(newUserData);
+            this.userData = newUserData;
+            
+            // Untuk user baru yang statusnya false, arahkan ke pending-active
+            if (!this.userData.status) {
+                this.redirectToPendingActive();
+                return; // Stop execution, jangan lanjut ke loadDashboard
+            }
         }
+        
+        // Jika status true, lanjutkan ke loadDashboard
+        this.loadDashboard();
+        
+    } catch (error) {
+        console.error('Error loading user data:', error);
     }
+}
 
+// Method untuk redirect ke halaman pending-active
+redirectToPendingActive() {
+    // Sesuaikan dengan framework atau routing yang Anda gunakan
+    // Contoh dengan vanilla JS:
+    // window.location.href = '/pending-active';
+    
+    // Contoh dengan Vue Router:
+    // this.$router.push('/pending-active');
+    
+    // Contoh dengan React Router:
+    // this.props.history.push('/pending-active');
+    
+    // Contoh dengan Angular:
+    // this.router.navigate(['/pending-active']);
+    
+    console.log('Redirect to pending-active page');
+    // Implementasi redirect sesuai dengan framework Anda
+}
     async register(email, password, displayName) {
         try {
             const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
