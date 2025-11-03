@@ -1732,6 +1732,129 @@ async loadPemasukanData() {
     `;
 }
 
+async loadDashboardData() {
+  const db = firebase.firestore();
+  const userId = firebase.auth().currentUser?.uid;
+  if (!userId) return;
+
+  let totalPemasukan = 0;
+  let totalPengeluaran = 0;
+  const recentActivityList = document.getElementById("recentActivityList");
+
+  try {
+    // === 1️⃣ Ambil data dari koleksi incomes ===
+    const incomesSnapshot = await db.collection("incomes")
+      .where("userId", "==", userId)
+      .get();
+
+    const incomeActivities = [];
+    incomesSnapshot.forEach(doc => {
+      const d = doc.data();
+      totalPemasukan += parseFloat(d.amount || 0);
+      incomeActivities.push({
+        tipe: "pemasukan",
+        keterangan: d.description || "Income",
+        jumlah: d.amount || 0,
+        tanggal: d.createdAt?.toDate() || new Date(),
+        kategori: d.category || "-",
+      });
+    });
+
+    // === 2️⃣ Ambil data dari koleksi pengeluaran ===
+    const pengeluaranSnapshot = await db.collection("pengeluaran")
+      .where("userId", "==", userId)
+      .get();
+
+    const expenseActivities = [];
+    pengeluaranSnapshot.forEach(doc => {
+      const d = doc.data();
+      totalPengeluaran += parseFloat(d.amount || 0);
+      expenseActivities.push({
+        tipe: "pengeluaran",
+        keterangan: d.description || "Expense",
+        jumlah: d.amount || 0,
+        tanggal: d.createdAt?.toDate() || new Date(),
+        kategori: d.category || "-",
+        tempat: d.storeName || "",
+      });
+    });
+
+    // === 3️⃣ Update total ke dashboard ===
+    const saldo = totalPemasukan - totalPengeluaran;
+    document.getElementById("totalPemasukanDashboard").innerText =
+      "Rp " + totalPemasukan.toLocaleString("id-ID");
+    document.getElementById("totalPengeluaranDashboard").innerText =
+      "Rp " + totalPengeluaran.toLocaleString("id-ID");
+    document.getElementById("saldoSaatIni").innerText =
+      "Rp " + saldo.toLocaleString("id-ID");
+
+    // Hitung progress bar
+    const total = totalPemasukan + totalPengeluaran;
+    document.getElementById("pemasukanProgress").style.width =
+      total ? `${(totalPemasukan / total) * 100}%` : "0%";
+    document.getElementById("pengeluaranProgress").style.width =
+      total ? `${(totalPengeluaran / total) * 100}%` : "0%";
+
+    // === 4️⃣ Gabungkan aktivitas dari kedua koleksi ===
+    const allActivities = [...incomeActivities, ...expenseActivities]
+      .sort((a, b) => b.tanggal - a.tanggal)
+      .slice(0, 5);
+
+    // === 5️⃣ Render recent activity ===
+    recentActivityList.innerHTML = "";
+
+    if (allActivities.length === 0) {
+      recentActivityList.innerHTML = `
+        <div class="px-4 py-3 text-gray-500 text-sm text-center">Belum ada aktivitas.</div>
+      `;
+    } else {
+      allActivities.forEach(data => {
+        const icon =
+          data.tipe === "pemasukan"
+            ? "fa-arrow-down text-emerald-500"
+            : "fa-arrow-up text-rose-500";
+        const bg =
+          data.tipe === "pemasukan"
+            ? "bg-emerald-100"
+            : "bg-rose-100";
+        const nominalColor =
+          data.tipe === "pemasukan"
+            ? "text-emerald-500"
+            : "text-rose-500";
+
+        const tempat = data.tempat ? `<p class="text-gray-400 text-xs">${data.tempat}</p>` : "";
+
+        recentActivityList.innerHTML += `
+          <div class="px-4 py-3 hover:bg-gray-50 transition">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 ${bg} rounded-lg flex items-center justify-center">
+                <i class="fas ${icon} text-xs"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-gray-900 text-sm font-medium truncate">${data.keterangan}</p>
+                <p class="text-gray-500 text-xs mt-1">${data.tanggal.toLocaleDateString("id-ID")}</p>
+                ${tempat}
+              </div>
+              <div class="text-right">
+                <p class="${nominalColor} text-sm font-semibold">
+                  Rp ${data.jumlah.toLocaleString("id-ID")}
+                </p>
+                <p class="text-gray-400 text-xs mt-1 capitalize">${data.kategori}</p>
+              </div>
+            </div>
+          </div>`;
+      });
+    }
+
+  } catch (err) {
+    console.error("Error loading dashboard:", err);
+    recentActivityList.innerHTML = `
+      <div class="px-4 py-3 text-gray-500 text-sm text-center">Gagal memuat data.</div>
+    `;
+  }
+}
+
+
 // === INVOICE METHODS === //
 
 showInvoiceGeneratorModal() {
@@ -2461,8 +2584,8 @@ showSimpleInvoice(invoiceData) {
                                     <i class="fas fa-mobile-alt text-white text-sm"></i>
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <div class="font-semibold text-orange-800 text-sm">Transfer Digital</div>
-                                    <div class="text-xs text-orange-600">Pembayaran diproses otomatis</div>
+                                    <div class="font-semibold text-orange-800 text-sm">Transfer</div>
+                                    <div class="text-xs text-orange-600">Anda tidak perlu membayar tagihan ini.</div>
                                 </div>
                             </div>
                             <div class="bg-white rounded-lg p-3 border border-orange-100 mt-2">
@@ -2527,6 +2650,7 @@ showSimpleInvoice(invoiceData) {
 }
 
 // Method downloadAsPNG dengan perbaikan logo dan payment method
+// Method downloadAsPNG yang sudah diperbaiki
 async downloadAsPNG() {
     try {
         if (!this.currentInvoiceData) {
@@ -2552,66 +2676,77 @@ async downloadAsPNG() {
             border-radius: 16px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: -10000px;
+            left: -10000px;
             z-index: 10000;
             opacity: 1;
             box-sizing: border-box;
             overflow: hidden;
         `;
 
-        // HTML content untuk receipt
+        // HTML content untuk receipt - menggunakan emoji sebagai fallback
         receiptContainer.innerHTML = this.generateReceiptHTML(data);
 
         // Tambahkan ke DOM
         document.body.appendChild(receiptContainer);
 
-        // Tunggu untuk memastikan DOM terrender dan gambar load
-        await this.waitForImages(receiptContainer);
-        
-        // Tunggu sedikit lagi untuk memastikan semua elemen terrender
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Tunggu untuk memastikan DOM terrender
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         // Konfigurasi html2canvas yang lebih robust
         const canvas = await html2canvas(receiptContainer, {
-            scale: 2, // Scale yang optimal
+            scale: 3,
             useCORS: true,
-            logging: true, // Enable logging untuk debugging
+            logging: false,
             backgroundColor: '#ffffff',
             width: receiptContainer.offsetWidth,
-            height: receiptContainer.offsetHeight,
+            height: receiptContainer.scrollHeight, // Gunakan scrollHeight untuk menangkap semua konten
             scrollX: 0,
             scrollY: 0,
-            allowTaint: true,
+            allowTaint: false,
+            removeContainer: true,
             foreignObjectRendering: false,
-            imageTimeout: 15000,
+            imageTimeout: 10000,
             onclone: (clonedDoc, element) => {
                 // Pastikan semua styling konsisten
                 const allElements = element.querySelectorAll('*');
                 allElements.forEach(el => {
-                    const computedStyle = window.getComputedStyle(el);
                     el.style.boxSizing = 'border-box';
                     el.style.visibility = 'visible';
                     el.style.opacity = '1';
-                    el.style.display = computedStyle.display;
                     
-                    // Force repaint untuk elemen yang mungkin hidden
-                    if (computedStyle.display === 'none') {
-                        el.style.display = 'block';
+                    // Force background color untuk elemen tertentu
+                    if (window.getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)') {
+                        el.style.backgroundColor = 'transparent';
                     }
                 });
 
-                // Handle gambar external
+                // Handle gambar external - gunakan fallback emoji
                 const images = element.querySelectorAll('img');
                 images.forEach(img => {
                     img.crossOrigin = 'Anonymous';
-                    if (!img.complete) {
-                        // Fallback jika gambar gagal load
-                        img.onerror = function() {
-                            this.style.display = 'none';
-                        };
-                    }
+                    // Jika gambar gagal load, ganti dengan emoji
+                    img.onerror = function() {
+                        const parent = this.parentElement;
+                        if (parent) {
+                            const emojiFallback = document.createElement('div');
+                            emojiFallback.style.cssText = `
+                                width: 60px;
+                                height: 60px;
+                                background: linear-gradient(135deg, #f97316 0%, #eab308 100%);
+                                border-radius: 12px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin: 0 auto 12px auto;
+                                color: white;
+                                font-weight: bold;
+                                font-size: 20px;
+                            `;
+                            emojiFallback.textContent = '🚚';
+                            parent.replaceChild(emojiFallback, this);
+                        }
+                    };
                 });
             }
         });
@@ -2652,19 +2787,24 @@ async downloadAsPNG() {
     }
 }
 
-// Helper function untuk generate HTML receipt
+// Helper function untuk cleanup
+cleanupReceiptContainer() {
+    const container = document.getElementById('invoice-receipt-container');
+    if (container) {
+        container.remove();
+    }
+}
+
+// Helper function untuk generate HTML receipt yang lebih reliable
 generateReceiptHTML(data) {
     return `
-        <!-- Header dengan Logo -->
+        <!-- Header dengan Logo Asli -->
         <div style="text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f1f5f9; box-sizing: border-box;">
-            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; color: white; font-weight: bold; font-size: 20px;">
-                VL
-            </div>
             <div style="font-weight: 800; font-size: 18px; color: #1e293b; letter-spacing: -0.5px; margin-bottom: 4px;">
                 VLCrave Express
             </div>
             <div style="font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
-                Premium Delivery Service
+                Delivery Service
             </div>
         </div>
 
@@ -2749,67 +2889,55 @@ generateReceiptHTML(data) {
         <!-- Footer -->
         <div style="text-align: center; padding-top: 16px; border-top: 2px dashed #e2e8f0; box-sizing: border-box;">
             <div style="font-size: 10px; color: #64748b; line-height: 1.4; margin-bottom: 8px; box-sizing: border-box;">
-                Terima kasih telah mempercayai layanan pengiriman premium kami
+                Terima kasih telah mempercayai VLCrave Express sebagai layanan pengiriman anda
             </div>
             <div style="font-weight: 800; font-size: 12px; color: #f97316; letter-spacing: -0.5px; box-sizing: border-box;">
-                VLCrave Express Delivery
+                VLCrave Express
             </div>
             <div style="font-size: 9px; color: #94a3b8; margin-top: 4px; box-sizing: border-box;">
-                ✨ Premium Delivery Experience
+                WA : 0857-0945-8101
             </div>
         </div>
     `;
 }
 
-// Helper function untuk generate payment method HTML
 generatePaymentMethodHTML(data) {
     if (data.paymentMethod === 'tunai') {
         return `
-            <div style="background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; box-sizing: border-box;">
-                    <div style="width: 32px; height: 32px; background: #ea580c; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                        <span style="color: white; font-size: 14px; font-weight: bold; box-sizing: border-box;">💰</span>
-                    </div>
+            <div style="margin-bottom: 20px; box-sizing: border-box;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-sizing: border-box;">
+                    <i class="fas fa-money-bill-wave" style="color: #ea580c; font-size: 24px;"></i>
                     <div style="box-sizing: border-box;">
-                        <div style="font-weight: 700; font-size: 12px; color: #9a3412; box-sizing: border-box;">
+                        <div style="font-weight: 700; font-size: 14px; color: #9a3412; box-sizing: border-box;">
                             Pembayaran Tunai
                         </div>
-                        <div style="font-size: 10px; color: #ea580c; font-weight: 500; box-sizing: border-box;">
-                            Mohon siapkan uang pas
+                        <div style="font-size: 11px; color: #ea580c; font-weight: 500; box-sizing: border-box;">
+                            Mohon siapkan uang tunai
                         </div>
                     </div>
                 </div>
-                <div style="background: white; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #fdba74; box-sizing: border-box;">
-                    <div style="font-size: 10px; color: #ea580c; font-weight: 600; margin-bottom: 4px; box-sizing: border-box;">
-                        Jumlah yang harus disiapkan
-                    </div>
-                    <div style="font-weight: 800; font-size: 16px; color: #ea580c; box-sizing: border-box;">
-                        ${this.formatCurrency(data.total)}
-                    </div>
                 </div>
             </div>
         `;
     } else {
         return `
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; box-sizing: border-box;">
-                    <div style="width: 32px; height: 32px; background: #16a34a; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                        <span style="color: white; font-size: 14px; font-weight: bold; box-sizing: border-box;">📱</span>
-                    </div>
+            <div style="margin-bottom: 20px; box-sizing: border-box;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-sizing: border-box;">
+                    <i class="fas fa-mobile-alt" style="color: #16a34a; font-size: 24px;"></i>
                     <div style="box-sizing: border-box;">
-                        <div style="font-weight: 700; font-size: 12px; color: #166534; box-sizing: border-box;">
-                            Transfer Digital
+                        <div style="font-weight: 700; font-size: 14px; color: #166534; box-sizing: border-box;">
+                            Transfer 
                         </div>
-                        <div style="font-size: 10px; color: #16a34a; font-weight: 500; box-sizing: border-box;">
-                            Pembayaran diproses otomatis
+                        <div style="font-size: 11px; color: #16a34a; font-weight: 500; box-sizing: border-box;">
+                            Anda tidak perlu membayar uang tunai kepada kurir
                         </div>
                     </div>
                 </div>
-                <div style="background: white; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #86efac; box-sizing: border-box;">
-                    <div style="font-size: 10px; color: #16a34a; font-weight: 600; margin-bottom: 4px; box-sizing: border-box;">
+                <div style="background: #f0fdf4; border-radius: 8px; padding: 16px; text-align: center; box-sizing: border-box;">
+                    <div style="font-size: 11px; color: #16a34a; font-weight: 600; margin-bottom: 6px; box-sizing: border-box;">
                         Tagihan akan diproses
                     </div>
-                    <div style="font-weight: 800; font-size: 16px; color: #16a34a; box-sizing: border-box;">
+                    <div style="font-weight: 800; font-size: 18px; color: #16a34a; box-sizing: border-box;">
                         ${this.formatCurrency(data.total)}
                     </div>
                 </div>
@@ -2818,34 +2946,9 @@ generatePaymentMethodHTML(data) {
     }
 }
 
-// Helper function untuk menunggu gambar load
-waitForImages(container) {
-    const images = container.querySelectorAll('img');
-    const promises = Array.from(images).map(img => {
-        if (img.complete) {
-            return Promise.resolve();
-        }
-        return new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = resolve; // Jangan reject jika gambar gagal load
-        });
-    });
-    return Promise.all(promises);
-}
-
-// Helper function untuk cleanup
-cleanupReceiptContainer() {
-    const container = document.getElementById('invoice-receipt-container');
-    if (container && document.body.contains(container)) {
-        document.body.removeChild(container);
-    }
-}
-
-// Method formatCurrency tanpa symbol (hanya angka)
+// Tambahkan method formatCurrencyNoSymbol jika belum ada
 formatCurrencyNoSymbol(amount) {
-    return new Intl.NumberFormat('id-ID', {
-        minimumFractionDigits: 0
-    }).format(amount);
+    return new Intl.NumberFormat('id-ID').format(amount);
 }
 
 // Method formatCurrency dengan symbol
@@ -4978,6 +5081,245 @@ refreshPengeluaranAIAnalysis() {
 showTambahPengeluaranModal() {
     const modal = document.getElementById('pengeluaranModal');
     if (modal) {
+        // Inject CSS langsung ke modal
+        if (!document.getElementById('modal-financial-css')) {
+            const style = document.createElement('style');
+            style.id = 'modal-financial-css';
+            style.textContent = `
+                .modal-overlay-financial {
+                    background: rgba(0, 0, 0, 0.6);
+                    backdrop-filter: blur(10px);
+                    -webkit-backdrop-filter: blur(10px);
+                    animation: fadeIn 0.3s ease-out;
+                }
+                
+                .modal-container-financial {
+                    background: white;
+                    border-radius: 24px 24px 0 0;
+                    box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.15);
+                    border: 1px solid #f0f0f0;
+                    max-height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                    transform: translateY(0);
+                    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                @media (min-width: 640px) {
+                    .modal-container-financial {
+                        border-radius: 24px;
+                        max-width: 480px;
+                        max-height: 85vh;
+                        margin: auto;
+                    }
+                }
+                
+                .modal-slide-down {
+                    transform: translateY(100%);
+                }
+                
+                .modal-header-financial {
+                    background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+                    color: white;
+                    padding: 20px 24px;
+                    border-radius: 24px 24px 0 0;
+                    position: relative;
+                    flex-shrink: 0;
+                }
+                
+                .modal-header-financial::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -8px;
+                    left: 24px;
+                    right: 24px;
+                    height: 3px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 2px;
+                }
+                
+                .modal-content-financial {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 24px;
+                    background: #fafafa;
+                    scrollbar-width: thin;
+                    scrollbar-color: #cbd5e1 #f1f5f9;
+                }
+                
+                .modal-content-financial::-webkit-scrollbar {
+                    width: 6px;
+                }
+                
+                .modal-content-financial::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 3px;
+                }
+                
+                .modal-content-financial::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 3px;
+                }
+                
+                .modal-content-financial::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+                
+                .modal-actions-financial {
+                    background: white;
+                    padding: 20px 24px;
+                    border-top: 1px solid #e5e5e5;
+                    display: flex;
+                    gap: 12px;
+                    flex-shrink: 0;
+                }
+                
+                .form-group-financial {
+                    margin-bottom: 20px;
+                }
+                
+                .form-label-financial {
+                    display: block;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 8px;
+                }
+                
+                .form-input-financial {
+                    width: 100%;
+                    padding: 16px;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 16px;
+                    font-size: 16px;
+                    background: white;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                }
+                
+                .form-input-financial:focus {
+                    outline: none;
+                    border-color: #dc2626;
+                    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+                    transform: translateY(-1px);
+                }
+                
+                .form-select-financial {
+                    appearance: none;
+                    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+                    background-position: right 16px center;
+                    background-repeat: no-repeat;
+                    background-size: 16px;
+                    cursor: pointer;
+                }
+                
+                .btn-primary-financial {
+                    background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+                    color: white;
+                    border: none;
+                    padding: 16px 24px;
+                    border-radius: 16px;
+                    font-weight: 600;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    flex: 1;
+                    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+                }
+                
+                .btn-primary-financial:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+                }
+                
+                .btn-primary-financial:active {
+                    transform: translateY(0);
+                }
+                
+                .btn-secondary-financial {
+                    background: white;
+                    color: #374151;
+                    border: 2px solid #e5e7eb;
+                    padding: 16px 24px;
+                    border-radius: 16px;
+                    font-weight: 600;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    flex: 1;
+                }
+                
+                .btn-secondary-financial:hover {
+                    border-color: #dc2626;
+                    color: #dc2626;
+                }
+                
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
+                @keyframes slideUp {
+                    from { 
+                        transform: translateY(100%);
+                        opacity: 0;
+                    }
+                    to { 
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Apply classes ke modal
+        modal.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center px-2 sm:px-0 modal-overlay-financial';
+        
+        const modalContent = modal.querySelector('div');
+        if (modalContent) {
+            modalContent.className = 'modal-container-financial w-full max-w-md';
+            
+            // Apply styling ke bagian-bagian modal
+            const header = modalContent.querySelector('.px-4.py-4.border-b');
+            if (header) header.className = 'modal-header-financial';
+            
+            const content = modalContent.querySelector('.p-4.space-y-4');
+            if (content) {
+                content.className = 'modal-content-financial';
+                
+                // Style form groups
+                const formGroups = content.querySelectorAll('div.space-y-2');
+                formGroups.forEach(group => {
+                    group.className = 'form-group-financial';
+                    
+                    const label = group.querySelector('label');
+                    if (label) label.className = 'form-label-financial';
+                    
+                    const input = group.querySelector('input, select');
+                    if (input) {
+                        const baseClass = 'form-input-financial';
+                        const isSelect = input.tagName.toLowerCase() === 'select';
+                        input.className = `${baseClass} ${isSelect ? 'form-select-financial' : ''}`;
+                    }
+                });
+            }
+            
+            const actions = modalContent.querySelector('.px-4.py-4.border-t');
+            if (actions) {
+                actions.className = 'modal-actions-financial';
+                
+                const buttons = actions.querySelectorAll('button');
+                buttons.forEach((button, index) => {
+                    if (index === 0) {
+                        button.className = 'btn-secondary-financial';
+                    } else {
+                        button.className = 'btn-primary-financial';
+                    }
+                });
+            }
+        }
+
         modal.classList.remove('hidden');
         
         // Set default values
@@ -4997,13 +5339,13 @@ showTambahPengeluaranModal() {
         if (kategoriInput) kategoriInput.value = '';
         if (deskripsiInput) deskripsiInput.value = '';
         if (jumlahInput) jumlahInput.value = '';
-        if (metodeInput) metodeInput.value = 'tunai'; // Default value
+        if (metodeInput) metodeInput.value = 'tunai';
         
         // Auto focus ke deskripsi
         setTimeout(() => {
             if (deskripsiInput) {
                 deskripsiInput.focus();
-                // Scroll ke atas untuk memastikan input visible di mobile
+                // Scroll ke input yang difokuskan
                 deskripsiInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }, 350);
@@ -5019,18 +5361,16 @@ showTambahPengeluaranModal() {
 hidePengeluaranModal() {
     const modal = document.getElementById('pengeluaranModal');
     if (modal) {
-        const modalContent = modal.querySelector('.pengeluaran-modal-slide-up');
+        const modalContent = modal.querySelector('.modal-container-financial');
         if (modalContent) {
-            modalContent.classList.remove('pengeluaran-modal-slide-up');
             modalContent.classList.add('modal-slide-down');
             
             setTimeout(() => {
                 modal.classList.add('hidden');
                 modalContent.classList.remove('modal-slide-down');
-                modalContent.classList.add('pengeluaran-modal-slide-up');
                 
                 // Reset form
-                const form = document.querySelector('#pengeluaranModal form');
+                const form = modal.querySelector('form');
                 if (form) form.reset();
                 
                 // Reset edit state
@@ -5042,201 +5382,6 @@ hidePengeluaranModal() {
     }
 }
 
-// Hide Modal Scan Receipt
-hideScanReceiptModal() {
-    const modal = document.getElementById('scanReceiptModal');
-    if (modal) {
-        const modalContent = modal.querySelector('.pengeluaran-modal-slide-up');
-        if (modalContent) {
-            modalContent.classList.remove('pengeluaran-modal-slide-up');
-            modalContent.classList.add('modal-slide-down');
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modalContent.classList.remove('modal-slide-down');
-                modalContent.classList.add('pengeluaran-modal-slide-up');
-                
-                // Reset scan state
-                this.hideScanProgress();
-                this.hideScanError();
-                this.hideScanResults();
-                
-                const fileInput = document.getElementById('receiptImage');
-                if (fileInput) fileInput.value = '';
-            }, 250);
-        } else {
-            modal.classList.add('hidden');
-        }
-    }
-}
-
-// Show Modal Scan Receipt
-showScanReceiptModal() {
-    const modal = document.getElementById('scanReceiptModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        
-        // Reset scan state
-        this.hideScanProgress();
-        this.hideScanError();
-        this.hideScanResults();
-        
-        const fileInput = document.getElementById('receiptImage');
-        if (fileInput) fileInput.value = '';
-    }
-}
-
-// Helper functions untuk scan receipt
-showScanProgress() {
-    const element = document.getElementById('scanProgress');
-    if (element) element.classList.remove('hidden');
-}
-
-hideScanProgress() {
-    const element = document.getElementById('scanProgress');
-    if (element) element.classList.add('hidden');
-}
-
-showScanError(message) {
-    const errorElement = document.getElementById('scanError');
-    const messageElement = document.getElementById('scanErrorMessage');
-    if (errorElement && messageElement) {
-        messageElement.textContent = message;
-        errorElement.classList.remove('hidden');
-    }
-}
-
-hideScanError() {
-    const element = document.getElementById('scanError');
-    if (element) element.classList.add('hidden');
-}
-
-showScanResults(results) {
-    const resultsElement = document.getElementById('scanResults');
-    const storeNameElement = document.getElementById('scanStoreName');
-    const dateElement = document.getElementById('scanDate');
-    const itemsListElement = document.getElementById('scanItemsList');
-
-    if (!resultsElement) return;
-
-    if (storeNameElement) storeNameElement.textContent = results.storeName || 'Toko';
-    if (dateElement) dateElement.textContent = results.date || new Date().toLocaleDateString('id-ID');
-
-    if (itemsListElement && results.transactions) {
-        itemsListElement.innerHTML = '';
-        let totalAmount = 0;
-
-        results.transactions.forEach((item, index) => {
-            totalAmount += item.amount || 0;
-            const itemElement = document.createElement('div');
-            itemElement.className = 'flex justify-between items-center p-2 bg-gray-50 rounded-lg';
-            itemElement.innerHTML = `
-                <div class="flex-1">
-                    <div class="font-medium text-gray-900 text-sm">${item.description || 'Item'}</div>
-                    <div class="text-gray-500 text-xs capitalize">${item.category || 'lainnya'}</div>
-                </div>
-                <div class="font-semibold text-red-600 text-sm">Rp ${(item.amount || 0).toLocaleString()}</div>
-            `;
-            itemsListElement.appendChild(itemElement);
-        });
-
-        // Add total
-        const totalElement = document.createElement('div');
-        totalElement.className = 'flex justify-between items-center pt-2 mt-2 border-t border-gray-200';
-        totalElement.innerHTML = `
-            <div class="font-semibold text-gray-900">Total</div>
-            <div class="font-bold text-red-600">Rp ${totalAmount.toLocaleString()}</div>
-        `;
-        itemsListElement.appendChild(totalElement);
-    }
-
-    resultsElement.classList.remove('hidden');
-}
-
-hideScanResults() {
-    const element = document.getElementById('scanResults');
-    if (element) element.classList.add('hidden');
-}
-
-// Save scanned items dari receipt
-async saveScannedItems() {
-    if (!this.scanResults || !this.scanResults.transactions) {
-        this.showToast('Tidak ada item untuk disimpan', 'error');
-        return;
-    }
-
-    try {
-        for (const transaction of this.scanResults.transactions) {
-            await this.savePengeluaranToFirebase({
-                ...transaction,
-                isScanned: true,
-                storeName: this.scanResults.storeName,
-                date: this.scanResults.date || new Date().toISOString().split('T')[0]
-            });
-        }
-
-        this.showToast(`Berhasil menyimpan ${this.scanResults.transactions.length} item dari struk!`, 'success');
-        this.scanResults = null;
-        this.hideScanReceiptModal();
-        this.loadPengeluaranData();
-
-    } catch (error) {
-        console.error('Error saving scanned items:', error);
-        this.showToast('Gagal menyimpan item: ' + error.message, 'error');
-    }
-}
-
-// Handle image upload untuk scan receipt
-async handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    this.hideScanError();
-    this.hideScanResults();
-    this.showScanProgress();
-
-    try {
-        // Simulasi scan receipt (dalam implementasi real, ini akan panggil AI service)
-        const scanResult = await this.scanReceiptAI(file);
-        this.scanResults = scanResult;
-        this.showScanResults(scanResult);
-    } catch (error) {
-        this.showScanError(error.message);
-    } finally {
-        this.hideScanProgress();
-    }
-}
-
-// Simulasi AI receipt scanning (untuk demo)
-async scanReceiptAI(imageFile) {
-    // Dalam implementasi real, ini akan memanggil service AI seperti Google Vision atau OCR
-    // Untuk demo, kita return data dummy
-    
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                transactions: [
-                    {
-                        id: Date.now(),
-                        amount: 25000,
-                        description: "Kopi Susu",
-                        category: "makanan-minuman",
-                        paymentMethod: "tunai"
-                    },
-                    {
-                        id: Date.now() + 1,
-                        amount: 15000,
-                        description: "Roti Bakar",
-                        category: "makanan-minuman", 
-                        paymentMethod: "tunai"
-                    }
-                ],
-                storeName: "Kedai Kopi Bahagia",
-                date: new Date().toISOString().split('T')[0]
-            });
-        }, 2000);
-    });
-}
 
 // Save pengeluaran ke Firebase
 async savePengeluaran() {
@@ -5290,6 +5435,1131 @@ async savePengeluaran() {
     } catch (error) {
         console.error('Error saving pengeluaran:', error);
         this.showToast('Gagal menyimpan pengeluaran: ' + error.message, 'error');
+    }
+}
+
+// Show Scan Receipt Modal
+showScanReceiptModal() {
+    const modal = document.getElementById('scanReceiptModal');
+    if (modal) {
+        // Inject CSS modern untuk scan modal
+        if (!document.getElementById('scan-modal-css')) {
+            const style = document.createElement('style');
+            style.id = 'scan-modal-css';
+            style.textContent = `
+                /* Scan Modal Base Styles */
+                .scan-modal-overlay {
+                    background: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    animation: scanFadeIn 0.3s ease-out;
+                    padding: 0;
+                    margin: 0;
+                }
+                
+                .scan-modal-container {
+                    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+                    border-radius: 28px 28px 0 0;
+                    box-shadow: 0 -25px 50px -12px rgba(0, 0, 0, 0.25);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    max-height: 90vh;
+                    display: flex;
+                    flex-direction: column;
+                    width: 100%;
+                    margin: 0;
+                }
+                
+                @media (min-width: 640px) {
+                    .scan-modal-container {
+                        border-radius: 28px;
+                        max-width: 480px;
+                        max-height: 85vh;
+                        margin: auto;
+                    }
+                }
+                
+                .scan-modal-header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 24px;
+                    border-radius: 28px 28px 0 0;
+                    position: relative;
+                    flex-shrink: 0;
+                }
+                
+                .scan-modal-header::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -6px;
+                    left: 24px;
+                    right: 24px;
+                    height: 3px;
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 2px;
+                }
+                
+                .scan-modal-content {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 24px;
+                    background: #fafafa;
+                    scrollbar-width: thin;
+                    scrollbar-color: #cbd5e1 #f1f5f9;
+                }
+                
+                .scan-modal-content::-webkit-scrollbar {
+                    width: 4px;
+                }
+                
+                .scan-modal-content::-webkit-scrollbar-track {
+                    background: #f1f5f9;
+                    border-radius: 2px;
+                }
+                
+                .scan-modal-content::-webkit-scrollbar-thumb {
+                    background: #cbd5e1;
+                    border-radius: 2px;
+                }
+                
+                .scan-modal-actions {
+                    background: white;
+                    padding: 20px 24px;
+                    border-top: 1px solid #e5e7eb;
+                    display: flex;
+                    gap: 12px;
+                    flex-shrink: 0;
+                }
+                
+                /* Upload Options */
+                .upload-options-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                }
+                
+                .upload-option-card {
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 20px;
+                    padding: 20px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 12px;
+                }
+                
+                .upload-option-card:hover {
+                    border-color: #667eea;
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+                }
+                
+                .upload-option-card:active {
+                    transform: translateY(0);
+                }
+                
+                .upload-option-icon {
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 20px;
+                }
+                
+                .upload-camera .upload-option-icon {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                }
+                
+                .upload-gallery .upload-option-icon {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                }
+                
+                .upload-option-text {
+                    font-weight: 600;
+                    font-size: 14px;
+                    color: #374151;
+                }
+                
+                .upload-option-desc {
+                    font-size: 12px;
+                    color: #6b7280;
+                }
+                
+                /* Upload Area */
+                .scan-upload-area {
+                    border: 3px dashed #d1d5db;
+                    border-radius: 24px;
+                    padding: 40px 20px;
+                    text-align: center;
+                    background: #f8fafc;
+                    transition: all 0.3s ease;
+                    cursor: pointer;
+                    margin-bottom: 20px;
+                }
+                
+                .scan-upload-area:hover {
+                    border-color: #667eea;
+                    background: #f0f4ff;
+                    transform: translateY(-1px);
+                }
+                
+                .scan-upload-area.dragover {
+                    border-color: #667eea;
+                    background: #e0e7ff;
+                    transform: scale(1.02);
+                }
+                
+                .upload-area-icon {
+                    font-size: 48px;
+                    color: #9ca3af;
+                    margin-bottom: 16px;
+                }
+                
+                .upload-area-text {
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 8px;
+                }
+                
+                .upload-area-desc {
+                    font-size: 14px;
+                    color: #6b7280;
+                    margin-bottom: 16px;
+                }
+                
+                /* Progress & Results */
+                .scan-progress {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border-radius: 20px;
+                    padding: 24px;
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                
+                .scan-results-container {
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 20px;
+                    padding: 20px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                }
+                
+                .scan-store-info {
+                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                    border-radius: 16px;
+                    padding: 16px;
+                    margin-bottom: 20px;
+                    border: 1px solid #e5e7eb;
+                }
+                
+                .scan-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    padding: 16px 0;
+                    border-bottom: 1px solid #f1f5f9;
+                    gap: 12px;
+                }
+                
+                .scan-item:last-child {
+                    border-bottom: none;
+                }
+                
+                .scan-item-info {
+                    flex: 1;
+                }
+                
+                .scan-item-name {
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 4px;
+                    font-size: 15px;
+                }
+                
+                .scan-item-category {
+                    font-size: 12px;
+                    color: #6b7280;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                
+                .scan-item-price {
+                    text-align: right;
+                    flex-shrink: 0;
+                }
+                
+                .scan-item-amount {
+                    font-weight: 700;
+                    color: #374151;
+                    font-size: 15px;
+                }
+                
+                .scan-total {
+                    background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+                    border: 2px solid #fecaca;
+                    border-radius: 16px;
+                    padding: 20px;
+                    margin-top: 20px;
+                }
+                
+                /* Buttons */
+                .btn-scan-primary {
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                    color: white;
+                    border: none;
+                    padding: 18px 24px;
+                    border-radius: 18px;
+                    font-weight: 600;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    width: 100%;
+                    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                }
+                
+                .btn-scan-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+                }
+                
+                .btn-scan-primary:active {
+                    transform: translateY(0);
+                }
+                
+                .btn-scan-primary:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+                
+                .btn-scan-secondary {
+                    background: white;
+                    color: #374151;
+                    border: 2px solid #e5e7eb;
+                    padding: 18px 24px;
+                    border-radius: 18px;
+                    font-weight: 600;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    width: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                }
+                
+                .btn-scan-secondary:hover {
+                    border-color: #667eea;
+                    color: #667eea;
+                    transform: translateY(-1px);
+                }
+                
+                /* Camera Preview */
+                .camera-preview {
+                    background: #000;
+                    border-radius: 16px;
+                    overflow: hidden;
+                    margin-bottom: 20px;
+                    position: relative;
+                }
+                
+                .camera-controls {
+                    position: absolute;
+                    bottom: 20px;
+                    left: 0;
+                    right: 0;
+                    display: flex;
+                    justify-content: center;
+                    gap: 16px;
+                    z-index: 10;
+                }
+                
+                .camera-btn {
+                    width: 60px;
+                    height: 60px;
+                    border-radius: 50%;
+                    border: 3px solid white;
+                    background: rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(10px);
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .camera-btn:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                    transform: scale(1.1);
+                }
+                
+                /* Animations */
+                @keyframes scanFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
+                @keyframes slideUp {
+                    from { 
+                        transform: translateY(100%);
+                        opacity: 0;
+                    }
+                    to { 
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+                
+                .scan-modal-container {
+                    animation: slideUp 0.3s ease-out;
+                }
+                
+                /* Mobile Optimizations */
+                @media (max-width: 640px) {
+                    .scan-modal-content {
+                        padding: 20px;
+                    }
+                    
+                    .upload-options-grid {
+                        grid-template-columns: 1fr;
+                        gap: 8px;
+                    }
+                    
+                    .upload-option-card {
+                        padding: 16px;
+                    }
+                    
+                    .scan-upload-area {
+                        padding: 30px 16px;
+                    }
+                    
+                    .scan-results-container {
+                        max-height: 300px;
+                    }
+                    
+                    .scan-item {
+                        padding: 12px 0;
+                    }
+                }
+                
+                /* Touch Improvements */
+                @media (hover: none) {
+                    .upload-option-card:hover {
+                        transform: none;
+                    }
+                    
+                    .btn-scan-primary:hover,
+                    .btn-scan-secondary:hover {
+                        transform: none;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Apply classes ke modal
+        modal.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center px-2 sm:px-0 scan-modal-overlay';
+        
+        const modalContent = modal.querySelector('div');
+        if (modalContent) {
+            modalContent.className = 'scan-modal-container w-full max-w-md';
+            
+            // Apply styling ke bagian-bagian modal
+            const header = modalContent.querySelector('.px-4.py-4.border-b');
+            if (header) header.className = 'scan-modal-header';
+            
+            const content = modalContent.querySelector('.p-4.space-y-4');
+            if (content) {
+                content.className = 'scan-modal-content';
+                
+                // Replace content dengan upload options yang lebih baik
+                this.initializeScanModalContent(content);
+            }
+            
+            const actions = modalContent.querySelector('.px-4.py-4.border-t');
+            if (actions) {
+                actions.className = 'scan-modal-actions';
+                
+                const buttons = actions.querySelectorAll('button');
+                buttons.forEach((button, index) => {
+                    if (index === 0) {
+                        button.className = 'btn-scan-secondary';
+                        button.innerHTML = '<i class="fas fa-times mr-2"></i>Tutup';
+                    } else {
+                        button.className = 'btn-scan-primary';
+                        button.innerHTML = '<i class="fas fa-save mr-2"></i>Simpan Semua Item';
+                    }
+                });
+            }
+        }
+
+        modal.classList.remove('hidden');
+        
+        // Reset modal state
+        this.resetScanModal();
+        
+        // Setup event listeners
+        this.setupScanModalEvents();
+    }
+}
+
+// Initialize scan modal content dengan options yang lebih baik
+initializeScanModalContent(contentElement) {
+    contentElement.innerHTML = `
+        <!-- Upload Options -->
+        <div class="upload-options-grid">
+            <div class="upload-option-card upload-camera" onclick="app.openCamera()">
+                <div class="upload-option-icon">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <div>
+                    <div class="upload-option-text">Ambil Foto</div>
+                    <div class="upload-option-desc">Gunakan kamera</div>
+                </div>
+            </div>
+            
+            <div class="upload-option-card upload-gallery" onclick="app.openGallery()">
+                <div class="upload-option-icon">
+                    <i class="fas fa-images"></i>
+                </div>
+                <div>
+                    <div class="upload-option-text">Pilih Foto</div>
+                    <div class="upload-option-desc">Dari galeri</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upload Area -->
+        <div class="scan-upload-area" onclick="document.getElementById('receiptImage').click()">
+            <div class="upload-area-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <div class="upload-area-text">Unggah Foto Struk</div>
+            <div class="upload-area-desc">Seret file ke sini atau klik untuk memilih</div>
+            <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-colors">
+                Pilih File
+            </button>
+        </div>
+        
+        <!-- Hidden File Input -->
+        <input type="file" id="receiptImage" accept="image/*" class="hidden" onchange="app.handleImageUpload(event)">
+        
+        <!-- Camera Preview (akan ditampilkan saat kamera aktif) -->
+        <div id="cameraPreview" class="camera-preview hidden">
+            <video id="cameraVideo" autoplay playsinline class="w-full h-64 object-cover"></video>
+            <div class="camera-controls">
+                <button class="camera-btn" onclick="app.capturePhoto()">
+                    <i class="fas fa-camera text-xl"></i>
+                </button>
+                <button class="camera-btn" onclick="app.closeCamera()">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Progress Indicator -->
+        <div id="scanProgress" class="scan-progress hidden">
+            <div class="flex items-center justify-center space-x-3">
+                <i class="fas fa-spinner fa-spin text-2xl"></i>
+                <div>
+                    <div class="font-semibold">Memproses Struk</div>
+                    <div class="text-sm opacity-90">AI sedang menganalisis gambar...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Error Display -->
+        <div id="scanError" class="hidden bg-red-50 border border-red-200 rounded-xl p-4">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-exclamation-triangle text-red-500 text-lg"></i>
+                <div>
+                    <div class="font-semibold text-red-800" id="scanErrorMessage">Error message</div>
+                    <div class="text-sm text-red-600 mt-1">Silakan coba lagi dengan gambar yang lebih jelas</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Display -->
+        <div id="scanResults" class="hidden">
+            <div class="scan-store-info">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="font-semibold text-gray-900" id="scanStoreName">Toko</div>
+                        <div class="text-sm text-gray-600" id="scanDate">Tanggal</div>
+                    </div>
+                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        <i class="fas fa-check-circle mr-1"></i> Berhasil
+                    </div>
+                </div>
+            </div>
+            
+            <div class="scan-results-container">
+                <div class="text-sm font-semibold text-gray-700 mb-4">Item yang Terdeteksi:</div>
+                <div id="scanItemsList">
+                    <!-- Items akan diisi dinamis -->
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Setup event listeners untuk scan modal
+setupScanModalEvents() {
+    // Setup drag and drop
+    const uploadArea = document.querySelector('.scan-upload-area');
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                this.handleImageUpload({ target: { files: files } });
+            }
+        });
+    }
+}
+
+// Open Camera
+async openCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: 'environment',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            } 
+        });
+        
+        const cameraPreview = document.getElementById('cameraPreview');
+        const cameraVideo = document.getElementById('cameraVideo');
+        
+        cameraVideo.srcObject = stream;
+        cameraPreview.classList.remove('hidden');
+        
+        // Sembunyikan upload options
+        document.querySelector('.upload-options-grid').classList.add('hidden');
+        document.querySelector('.scan-upload-area').classList.add('hidden');
+        
+    } catch (error) {
+        console.error('Camera error:', error);
+        this.showScanError('Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.');
+    }
+}
+
+// Close Camera
+closeCamera() {
+    const cameraPreview = document.getElementById('cameraPreview');
+    const cameraVideo = document.getElementById('cameraVideo');
+    
+    if (cameraVideo.srcObject) {
+        cameraVideo.srcObject.getTracks().forEach(track => track.stop());
+    }
+    
+    cameraPreview.classList.add('hidden');
+    
+    // Tampilkan kembali upload options
+    document.querySelector('.upload-options-grid').classList.remove('hidden');
+    document.querySelector('.scan-upload-area').classList.remove('hidden');
+}
+
+// Capture Photo dari kamera
+capturePhoto() {
+    const cameraVideo = document.getElementById('cameraVideo');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    canvas.width = cameraVideo.videoWidth;
+    canvas.height = cameraVideo.videoHeight;
+    context.drawImage(cameraVideo, 0, 0);
+    
+    canvas.toBlob((blob) => {
+        const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+        this.handleImageUpload({ target: { files: [file] } });
+        this.closeCamera();
+    }, 'image/jpeg', 0.8);
+}
+
+// Open Gallery (sama seperti klik file input)
+openGallery() {
+    document.getElementById('receiptImage').click();
+}
+
+// Reset Scan Modal
+resetScanModal() {
+    document.getElementById('scanProgress').classList.add('hidden');
+    document.getElementById('scanError').classList.add('hidden');
+    document.getElementById('scanResults').classList.add('hidden');
+    document.getElementById('cameraPreview').classList.add('hidden');
+    document.getElementById('receiptImage').value = '';
+    
+    // Tampilkan upload options
+    const uploadOptions = document.querySelector('.upload-options-grid');
+    const uploadArea = document.querySelector('.scan-upload-area');
+    if (uploadOptions) uploadOptions.classList.remove('hidden');
+    if (uploadArea) uploadArea.classList.remove('hidden');
+}
+
+// Hide Scan Receipt Modal
+hideScanReceiptModal() {
+    const modal = document.getElementById('scanReceiptModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+// Reset Scan Modal State
+resetScanModal() {
+    document.getElementById('scanProgress').classList.add('hidden');
+    document.getElementById('scanError').classList.add('hidden');
+    document.getElementById('scanResults').classList.add('hidden');
+    document.getElementById('receiptImage').value = '';
+    
+    const uploadArea = document.querySelector('.scan-upload-area');
+    if (uploadArea) {
+        uploadArea.innerHTML = `
+            <i class="fas fa-receipt text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-600 font-medium mb-2">Unggah Foto Struk</p>
+            <p class="text-sm text-gray-500 mb-4">Format: JPG, PNG (Maks. 10MB)</p>
+            <button onclick="document.getElementById('receiptImage').click()" 
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-medium transition-colors">
+                Pilih File
+            </button>
+        `;
+    }
+}
+
+// Setup Drag and Drop
+setupDragAndDrop() {
+    const uploadArea = document.querySelector('.scan-upload-area');
+    if (!uploadArea) return;
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            this.handleImageUpload({ target: { files: files } });
+        }
+    });
+}
+
+// Handle Image Upload
+async handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type and size
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const maxSize = 10 * 1024 * 1024; // 10MB
+
+    if (!validTypes.includes(file.type)) {
+        this.showScanError('Format file tidak didukung. Gunakan JPG, PNG, atau WebP.');
+        return;
+    }
+
+    if (file.size > maxSize) {
+        this.showScanError('File terlalu besar. Maksimal 10MB.');
+        return;
+    }
+
+    // Show preview and progress
+    this.showScanProgress(file);
+    
+    try {
+        // Process receipt with AI
+        await this.processReceiptWithAI(file);
+    } catch (error) {
+        console.error('Scan error:', error);
+        this.showScanError('Gagal memproses struk: ' + error.message);
+    }
+}
+
+// Show Scan Progress
+showScanProgress(file) {
+    document.getElementById('scanProgress').classList.remove('hidden');
+    document.getElementById('scanError').classList.add('hidden');
+    document.getElementById('scanResults').classList.add('hidden');
+    
+    // Show image preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const uploadArea = document.querySelector('.scan-upload-area');
+        if (uploadArea) {
+            uploadArea.innerHTML = `
+                <div class="mb-4">
+                    <img src="${e.target.result}" alt="Preview" class="max-h-32 mx-auto rounded-lg shadow-md">
+                </div>
+                <p class="text-sm text-gray-600 mb-2">${file.name}</p>
+                <div class="flex items-center justify-center space-x-2">
+                    <i class="fas fa-spinner fa-spin text-blue-500"></i>
+                    <span class="text-blue-600 font-medium">Memproses struk...</span>
+                </div>
+            `;
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Process Receipt with AI - Using the correct format
+async processReceiptWithAI(file) {
+    try {
+        // Convert image to base64 menggunakan fungsi yang sama
+        const base64Image = await this.fileToBase64(file);
+        
+        const API_URL = "https://mucuans-ai-proxy.qalam.workers.dev";
+        const MODEL = "google/gemini-2.0-flash-001";
+        
+        console.log('Sending AI request with correct format...');
+
+        const requestPayload = {
+            model: MODEL,
+            messages: [{
+                role: "user",
+                content: [{
+                    type: "text",
+                    text: `Analyze this receipt image and extract EACH ITEM as separate transactions in JSON format:
+{
+  "storeName": "<merchant/store name>",
+  "date": "<transaction date in YYYY-MM-DD format>",
+  "items": [
+    {
+      "description": "<item name>",
+      "amount": <item price as number, without currency symbol>,
+      "category": "<best matching category: makanan-minuman, transportasi, hiburan, belanja, tagihan, kesehatan, pendidikan, lainnya, or kopi>"
+    }
+  ]
+}
+
+Rules:
+- Extract EACH individual item from the receipt as a separate transaction
+- Do NOT include subtotals, tax (pajak/PPN), service charges, or discounts as items
+- Only extract actual purchased products/services
+- Amount should be the unit price (not quantity x price, just the final price per line item)
+- Category mapping:
+  * Coffee/drinks → "kopi"
+  * Food → "makanan-minuman"
+  * Transport → "transportasi"
+  * Entertainment → "hiburan"
+  * Shopping/retail → "belanja"
+  * Bills/utilities → "tagihan"
+  * Health/medical → "kesehatan"
+  * Education → "pendidikan"
+  * Unknown/other → "lainnya"
+- Date format must be YYYY-MM-DD (extract from receipt, or use today's date if not visible)
+- Return ONLY valid JSON, no additional text
+
+Extract all items from this Indonesian receipt:`
+                }, {
+                    type: "image_url",
+                    image_url: {
+                        url: base64Image
+                    }
+                }]
+            }],
+            temperature: 0.1,
+            max_tokens: 1000
+        };
+
+        console.log('Request payload prepared');
+
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(requestPayload)
+        });
+
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('AI API Error:', errorData);
+            throw new Error(errorData.error?.message || "Failed to scan receipt");
+        }
+
+        const data = await response.json();
+        console.log('AI Response received:', data);
+
+        // Extract content from response
+        const content = data.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error("No response content from AI");
+        }
+
+        console.log('AI Response content:', content);
+
+        // Extract JSON from response
+        let jsonResponse;
+        try {
+            // Clean the response - remove markdown code blocks
+            const cleanedContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            jsonResponse = JSON.parse(cleanedContent);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            // Try to extract JSON from text
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                jsonResponse = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error("Could not parse AI response as JSON");
+            }
+        }
+
+        // Process the validated results
+        const validatedResults = this.validateScanResults(jsonResponse);
+        this.displayScanResults(validatedResults);
+
+    } catch (error) {
+        console.error('AI Processing Error:', error);
+        throw new Error('Gagal memproses struk: ' + error.message);
+    }
+}
+
+// Helper function to convert file to base64 (sama seperti cAe)
+fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
+
+// Update validateScanResults untuk format baru
+validateScanResults(results) {
+    const validated = {
+        storeName: 'Toko',
+        date: new Date().toISOString().split('T')[0],
+        items: [],
+        total: 0
+    };
+
+    // Validate store name
+    if (results.storeName && typeof results.storeName === 'string' && results.storeName.trim().length > 0) {
+        validated.storeName = results.storeName.trim();
+    }
+
+    // Validate date
+    if (results.date && this.isValidDate(results.date)) {
+        validated.date = results.date;
+    }
+
+    // Validate items dengan format baru
+    if (results.items && Array.isArray(results.items)) {
+        validated.items = results.items
+            .filter(item => item && item.description && typeof item.amount === 'number' && item.amount > 0)
+            .map(item => ({
+                name: String(item.description).trim(),
+                price: Math.abs(Number(item.amount)),
+                quantity: 1, // Default quantity untuk format baru
+                category: item.category || 'belanja' // Default category
+            }));
+    }
+
+    // Calculate total
+    validated.total = validated.items.reduce((sum, item) => sum + item.price, 0);
+
+    // If no valid items found, throw error
+    if (validated.items.length === 0) {
+        throw new Error('Tidak ditemukan item yang valid pada struk');
+    }
+
+    return validated;
+}
+
+// Update displayScanResults untuk menampilkan category
+displayScanResults(results) {
+    document.getElementById('scanProgress').classList.add('hidden');
+    
+    // Store results for saving
+    this.currentScanResults = results;
+    
+    // Update store name and date
+    document.getElementById('scanStoreName').textContent = results.storeName;
+    document.getElementById('scanDate').textContent = results.date;
+    
+    // Update items list
+    const itemsList = document.getElementById('scanItemsList');
+    itemsList.innerHTML = '';
+    
+    let totalAmount = 0;
+    
+    results.items.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        totalAmount += itemTotal;
+        
+        const itemElement = document.createElement('div');
+        itemElement.className = 'scan-item';
+        itemElement.innerHTML = `
+            <div class="flex-1">
+                <div class="font-medium text-gray-900">${item.name}</div>
+                <div class="text-sm text-gray-500">
+                    ${this.getCategoryIcon(item.category)} ${this.formatCategoryName(item.category)}
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="font-semibold text-gray-900">Rp ${this.formatNumber(itemTotal)}</div>
+            </div>
+        `;
+        itemsList.appendChild(itemElement);
+    });
+    
+    // Add total section
+    const totalElement = document.createElement('div');
+    totalElement.className = 'scan-total';
+    totalElement.innerHTML = `
+        <div class="flex justify-between items-center">
+            <div class="font-bold text-gray-900">Total Belanja</div>
+            <div class="font-bold text-lg text-red-600">Rp ${this.formatNumber(totalAmount)}</div>
+        </div>
+    `;
+    itemsList.appendChild(totalElement);
+    
+    document.getElementById('scanResults').classList.remove('hidden');
+}
+
+// Helper function untuk icon kategori
+getCategoryIcon(category) {
+    const icons = {
+        'makanan-minuman': '🍔',
+        'transportasi': '🚗',
+        'hiburan': '🎬',
+        'belanja': '🛍️',
+        'tagihan': '📄',
+        'kesehatan': '🏥',
+        'pendidikan': '📚',
+        'kopi': '☕',
+        'lainnya': '📋'
+    };
+    return icons[category] || '📋';
+}
+
+// Helper function untuk format nama kategori
+formatCategoryName(category) {
+    const names = {
+        'makanan-minuman': 'Makanan & Minuman',
+        'transportasi': 'Transportasi',
+        'hiburan': 'Hiburan',
+        'belanja': 'Belanja',
+        'tagihan': 'Tagihan',
+        'kesehatan': 'Kesehatan',
+        'pendidikan': 'Pendidikan',
+        'kopi': 'Kopi & Minuman',
+        'lainnya': 'Lainnya'
+    };
+    return names[category] || 'Lainnya';
+}
+
+// Update saveScannedItems untuk menggunakan category dari AI
+async saveScannedItems() {
+    try {
+        if (!this.currentScanResults || !this.currentScanResults.items) {
+            throw new Error('Tidak ada data scan yang valid');
+        }
+
+        const saveButton = document.querySelector('#scanReceiptModal .btn-scan-primary');
+        const originalText = saveButton?.textContent;
+        
+        if (saveButton) {
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
+            saveButton.disabled = true;
+        }
+
+        const storeName = this.currentScanResults.storeName;
+        const transactionDate = this.currentScanResults.date;
+        
+        let savedCount = 0;
+        let totalAmount = 0;
+
+        // Save each item as individual expense
+        for (const item of this.currentScanResults.items) {
+            const expenseData = {
+                amount: item.price,
+                description: `${item.name} - ${storeName}`,
+                category: item.category,
+                date: transactionDate,
+                paymentMethod: 'tunai',
+                storeName: storeName,
+                itemName: item.name,
+                type: 'pengeluaran',
+                source: 'scan_receipt',
+                userId: this.userData.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            await this.db.collection('pengeluaran').add(expenseData);
+            savedCount++;
+            totalAmount += item.price;
+        }
+
+        if (savedCount === 0) {
+            throw new Error('Tidak ada item yang berhasil disimpan');
+        }
+
+        this.showToast(
+            `✅ ${savedCount} item berhasil disimpan! Total: Rp ${this.formatNumber(totalAmount)}`,
+            'success'
+        );
+
+        this.hideScanReceiptModal();
+        
+        // Refresh data
+        setTimeout(() => {
+            this.loadPengeluaranData();
+            this.refreshDashboardData();
+        }, 800);
+
+    } catch (error) {
+        console.error('Error saving scanned items:', error);
+        this.showToast('Gagal menyimpan item: ' + error.message, 'error');
+    } finally {
+        const saveButton = document.querySelector('#scanReceiptModal .btn-scan-primary');
+        if (saveButton) {
+            saveButton.innerHTML = 'Simpan Semua Item';
+            saveButton.disabled = false;
+        }
     }
 }
 
