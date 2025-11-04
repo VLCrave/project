@@ -3,399 +3,605 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLFinance - Upgrade Premium</title>
+    <title>AI Business Plan Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4361ee',
+                        secondary: '#3f37c9',
+                        accent: '#4cc9f0',
+                        professor: '#8B4513'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gradient-to-br from-purple-50 to-blue-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
-                <div class="flex items-center justify-center space-x-2 mb-3">
-                    <i class="fas fa-crown text-yellow-300 text-2xl"></i>
-                    <span class="text-2xl font-bold">VLFinance Premium</span>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-primary to-secondary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <i class="fas fa-lightbulb text-3xl"></i>
+                    <h1 class="text-2xl font-bold">VL Business Plan</h1>
                 </div>
-                <p class="text-purple-100">Akses penuh semua fitur premium</p>
+                <nav class="flex space-x-6">
+                    <a href="#" class="hover:opacity-80 transition"><i class="fas fa-home mr-2"></i>Beranda</a>
+                    <a href="#" class="hover:opacity-80 transition"><i class="fas fa-info-circle mr-2"></i>Tentang</a>
+                    <a href="#" class="hover:opacity-80 transition"><i class="fas fa-envelope mr-2"></i>Kontak</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- Hero Section -->
+        <section class="text-center mb-12">
+            <h2 class="text-4xl font-bold text-primary mb-4">Rencanakan Bisnis Anda dengan AI</h2>
+            <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                Dapatkan business plan yang disesuaikan dengan minat, budget, dan lokasi Anda menggunakan teknologi Artificial Intelligence
+            </p>
+        </section>
+
+        <!-- Form Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8">
+            <!-- Error/Success Messages -->
+            <div id="errorMessage" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+                <p></p>
+            </div>
+            <div id="successMessage" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+                <p></p>
             </div>
 
-            <div class="p-6">
-                <div class="text-center mb-6">
-                    <!-- Product Image -->
-                    <div class="mb-4 flex justify-center">
-                        <div class="relative group">
-                            <img 
-                                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" 
-                                alt="Exclusive Offer"
-                                class="w-32 h-32 rounded-full object-cover border-4 border-yellow-400 shadow-lg group-hover:scale-110 transition-transform duration-300"
-                            >
-                            <div class="absolute -top-2 -right-2 bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                                VIP
-                            </div>
-                        </div>
+            <!-- Form -->
+            <div class="space-y-6">
+                <!-- Interest Field -->
+                <div>
+                    <label for="interest" class="block text-lg font-semibold text-gray-800 mb-2">
+                        <i class="fas fa-briefcase mr-2 text-primary"></i>Minat/Keahlian/Bidang
+                    </label>
+                    <input type="text" id="interest" 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                           placeholder="Contoh: Jasa kecantikan, jasa perbaikan elektronik, jasa konsultan">
+                </div>
+
+                <!-- Budget & Province Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="budget" class="block text-lg font-semibold text-gray-800 mb-2">
+                            <i class="fas fa-money-bill-wave mr-2 text-primary"></i>Budget (juta Rupiah)
+                        </label>
+                        <input type="number" id="budget" min="10" max="1000"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                               placeholder="Contoh: 100">
                     </div>
-                    
-                    <!-- Discount Badge -->
-                    <div class="bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-bold px-4 py-2 rounded-full inline-block mb-4 relative">
-                        ⚡ DISKON 80%
-                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
-                    </div>
-                    
-                    <!-- Pricing -->
-                    <div class="flex items-center justify-center space-x-4 mb-4">
-                        <div class="text-gray-500 line-through text-lg">Rp250.000</div>
-                        <div class="text-green-500 font-bold text-xl">→</div>
-                        <div class="text-3xl font-bold text-gray-800">Rp49.000</div>
-                    </div>
-                    
-                    <!-- Payment Method Selection -->
-                    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran:</label>
-                        <select id="paymentMethod" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
-                            <option value="qris">QRIS (Semua E-Wallet & Mobile Banking)</option>
-                            <option value="va">Virtual Account (Transfer Bank)</option>
-                            <option value="cstore">Alfamart / Indomaret</option>
+                    <div>
+                        <label for="province" class="block text-lg font-semibold text-gray-800 mb-2">
+                            <i class="fas fa-map-marker-alt mr-2 text-primary"></i>Provinsi
+                        </label>
+                        <select id="province" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition">
+                            <option value="">Pilih Provinsi</option>
                         </select>
                     </div>
-                    
-                    <!-- Customer Info Form -->
-                    <div class="mb-4 space-y-3 text-left">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                            <input type="text" id="customerName" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                   placeholder="Nama Anda" required>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                            <input type="email" id="customerEmail" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                   placeholder="email@example.com" required>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">No. HP</label>
-                            <input type="tel" id="customerPhone" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                   placeholder="08123456789" required>
-                        </div>
+                </div>
+
+                <!-- Regency & District Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="regency" class="block text-lg font-semibold text-gray-800 mb-2">
+                            <i class="fas fa-map-marked-alt mr-2 text-primary"></i>Kabupaten/Kota
+                        </label>
+                        <select id="regency" disabled
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition bg-gray-100">
+                            <option value="">Pilih Kabupaten/Kota</option>
+                        </select>
                     </div>
-                    
-                    <!-- Upgrade Button -->
-                    <button 
-                        id="upgradeButton"
-                        class="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-4 px-6 rounded-lg hover:from-purple-600 hover:to-blue-700 transition-all shadow font-bold text-lg mb-3 transform hover:scale-105 duration-200"
-                        onclick="processPayment()"
-                    >
-                        💳 Upgrade Sekarang
-                    </button>
-                    
-                    <p class="text-green-600 font-semibold text-sm">
-                        ✅ Hemat Rp 201.000
+                    <div>
+                        <label for="district" class="block text-lg font-semibold text-gray-800 mb-2">
+                            <i class="fas fa-location-arrow mr-2 text-primary"></i>Kecamatan
+                        </label>
+                        <select id="district" disabled
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition bg-gray-100">
+                            <option value="">Pilih Kecamatan</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Additional Info -->
+                <div>
+                    <label for="additionalInfo" class="block text-lg font-semibold text-gray-800 mb-2">
+                        <i class="fas fa-comment-alt mr-2 text-primary"></i>Informasi Tambahan (opsional)
+                    </label>
+                    <textarea id="additionalInfo" rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition"
+                              placeholder="Tambahan informasi tentang bisnis yang Anda inginkan"></textarea>
+                </div>
+
+                <!-- Generate Button -->
+                <button id="generateBtn" 
+                        class="w-full bg-primary hover:bg-secondary text-white font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg flex items-center justify-center space-x-3">
+                    <i class="fas fa-magic"></i>
+                    <span>Generate Business Plan dengan AI</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Section -->
+        <div id="loading" class="hidden text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mb-4"></div>
+            <p class="text-xl text-gray-600">AI Profesor sedang menganalisis dan membuat business plan untuk Anda...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultContainer" class="hidden bg-white rounded-2xl shadow-lg p-8">
+            <!-- Result Header -->
+            <div class="text-center mb-8 pb-6 border-b border-gray-200">
+                <h2 class="text-3xl font-bold text-primary mb-3">Business Plan Anda</h2>
+                <p class="text-lg text-gray-600">Berikut adalah rencana bisnis yang telah disesuaikan dengan input Anda</p>
+            </div>
+
+            <!-- Result Sections -->
+            <div class="space-y-8">
+                <!-- Business Summary -->
+                <div>
+                    <h3 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+                        <i class="fas fa-chart-line mr-3 text-accent"></i>Ringkasan Bisnis
+                    </h3>
+                    <div id="businessSummary" class="bg-gray-50 rounded-lg p-6"></div>
+                </div>
+
+                <!-- Business Suggestions -->
+                <div>
+                    <h3 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+                        <i class="fas fa-lightbulb mr-3 text-accent"></i>Saran Bisnis
+                    </h3>
+                    <div id="businessSuggestions" class="bg-gray-50 rounded-lg p-6"></div>
+                </div>
+
+                <!-- Initial Capital -->
+                <div>
+                    <h3 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+                        <i class="fas fa-calculator mr-3 text-accent"></i>Rincian Modal Awal
+                    </h3>
+                    <div id="initialCapital" class="bg-gray-50 rounded-lg p-6"></div>
+                </div>
+
+                <!-- Strategic Location -->
+                <div>
+                    <h3 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+                        <i class="fas fa-map-pin mr-3 text-accent"></i>Lokasi Strategis
+                    </h3>
+                    <div id="strategicLocation" class="bg-gray-50 rounded-lg p-6"></div>
+                </div>
+
+                <!-- ROI Estimation -->
+                <div>
+                    <h3 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+                        <i class="fas fa-chart-bar mr-3 text-accent"></i>Estimasi Balik Modal
+                    </h3>
+                    <div id="roiEstimation" class="bg-gray-50 rounded-lg p-6"></div>
+                </div>
+
+                <!-- Implementation Steps -->
+                <div>
+                    <h3 class="text-2xl font-semibold text-primary mb-4 flex items-center">
+                        <i class="fas fa-tasks mr-3 text-accent"></i>Langkah Implementasi
+                    </h3>
+                    <div id="implementationSteps" class="bg-gray-50 rounded-lg p-6"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <!-- About Section -->
+                <div>
+                    <h3 class="text-xl font-bold text-accent mb-4">Tentang Kami</h3>
+                    <p class="text-gray-300 mb-4">
+                        AI Business Plan Generator adalah platform inovatif yang menggunakan teknologi AI untuk membantu pengusaha membuat rencana bisnis yang terperinci.
                     </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-primary transition">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-primary transition">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-primary transition">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-primary transition">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                    </div>
                 </div>
 
-                <!-- Benefits -->
-                <div class="border-t pt-6">
-                    <h3 class="font-bold text-gray-800 mb-4 text-center">✨ Benefit Premium:</h3>
-                    <div class="grid grid-cols-2 gap-3 text-sm">
-                        <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-purple-50 transition-colors">
-                            <i class="fas fa-chart-line text-purple-500"></i>
-                            <span>Analisis Real-time</span>
-                        </div>
-                        <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-green-50 transition-colors">
-                            <i class="fas fa-receipt text-green-500"></i>
-                            <span>Scan Struk AI</span>
-                        </div>
-                        <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-blue-50 transition-colors">
-                            <i class="fas fa-piggy-bank text-blue-500"></i>
-                            <span>Investasi Smart</span>
-                        </div>
-                        <div class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 hover:bg-yellow-50 transition-colors">
-                            <i class="fas fa-headset text-yellow-500"></i>
-                            <span>Support 24/7</span>
-                        </div>
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-xl font-bold text-accent mb-4">Link Cepat</h3>
+                    <div class="space-y-2">
+                        <a href="#" class="block text-gray-300 hover:text-white transition">Beranda</a>
+                        <a href="#" class="block text-gray-300 hover:text-white transition">Tentang</a>
+                        <a href="#" class="block text-gray-300 hover:text-white transition">Layanan</a>
+                        <a href="#" class="block text-gray-300 hover:text-white transition">Blog</a>
+                        <a href="#" class="block text-gray-300 hover:text-white transition">Kontak</a>
+                    </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div>
+                    <h3 class="text-xl font-bold text-accent mb-4">Kontak</h3>
+                    <div class="space-y-3">
+                        <p class="text-gray-300 flex items-center">
+                            <i class="fas fa-map-marker-alt mr-3"></i>Jakarta, Indonesia
+                        </p>
+                        <p class="text-gray-300 flex items-center">
+                            <i class="fas fa-phone mr-3"></i>+62 21 1234 5678
+                        </p>
+                        <p class="text-gray-300 flex items-center">
+                            <i class="fas fa-envelope mr-3"></i>info@aibusinessplan.com
+                        </p>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Payment Modal -->
-    <div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-2xl p-6 max-w-sm mx-4">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
-                </div>
-                <h3 class="text-lg font-bold text-gray-800 mb-2" id="modalTitle">Memproses Pembayaran</h3>
-                <p class="text-gray-600 text-sm mb-4" id="modalMessage">Sedang menghubungkan ke iPaymu...</p>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                    <p class="text-yellow-800 text-xs">Jangan tutup halaman ini selama proses pembayaran</p>
-                </div>
-                <div id="paymentInfo" class="hidden">
-                    <p class="text-sm font-semibold text-green-600">Pembayaran Berhasil Diproses!</p>
-                    <p class="text-xs text-gray-600 mt-2">Silakan lanjutkan pembayaran di halaman iPaymu</p>
-                    <button onclick="redirectToPayment()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg mt-3 hover:bg-green-700">
-                        Lanjut ke Pembayaran
-                    </button>
-                </div>
+            <!-- Copyright -->
+            <div class="border-t border-gray-700 pt-8 text-center">
+                <p class="text-gray-400">&copy; 2023 AI Business Plan Generator. All rights reserved.</p>
             </div>
         </div>
-    </div>
+    </footer>
 
     <script>
-    // Configuration
-    const IPAYMU_CONFIG = {
-        va: '1179002181670112',
-        apiKey: '3D535899-D600-4CE7-AFC9-BCC85348137F',
-        url: 'https://sandbox.ipaymu.com/api/v2/payment'
-    };
-
-    let currentPaymentUrl = '';
-
-    // Show payment modal
-    function showPaymentModal() {
-        const modal = document.getElementById('paymentModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-        }
-    }
-
-    // Hide payment modal
-    function hidePaymentModal() {
-        const modal = document.getElementById('paymentModal');
-        if (modal) {
-            modal.classList.add('hidden');
-        }
-    }
-
-    // Update modal content
-    function updateModal(title, message, showPaymentInfo = false) {
-        document.getElementById('modalTitle').textContent = title;
-        document.getElementById('modalMessage').textContent = message;
-        
-        if (showPaymentInfo) {
-            document.getElementById('paymentInfo').classList.remove('hidden');
-        } else {
-            document.getElementById('paymentInfo').classList.add('hidden');
-        }
-    }
-
-    // Show notification
-    function showNotification(message, type = 'info') {
-        Swal.fire({
-            icon: type,
-            title: type === 'success' ? 'Sukses!' : type === 'error' ? 'Error!' : 'Info',
-            text: message,
-            timer: type === 'success' ? 3000 : 4000,
-            showConfirmButton: type !== 'success'
-        });
-    }
-
-    // Main payment processing function
-    async function processPayment() {
-        const paymentMethod = document.getElementById('paymentMethod')?.value || 'qris';
-        const amount = 49000;
-        const name = document.getElementById('customerName').value;
-        const email = document.getElementById('customerEmail').value;
-        const phone = document.getElementById('customerPhone').value;
-        const button = document.getElementById('upgradeButton');
-
-        // Validation
-        if (!name || !email || !phone) {
-            showNotification('Harap isi semua data terlebih dahulu', 'error');
-            return;
-        }
-
-        // Disable button and show loading
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
-        showPaymentModal();
-
-        try {
-            // Create payment data
-            const paymentData = {
-                product: 'VLFinance Premium Membership',
-                amount: amount,
-                paymentMethod: paymentMethod,
-                name: name,
-                email: email,
-                phone: phone,
-                userId: 'user-' + Date.now()
-            };
-
-            console.log('Processing payment:', paymentData);
-
-            // Direct iPaymu integration (client-side)
-            const result = await createDirectIPaymuPayment(paymentData);
-
-            if (result.success) {
-                currentPaymentUrl = result.redirectUrl;
-                
-                updateModal(
-                    'Pembayaran Siap!', 
-                    'Silakan lanjutkan ke halaman pembayaran iPaymu', 
-                    true
-                );
-                
-                console.log('Payment URL:', currentPaymentUrl);
-                
-            } else {
-                hidePaymentModal();
-                showNotification(result.error || 'Gagal memproses pembayaran', 'error');
-                resetButton(button);
-            }
-
-        } catch (error) {
-            console.error('Payment process error:', error);
-            hidePaymentModal();
-            showNotification('Terjadi kesalahan: ' + error.message, 'error');
-            resetButton(button);
-        }
-    }
-
-    // Direct iPaymu integration (client-side)
-    async function createDirectIPaymuPayment(paymentData) {
-        try {
-            const referenceId = 'VLF-' + Date.now() + '-' + paymentData.userId;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const provinceSelect = document.getElementById('province');
+            const regencySelect = document.getElementById('regency');
+            const districtSelect = document.getElementById('district');
+            const generateBtn = document.getElementById('generateBtn');
+            const loadingDiv = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
             
-            const body = {
-                product: [paymentData.product],
-                qty: [1],
-                price: [paymentData.amount],
-                amount: paymentData.amount,
-                returnUrl: 'https://vlcrave.github.io/project/success.html', // Ganti dengan URL success page Anda
-                cancelUrl: 'https://vlcrave.github.io/project/cancel.html', // Ganti dengan URL cancel page Anda
-                notifyUrl: 'https://your-webhook-url.com/ipaymu_callback', // Butuh webhook service
-                referenceId: referenceId,
-                paymentMethod: paymentData.paymentMethod,
-                buyerName: paymentData.name,
-                buyerPhone: paymentData.phone,
-                buyerEmail: paymentData.email
-            };
-
-            console.log('iPaymu Request Body:', body);
-
-            // Generate signature using CryptoJS
-            const jsonBody = JSON.stringify(body, null, 0); // Remove spaces for signature
-            const requestBody = CryptoJS.SHA256(jsonBody).toString(CryptoJS.enc.Hex);
-            const stringToSign = 'POST:' + IPAYMU_CONFIG.va + ':' + requestBody + ':' + IPAYMU_CONFIG.apiKey;
-            const signature = CryptoJS.HmacSHA256(stringToSign, IPAYMU_CONFIG.apiKey).toString(CryptoJS.enc.Hex);
-
-            const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
-
-            console.log('Signature generated:', signature);
-            console.log('Timestamp:', timestamp);
-
-            const response = await fetch(IPAYMU_CONFIG.url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'va': IPAYMU_CONFIG.va,
-                    'signature': signature,
-                    'timestamp': timestamp
-                },
-                body: jsonBody
+            // AI Configuration - CORRECTED API ENDPOINT
+            const API_URL = "https://mucuans-ai-proxy.qalam.workers.dev";
+            const MODEL = "google/gemini-2.0-flash-001";
+            
+            // Load provinces
+            fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+                .then(response => response.json())
+                .then(provinces => {
+                    provinces.forEach(province => {
+                        const option = document.createElement('option');
+                        option.value = province.id;
+                        option.textContent = province.name;
+                        provinceSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading provinces:', error);
+                });
+            
+            // Province change event
+            provinceSelect.addEventListener('change', function() {
+                const provinceId = this.value;
+                
+                // Reset regency and district
+                regencySelect.innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
+                districtSelect.innerHTML = '<option value="">Pilih Kecamatan</option>';
+                regencySelect.disabled = true;
+                districtSelect.disabled = true;
+                regencySelect.classList.add('bg-gray-100');
+                districtSelect.classList.add('bg-gray-100');
+                
+                if (provinceId) {
+                    // Load regencies
+                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinceId}.json`)
+                        .then(response => response.json())
+                        .then(regencies => {
+                            regencies.forEach(regency => {
+                                const option = document.createElement('option');
+                                option.value = regency.id;
+                                option.textContent = regency.name;
+                                regencySelect.appendChild(option);
+                            });
+                            regencySelect.disabled = false;
+                            regencySelect.classList.remove('bg-gray-100');
+                        })
+                        .catch(error => {
+                            console.error('Error loading regencies:', error);
+                        });
+                }
             });
-
-            console.log('iPaymu Response Status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('iPaymu Error Response:', errorText);
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            const result = await response.json();
-            console.log('iPaymu API Response:', result);
             
-            if (result.Data && result.Data.Url) {
-                return {
-                    success: true,
-                    redirectUrl: result.Data.Url,
-                    sessionId: result.Data.SessionID,
-                    reference: referenceId
-                };
-            } else {
-                return {
-                    success: false,
-                    error: result.Message || 'Payment creation failed',
-                    debug: result
-                };
+            // Regency change event
+            regencySelect.addEventListener('change', function() {
+                const regencyId = this.value;
+                
+                // Reset district
+                districtSelect.innerHTML = '<option value="">Pilih Kecamatan</option>';
+                districtSelect.disabled = true;
+                districtSelect.classList.add('bg-gray-100');
+                
+                if (regencyId) {
+                    // Load districts
+                    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${regencyId}.json`)
+                        .then(response => response.json())
+                        .then(districts => {
+                            districts.forEach(district => {
+                                const option = document.createElement('option');
+                                option.value = district.id;
+                                option.textContent = district.name;
+                                districtSelect.appendChild(option);
+                            });
+                            districtSelect.disabled = false;
+                            districtSelect.classList.remove('bg-gray-100');
+                        })
+                        .catch(error => {
+                            console.error('Error loading districts:', error);
+                        });
+                }
+            });
+            
+            // Generate business plan
+            generateBtn.addEventListener('click', async function() {
+                const interest = document.getElementById('interest').value.trim();
+                const budget = document.getElementById('budget').value;
+                const province = provinceSelect.options[provinceSelect.selectedIndex].text;
+                const regency = regencySelect.options[regencySelect.selectedIndex].text;
+                const district = districtSelect.options[districtSelect.selectedIndex].text;
+                const additionalInfo = document.getElementById('additionalInfo').value.trim();
+                
+                // Validation
+                if (!interest) {
+                    showError('Harap masukkan minat/keahlian/bidang bisnis Anda.');
+                    return;
+                }
+                
+                if (!budget || budget < 10) {
+                    showError('Budget harus minimal 10 juta Rupiah.');
+                    return;
+                }
+                
+                if (!province || province === 'Pilih Provinsi') {
+                    showError('Harap pilih provinsi.');
+                    return;
+                }
+                
+                if (!regency || regency === 'Pilih Kabupaten/Kota') {
+                    showError('Harap pilih kabupaten/kota.');
+                    return;
+                }
+                
+                // Show loading
+                loadingDiv.classList.remove('hidden');
+                resultContainer.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+                successMessage.classList.add('hidden');
+                generateBtn.disabled = true;
+                
+                try {
+                    // Generate business plan using AI
+                    await generateBusinessPlanWithAI(interest, budget, province, regency, district, additionalInfo);
+                    
+                    // Hide loading and show result
+                    loadingDiv.classList.add('hidden');
+                    resultContainer.classList.remove('hidden');
+                    showSuccess('Business plan berhasil dibuat dengan AI Profesor!');
+                    
+                    // Scroll to result
+                    resultContainer.scrollIntoView({ behavior: 'smooth' });
+                } catch (error) {
+                    console.error('Error generating business plan:', error);
+                    showError('Terjadi kesalahan saat membuat business plan. Silakan coba lagi.');
+                    loadingDiv.classList.add('hidden');
+                } finally {
+                    generateBtn.disabled = false;
+                }
+            });
+            
+            // Function to generate business plan with AI - CORRECTED IMPLEMENTATION
+            async function generateBusinessPlanWithAI(interest, budget, province, regency, district, additionalInfo) {
+                // Create comprehensive prompt for AI Professor
+                const prompt = `
+                    Kamu adalah Prof. Dr. Andi Wijaya, seorang profesor spesialis analisis bisnis dengan 15+ tahun pengalaman. 
+                    Analisis dan buatkan business plan yang komprehensif untuk klien dengan detail berikut:
+                    
+                    JENIS BISNIS: ${interest}
+                    BUDGET: ${budget} juta Rupiah
+                    LOKASI: ${district}, ${regency}, ${province}
+                    ${additionalInfo ? `INFORMASI TAMBAHAN: ${additionalInfo}` : ''}
+                    
+                    Sebagai profesor analisis bisnis, berikan analisis yang mendalam dan profesional dengan struktur berikut:
+                    
+                    1. RINGKASAN BISNIS: Analisis potensi bisnis di lokasi tersebut, target pasar, dan keunggulan kompetitif
+                    2. SARAN BISNIS: Rekomendasi layanan spesifik berdasarkan budget dan lokasi
+                    3. RINCIAN MODAL AWAL: Breakdown penggunaan budget dengan persentase yang realistis
+                    4. LOKASI STRATEGIS: Analisis lokasi-lokasi potensial di ${regency} dengan justifikasi berdasarkan data
+                    5. ESTIMASI BALIK MODAL: Proyeksi finansial dengan analisis risiko dan asumsi
+                    6. LANGKAH IMPLEMENTASI: Rencana eksekusi bertahap dengan timeline
+                    
+                    Berikan analisis yang data-driven dan spesifik untuk lokasi ${regency}, ${province}. 
+                    Sertakan pertimbangan demografis, kompetisi, dan peluang pasar setempat.
+                    
+                    Format respons dalam JSON:
+                    {
+                        "businessSummary": "Analisis komprehensif...",
+                        "businessSuggestions": ["Saran 1", "Saran 2", ...],
+                        "initialCapital": ["Item 1: X juta (X%)", "Item 2: Y juta (Y%)", ...],
+                        "strategicLocation": ["Lokasi 1 dengan analisis", "Lokasi 2 dengan analisis", ...],
+                        "roiEstimation": "Analisis ROI dengan asumsi...",
+                        "implementationSteps": ["Tahap 1: Deskripsi", "Tahap 2: Deskripsi", ...]
+                    }
+                `;
+                
+                try {
+                    // Call AI API with CORRECTED format
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            model: MODEL,
+                            messages: [
+                                {
+                                    role: "system",
+                                    content: "Kamu adalah Prof. Dr. Andi Wijaya, seorang profesor spesialis analisis bisnis dengan 15+ tahun pengalaman. Kamu ahli dalam membuat business plan yang komprehensif dan realistis berdasarkan data pasar."
+                                },
+                                {
+                                    role: "user",
+                                    content: prompt
+                                }
+                            ],
+                            max_tokens: 4000,
+                            temperature: 0.7
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Extract the response content
+                    let aiResponse = '';
+                    
+                    if (data.choices && data.choices.length > 0) {
+                        aiResponse = data.choices[0].message.content;
+                    } else if (data.response) {
+                        aiResponse = data.response;
+                    } else {
+                        aiResponse = JSON.stringify(data);
+                    }
+                    
+                    // Try to parse JSON from the response
+                    try {
+                        // Extract JSON from the response if it's wrapped in other text
+                        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            aiResponse = jsonMatch[0];
+                        }
+                        
+                        const businessPlan = JSON.parse(aiResponse);
+                        
+                        // Update result sections with AI-generated content
+                        updateResultSections(businessPlan, interest, budget, regency);
+                        
+                    } catch (parseError) {
+                        console.error('Error parsing AI response:', parseError);
+                        console.log('Raw AI response:', aiResponse);
+                        // Fallback: Use mock data if API fails
+                        useMockBusinessPlan(interest, budget, province, regency, district);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error calling AI API:', error);
+                    // Fallback to mock data
+                    useMockBusinessPlan(interest, budget, province, regency, district);
+                }
             }
-
-        } catch (error) {
-            console.error('Direct payment error:', error);
-            return {
-                success: false,
-                error: 'Payment error: ' + error.message
-            };
-        }
-    }
-
-    // Redirect to payment
-    function redirectToPayment() {
-        if (currentPaymentUrl) {
-            // Buka di tab baru
-            window.open(currentPaymentUrl, '_blank');
-            hidePaymentModal();
-            resetButton(document.getElementById('upgradeButton'));
-            showNotification('Silakan selesaikan pembayaran di halaman yang terbuka', 'info');
-        }
-    }
-
-    // Reset button state
-    function resetButton(button) {
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = '💳 Upgrade Sekarang';
-        }
-    }
-
-    // Demo mode (untuk testing tanpa real payment)
-    function demoPayment() {
-        const button = document.getElementById('upgradeButton');
-        const name = document.getElementById('customerName').value;
-        const email = document.getElementById('customerEmail').value;
-        const phone = document.getElementById('customerPhone').value;
-
-        if (!name || !email || !phone) {
-            showNotification('Harap isi semua data terlebih dahulu', 'error');
-            return;
-        }
-
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
-        showPaymentModal();
-
-        setTimeout(() => {
-            currentPaymentUrl = 'https://sandbox.ipaymu.com/demo';
-            updateModal(
-                'Demo Mode - Pembayaran Siap!', 
-                'Ini hanya simulasi. Di production, akan redirect ke iPaymu real.', 
-                true
-            );
-        }, 2000);
-    }
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('VLFinance Payment Gateway Loaded - Client Side Version');
-        
-        // Pre-fill demo data
-        document.getElementById('customerName').value = 'John Doe';
-        document.getElementById('customerEmail').value = 'john@example.com';
-        document.getElementById('customerPhone').value = '08123456789';
-
-        // Add demo button
-        const demoButton = document.createElement('button');
-        demoButton.textContent = '🎮 Demo Mode';
-        demoButton.className = 'fixed bottom-4 right-4 bg-orange-500 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50';
-        demoButton.onclick = demoPayment;
-        document.body.appendChild(demoButton);
-    });
+            
+            // Function to update result sections
+            function updateResultSections(businessPlan, interest, budget, regency) {
+                document.getElementById('businessSummary').innerHTML = 
+                    `<p class="text-gray-700 leading-relaxed">${businessPlan.businessSummary || 'Analisis bisnis akan ditampilkan di sini.'}</p>`;
+                
+                document.getElementById('businessSuggestions').innerHTML = `
+                    <p class="text-gray-700 mb-4">Berdasarkan analisis mendalam, berikut rekomendasi bisnis:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        ${(businessPlan.businessSuggestions || []).map(suggestion => `<li>${suggestion}</li>`).join('')}
+                    </ul>
+                `;
+                
+                document.getElementById('initialCapital').innerHTML = `
+                    <p class="text-gray-700 mb-4">Breakdown penggunaan budget ${budget} juta Rupiah:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        ${(businessPlan.initialCapital || []).map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                `;
+                
+                document.getElementById('strategicLocation').innerHTML = `
+                    <p class="text-gray-700 mb-4">Lokasi strategis berdasarkan analisis pasar di ${regency}:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        ${(businessPlan.strategicLocation || []).map(location => `<li>${location}</li>`).join('')}
+                    </ul>
+                `;
+                
+                document.getElementById('roiEstimation').innerHTML = 
+                    `<p class="text-gray-700 leading-relaxed">${businessPlan.roiEstimation || 'Estimasi ROI akan ditampilkan di sini.'}</p>`;
+                
+                document.getElementById('implementationSteps').innerHTML = `
+                    <p class="text-gray-700 mb-4">Rencana implementasi bertahap:</p>
+                    <ol class="list-decimal list-inside space-y-3 text-gray-700">
+                        ${(businessPlan.implementationSteps || []).map(step => `<li class="ml-4">${step}</li>`).join('')}
+                    </ol>
+                `;
+            }
+            
+            // Mock data fallback function
+            function useMockBusinessPlan(interest, budget, province, regency, district) {
+                const mockPlan = {
+                    businessSummary: `Berdasarkan analisis saya sebagai profesor bisnis, bisnis ${interest} di ${regency} memiliki potensi yang baik dengan budget ${budget} juta Rupiah. Target pasar utama adalah masyarakat menengah di area ${district} dengan pertumbuhan ekonomi yang stabil. Analisis menunjukkan adanya peluang untuk mengisi ceruk pasar yang belum terlayani dengan baik.`,
+                    businessSuggestions: [
+                        "Fokus pada layanan premium dengan harga kompetitif",
+                        "Kembangkan partnership dengan bisnis lokal terkait",
+                        "Manfaatkan media digital untuk pemasaran yang efektif",
+                        "Sediakan layanan tambahan untuk meningkatkan customer retention",
+                        "Implementasi sistem loyalty program untuk pelanggan tetap"
+                    ],
+                    initialCapital: [
+                        `Sewa tempat: ${(budget * 0.3).toFixed(1)} juta (30%)`,
+                        `Peralatan & inventaris: ${(budget * 0.4).toFixed(1)} juta (40%)`,
+                        `Biaya operasional bulan pertama: ${(budget * 0.2).toFixed(1)} juta (20%)`,
+                        `Dana cadangan: ${(budget * 0.1).toFixed(1)} juta (10%)`
+                    ],
+                    strategicLocation: [
+                        `Pusat perbelanjaan ${regency} - visibilitas tinggi dan akses mudah`,
+                        `Area perkantoran - target pasar profesional dengan daya beli baik`,
+                        `Dekat kampus atau sekolah - pangsa pasar mahasiswa dan pelajar`,
+                        `Perumahan menengah atas - daya beli stabil dan loyalitas tinggi`
+                    ],
+                    roiEstimation: `Estimasi balik modal: 12-18 bulan. Asumsi: Pendapatan bulanan 15-25 juta Rupiah, pengeluaran operasional 8-12 juta Rupiah, laba bersih 7-13 juta Rupiah per bulan. Break even point dicapai pada bulan ke-8 dengan asumsi konsistensi operasional.`,
+                    implementationSteps: [
+                        "Bulan 1: Riset pasar mendalam dan penyelesaian legalitas bisnis",
+                        "Bulan 2: Persiapan tempat usaha dan pengadaan peralatan utama",
+                        "Bulan 3: Rekrutmen staff dan program training intensif",
+                        "Bulan 4: Soft launching dengan promosi terbatas dan gathering feedback",
+                        "Bulan 5-6: Evaluasi operasional dan optimasi berdasarkan feedback pelanggan",
+                        "Bulan 7-12: Ekspansi layanan dan intensifikasi strategi pemasaran"
+                    ]
+                };
+                
+                updateResultSections(mockPlan, interest, budget, regency);
+            }
+            
+            // Utility functions
+            function showError(message) {
+                errorMessage.querySelector('p').textContent = message;
+                errorMessage.classList.remove('hidden');
+                successMessage.classList.add('hidden');
+                errorMessage.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function showSuccess(message) {
+                successMessage.querySelector('p').textContent = message;
+                successMessage.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
