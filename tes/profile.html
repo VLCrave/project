@@ -3,226 +3,720 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vicky Satria Lindy - Profil Profesional</title>
+    <title>Vicky Satria Lindy | Profil Profesional</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- AOS CSS -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --light-color: #ecf0f1;
-            --dark-color: #2c3e50;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            --gradient-secondary: linear-gradient(135deg, var(--secondary) 0%, #059669 100%);
+            --gradient-accent: linear-gradient(135deg, var(--accent) 0%, #d97706 100%);
+            --shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
         }
-        
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Poppins', sans-serif;
-            color: #333;
+            color: var(--dark);
+            background-color: var(--light);
+            overflow-x: hidden;
             line-height: 1.6;
+            font-size: 0.9rem;
         }
-        
-        .navbar {
-            background-color: var(--secondary-color);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-brand {
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Montserrat', sans-serif;
             font-weight: 700;
-            color: white !important;
         }
-        
+
+        /* Navbar - Compact */
+        .navbar {
+            padding: 0.8rem 0;
+            background-color: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow);
+            transition: all 0.4s ease;
+        }
+
+        .navbar.scrolled {
+            padding: 0.6rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.3rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .navbar-toggler {
+            border: none;
+            padding: 0.25rem 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
         .nav-link {
-            color: white !important;
             font-weight: 500;
+            margin: 0.3rem 0;
+            position: relative;
+            color: var(--dark) !important;
             transition: color 0.3s;
+            text-align: center;
+            font-size: 0.9rem;
         }
-        
-        .nav-link:hover {
-            color: var(--primary-color) !important;
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transition: width 0.3s ease;
         }
-        
+
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 80%;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary) !important;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+            display: inline-block;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Hero Section - Compact */
         .hero-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            min-height: 85vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: var(--gradient);
             color: white;
-            padding: 120px 0 80px;
+            padding: 80px 0 40px;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
             text-align: center;
         }
-        
-        .profile-img {
-            width: 200px;
-            height: 200px;
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.8rem;
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: 1rem;
+            margin-bottom: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .profile-image {
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
             object-fit: cover;
-            border: 5px solid white;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border: 6px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--shadow-lg);
+            animation: float 6s ease-in-out infinite;
+            margin: 0 auto 1.5rem;
+            display: block;
         }
-        
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            animation: float-particle 15s infinite linear;
+        }
+
+        @keyframes float-particle {
+            0% { transform: translateY(0) translateX(0); }
+            100% { transform: translateY(-1000px) translateX(200px); }
+        }
+
+        /* Section Styling - Compact */
+        .section {
+            padding: 50px 0;
+        }
+
         .section-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
             position: relative;
-            margin-bottom: 40px;
-            font-weight: 700;
-            color: var(--secondary-color);
+            display: inline-block;
+            text-align: center;
+            width: 100%;
         }
-        
+
         .section-title::after {
             content: '';
             position: absolute;
-            bottom: -10px;
-            left: 0;
-            width: 60px;
-            height: 3px;
-            background-color: var(--primary-color);
-        }
-        
-        .about-content {
-            padding: 80px 0;
-        }
-        
-        .portfolio-item {
-            margin-bottom: 30px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        
-        .portfolio-item:hover {
-            transform: translateY(-10px);
-        }
-        
-        .contact-info {
-            background-color: var(--light-color);
-            padding: 80px 0;
-        }
-        
-        .contact-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .contact-icon {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
             width: 50px;
-            height: 50px;
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 50%;
+            height: 4px;
+            background: var(--gradient-primary);
+            border-radius: 5px;
+        }
+
+        /* About Section - Compact */
+        .about-content {
+            background-color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .about-content:hover {
+            transform: translateY(-5px);
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.2rem;
+            box-shadow: var(--shadow);
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .info-item {
             display: flex;
             align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 20px;
+            margin-bottom: 1.2rem;
         }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            padding: 10px 25px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2980b9;
-            border-color: #2980b9;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .footer {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 40px 0;
-        }
-        
-        .social-links a {
-            color: white;
-            font-size: 20px;
-            margin-right: 15px;
-            transition: color 0.3s;
-        }
-        
-        .social-links a:hover {
-            color: var(--primary-color);
-        }
-        
-        .back-to-top {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: var(--primary-color);
-            color: white;
+
+        .info-icon {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            text-decoration: none;
-            opacity: 0;
-            transition: all 0.3s;
-            z-index: 1000;
+            margin-right: 0.8rem;
+            background: var(--gradient-primary);
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
         }
-        
-        .back-to-top.show {
-            opacity: 1;
+
+        /* Skills Section - Compact */
+        .skills-section {
+            background-color: #f8fafc;
         }
-        
+
         .skill-item {
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
         }
-        
+
         .skill-name {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            font-size: 0.85rem;
         }
-        
+
         .skill-bar {
             height: 8px;
-            background-color: #e0e0e0;
-            border-radius: 4px;
+            background-color: #e2e8f0;
+            border-radius: 8px;
             overflow: hidden;
         }
-        
+
         .skill-level {
             height: 100%;
-            background-color: var(--primary-color);
-            border-radius: 4px;
+            border-radius: 8px;
+            position: relative;
+            transition: width 1.5s ease-in-out;
+        }
+
+        .skill-level::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background-image: linear-gradient(
+                -45deg, 
+                rgba(255, 255, 255, 0.2) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255, 255, 255, 0.2) 50%, 
+                rgba(255, 255, 255, 0.2) 75%, 
+                transparent 75%, 
+                transparent
+            );
+            background-size: 15px 15px;
+            animation: move 1s linear infinite;
+        }
+
+        @keyframes move {
+            0% { background-position: 0 0; }
+            100% { background-position: 15px 0; }
+        }
+
+        /* Portfolio Section - Compact */
+        .portfolio-item {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .portfolio-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .portfolio-img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .portfolio-item:hover .portfolio-img {
+            transform: scale(1.05);
+        }
+
+        .portfolio-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            padding: 1rem;
+        }
+
+        .portfolio-item:hover .portfolio-overlay {
+            opacity: 1;
+        }
+
+        /* Collaboration Section - Compact */
+        .collaboration-section {
+            background: var(--gradient);
+            color: white;
+        }
+
+        .collaboration-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .collaboration-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .form-control {
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 1.2rem;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 0.85rem;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Contact Section - Compact */
+        .contact-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            padding: 1.2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .contact-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .contact-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1rem;
+            background: var(--gradient-primary);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        /* Footer - Compact */
+        .footer {
+            background: var(--dark);
+            color: white;
+            padding: 2.5rem 0 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-right: 0.6rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        /* Back to Top - Compact */
+        .back-to-top {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            font-size: 0.9rem;
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Text sizing adjustments */
+        p, li {
+            font-size: 0.85rem;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+        }
+
+        h5 {
+            font-size: 1rem;
+        }
+
+        h6 {
+            font-size: 0.9rem;
+        }
+
+        /* Modal Custom Styling */
+        .portfolio-modal .modal-content {
+            border-radius: 15px;
+            border: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .portfolio-modal .modal-header {
+            border-bottom: 1px solid #e9ecef;
+            padding: 1.5rem;
+        }
+
+        .portfolio-modal .modal-body {
+            padding: 1.5rem;
+        }
+
+        .portfolio-modal .modal-footer {
+            border-top: 1px solid #e9ecef;
+            padding: 1rem 1.5rem;
+        }
+
+        .portfolio-modal-img {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .tech-badge {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .project-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .project-link:hover {
+            color: var(--primary-dark);
+            transform: translateX(5px);
+        }
+
+        /* Mobile-specific adjustments */
+        @media (min-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .profile-image {
+                width: 220px;
+                height: 220px;
+                margin: 0;
+            }
+            
+            .hero-content {
+                text-align: left;
+            }
+            
+            .section-title {
+                font-size: 1.8rem;
+            }
+            
+            .section-title::after {
+                left: 0;
+                transform: none;
+            }
+            
+            .nav-link {
+                margin: 0 0.4rem;
+                text-align: left;
+                font-size: 0.85rem;
+            }
+            
+            .nav-link::after {
+                left: 0;
+                transform: none;
+            }
+            
+            .nav-link:hover::after,
+            .nav-link.active::after {
+                width: 100%;
+            }
+
+            body {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-section {
+                padding: 70px 0 30px;
+                min-height: 75vh;
+            }
+            
+            .hero-title {
+                font-size: 1.7rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 0.9rem;
+            }
+            
+            .profile-image {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .section {
+                padding: 40px 0;
+            }
+            
+            .section-title {
+                font-size: 1.4rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .about-content, .info-card, .collaboration-card {
+                padding: 1.2rem;
+            }
+            
+            .btn-primary {
+                padding: 0.5rem 1.2rem;
+                font-size: 0.8rem;
+                display: block;
+                width: 100%;
+                margin-bottom: 0.8rem;
+            }
+
+            .portfolio-img {
+                height: 140px;
+            }
+
+            .portfolio-modal .modal-header,
+            .portfolio-modal .modal-body,
+            .portfolio-modal .modal-footer {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .hero-title {
+                font-size: 1.5rem;
+            }
+            
+            .profile-image {
+                width: 130px;
+                height: 130px;
+            }
+            
+            .section-title {
+                font-size: 1.3rem;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="#">Vicky Satria Lindy</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <a class="navbar-brand" href="#">Vicky Satria</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="#home">Beranda</a>
+                        <a class="nav-link active" href="#home">Beranda</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#about">Tentang Saya</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#portfolio">Portofolio</a>
+                        <a class="nav-link" href="#about">Tentang</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#skills">Keahlian</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#contact">Kontak</a>
+                        <a class="nav-link" href="#portfolio">Portofolio</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-primary ms-2" href="#collaboration">Kerja Sama</a>
+                        <a class="nav-link" href="#collaboration">Kerja Sama</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact">Kontak</a>
                     </li>
                 </ul>
             </div>
@@ -231,58 +725,87 @@
 
     <!-- Hero Section -->
     <section id="home" class="hero-section">
+        <div class="particles-container" id="particles"></div>
         <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-4">
-                    <img src="https://via.placeholder.com/300" alt="Vicky Satria Lindy" class="profile-img">
+                <div class="col-lg-6 order-lg-1 order-2" data-aos="fade-right">
+                    <div class="hero-content">
+                        <h1 class="hero-title">Vicky Satria Lindy</h1>
+                        <p class="hero-subtitle">Profesional Muda Berpengalaman | 20 Tahun | Indonesia</p>
+                        <p class="mb-3">Saya adalah seorang profesional muda yang bersemangat dengan pengalaman di berbagai bidang. Dengan semangat belajar yang tinggi, saya siap memberikan kontribusi terbaik untuk setiap proyek.</p>
+                        <div class="d-flex flex-column flex-md-row">
+                            <a href="#contact" class="btn btn-primary me-md-2 mb-2 mb-md-0">Hubungi Saya</a>
+                            <a href="#portfolio" class="btn btn-outline-light">Lihat Portofolio</a>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-8">
-                    <h1 class="display-4 fw-bold">Vicky Satria Lindy</h1>
-                    <p class="lead">Profesional Muda Berpengalaman</p>
-                    <p class="mb-4">20 Tahun | Indonesia</p>
-                    <a href="#contact" class="btn btn-light btn-lg me-3">Hubungi Saya</a>
-                    <a href="#portfolio" class="btn btn-outline-light btn-lg">Lihat Portofolio</a>
+                <div class="col-lg-6 order-lg-2 order-1 text-center mb-3 mb-lg-0" data-aos="fade-left" data-aos-delay="200">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80" alt="Vicky Satria Lindy" class="profile-image">
                 </div>
             </div>
         </div>
     </section>
 
     <!-- About Section -->
-    <section id="about" class="about-content">
+    <section id="about" class="section">
         <div class="container">
-            <h2 class="section-title">Tentang Saya</h2>
+            <h2 class="section-title" data-aos="fade-up">Tentang Saya</h2>
             <div class="row">
-                <div class="col-md-6">
-                    <p>Saya adalah seorang profesional muda yang bersemangat dengan pengalaman di berbagai bidang. Dengan usia 20 tahun, saya telah mengembangkan keterampilan dan pengetahuan yang relevan dengan industri saat ini.</p>
-                    <p>Saya memiliki kemampuan beradaptasi yang cepat, semangat belajar yang tinggi, dan komitmen untuk memberikan hasil terbaik dalam setiap proyek yang saya tangani.</p>
-                    <p>Selalu terbuka untuk peluang baru dan tantangan yang dapat membantu saya berkembang secara profesional dan personal.</p>
+                <div class="col-lg-7 mb-3" data-aos="fade-right">
+                    <div class="about-content">
+                        <h3 class="mb-3">Profil Profesional</h3>
+                        <p class="mb-3">Saya adalah seorang profesional muda yang bersemangat dengan pengalaman di berbagai bidang. Dengan usia 20 tahun, saya telah mengembangkan keterampilan dan pengetahuan yang relevan dengan industri saat ini.</p>
+                        <p class="mb-3">Saya memiliki kemampuan beradaptasi yang cepat, semangat belajar yang tinggi, dan komitmen untuk memberikan hasil terbaik dalam setiap proyek yang saya tangani.</p>
+                        <p>Selalu terbuka untuk peluang baru dan tantangan yang dapat membantu saya berkembang secara profesional dan personal.</p>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Informasi Pribadi</h5>
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Nama:</span>
-                                    <span>Vicky Satria Lindy</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Usia:</span>
-                                    <span>20 Tahun</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Lokasi:</span>
-                                    <span>Indonesia</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Telepon:</span>
-                                    <span>0857-0945-8101</span>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>Email:</span>
-                                    <span>vlbusiness35@gmail.com</span>
-                                </li>
-                            </ul>
+                <div class="col-lg-5" data-aos="fade-left" data-aos-delay="200">
+                    <div class="info-card">
+                        <h4 class="mb-3">Informasi Pribadi</h4>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Nama Lengkap</h6>
+                                <p class="mb-0">Vicky Satria Lindy</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-birthday-cake"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Usia</h6>
+                                <p class="mb-0">20 Tahun</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Lokasi</h6>
+                                <p class="mb-0">Indonesia</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Telepon</h6>
+                                <p class="mb-0">0857-0945-8101</p>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Email</h6>
+                                <p class="mb-0">vlbusiness35@gmail.com</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -291,18 +814,18 @@
     </section>
 
     <!-- Skills Section -->
-    <section id="skills" class="py-5 bg-light">
+    <section id="skills" class="section skills-section">
         <div class="container">
-            <h2 class="section-title">Keahlian</h2>
+            <h2 class="section-title" data-aos="fade-up">Keahlian Saya</h2>
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-lg-6" data-aos="fade-right">
                     <div class="skill-item">
                         <div class="skill-name">
                             <span>Komunikasi</span>
                             <span>90%</span>
                         </div>
                         <div class="skill-bar">
-                            <div class="skill-level" style="width: 90%"></div>
+                            <div class="skill-level" style="width: 90%; background: var(--gradient-primary);"></div>
                         </div>
                     </div>
                     <div class="skill-item">
@@ -311,7 +834,7 @@
                             <span>85%</span>
                         </div>
                         <div class="skill-bar">
-                            <div class="skill-level" style="width: 85%"></div>
+                            <div class="skill-level" style="width: 85%; background: var(--gradient-secondary);"></div>
                         </div>
                     </div>
                     <div class="skill-item">
@@ -320,18 +843,18 @@
                             <span>95%</span>
                         </div>
                         <div class="skill-bar">
-                            <div class="skill-level" style="width: 95%"></div>
+                            <div class="skill-level" style="width: 95%; background: var(--gradient-accent);"></div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-lg-6" data-aos="fade-left" data-aos-delay="200">
                     <div class="skill-item">
                         <div class="skill-name">
                             <span>Pemecahan Masalah</span>
                             <span>88%</span>
                         </div>
                         <div class="skill-bar">
-                            <div class="skill-level" style="width: 88%"></div>
+                            <div class="skill-level" style="width: 88%; background: var(--gradient-primary);"></div>
                         </div>
                     </div>
                     <div class="skill-item">
@@ -340,7 +863,7 @@
                             <span>82%</span>
                         </div>
                         <div class="skill-bar">
-                            <div class="skill-level" style="width: 82%"></div>
+                            <div class="skill-level" style="width: 82%; background: var(--gradient-secondary);"></div>
                         </div>
                     </div>
                     <div class="skill-item">
@@ -349,7 +872,7 @@
                             <span>90%</span>
                         </div>
                         <div class="skill-bar">
-                            <div class="skill-level" style="width: 90%"></div>
+                            <div class="skill-level" style="width: 90%; background: var(--gradient-accent);"></div>
                         </div>
                     </div>
                 </div>
@@ -358,37 +881,43 @@
     </section>
 
     <!-- Portfolio Section -->
-    <section id="portfolio" class="py-5">
+    <section id="portfolio" class="section">
         <div class="container">
-            <h2 class="section-title">Portofolio</h2>
+            <h2 class="section-title" data-aos="fade-up">Portofolio Saya</h2>
             <div class="row">
-                <div class="col-md-4 mb-4">
+                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="100">
                     <div class="portfolio-item">
-                        <img src="https://via.placeholder.com/400x250" class="card-img-top" alt="Proyek 1">
-                        <div class="card-body">
-                            <h5 class="card-title">Proyek 1</h5>
-                            <p class="card-text">Deskripsi singkat tentang proyek pertama yang telah diselesaikan.</p>
-                            <a href="#" class="btn btn-primary">Lihat Detail</a>
+                        <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80" class="portfolio-img" alt="Proyek 1">
+                        <div class="portfolio-overlay">
+                            <div class="text-center text-white">
+                                <h4 class="mb-2">Aplikasi E-Commerce</h4>
+                                <p class="mb-2">Platform penjualan online dengan fitur lengkap</p>
+                                <button class="btn btn-primary btn-sm view-portfolio" data-project="1">Lihat Detail</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
+                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="200">
                     <div class="portfolio-item">
-                        <img src="https://via.placeholder.com/400x250" class="card-img-top" alt="Proyek 2">
-                        <div class="card-body">
-                            <h5 class="card-title">Proyek 2</h5>
-                            <p class="card-text">Deskripsi singkat tentang proyek kedua yang telah diselesaikan.</p>
-                            <a href="#" class="btn btn-primary">Lihat Detail</a>
+                        <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1115&q=80" class="portfolio-img" alt="Proyek 2">
+                        <div class="portfolio-overlay">
+                            <div class="text-center text-white">
+                                <h4 class="mb-2">Dashboard Analytics</h4>
+                                <p class="mb-2">Sistem monitoring data real-time untuk bisnis</p>
+                                <button class="btn btn-primary btn-sm view-portfolio" data-project="2">Lihat Detail</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4 mb-4">
+                <div class="col-lg-4 col-md-6" data-aos="zoom-in" data-aos-delay="300">
                     <div class="portfolio-item">
-                        <img src="https://via.placeholder.com/400x250" class="card-img-top" alt="Proyek 3">
-                        <div class="card-body">
-                            <h5 class="card-title">Proyek 3</h5>
-                            <p class="card-text">Deskripsi singkat tentang proyek ketiga yang telah diselesaikan.</p>
-                            <a href="#" class="btn btn-primary">Lihat Detail</a>
+                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" class="portfolio-img" alt="Proyek 3">
+                        <div class="portfolio-overlay">
+                            <div class="text-center text-white">
+                                <h4 class="mb-2">Mobile App UI/UX</h4>
+                                <p class="mb-2">Desain aplikasi mobile dengan user experience terbaik</p>
+                                <button class="btn btn-primary btn-sm view-portfolio" data-project="3">Lihat Detail</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -397,49 +926,47 @@
     </section>
 
     <!-- Collaboration Section -->
-    <section id="collaboration" class="py-5 bg-light">
+    <section id="collaboration" class="section collaboration-section">
         <div class="container">
-            <h2 class="section-title">Kerja Sama</h2>
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h3>Siap Bekerja Sama dengan Anda</h3>
-                    <p>Saya terbuka untuk berbagai peluang kerja sama, baik proyek jangka pendek maupun jangka panjang. Dengan semangat dan dedikasi tinggi, saya siap memberikan kontribusi terbaik untuk kesuksesan proyek Anda.</p>
-                    <ul>
-                        <li>Konsultasi gratis untuk proyek baru</li>
-                        <li>Pengerjaan tepat waktu</li>
-                        <li>Komunikasi yang transparan</li>
-                        <li>Hasil berkualitas tinggi</li>
-                    </ul>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Mulai Proyek Bersama</h5>
-                            <form>
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Nama</label>
-                                    <input type="text" class="form-control" id="name" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="email" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="project" class="form-label">Jenis Proyek</label>
-                                    <select class="form-select" id="project">
-                                        <option selected>Pilih jenis proyek...</option>
-                                        <option value="1">Web Development</option>
-                                        <option value="2">Design</option>
-                                        <option value="3">Konsultasi</option>
-                                        <option value="4">Lainnya</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="message" class="form-label">Pesan</label>
-                                    <textarea class="form-control" id="message" rows="4" required></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Kirim Permintaan</button>
-                            </form>
+            <h2 class="section-title text-white" data-aos="fade-up">Mari Bekerja Sama</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-10" data-aos="fade-up" data-aos-delay="200">
+                    <div class="collaboration-card">
+                        <div class="row">
+                            <div class="col-lg-6 mb-4 mb-lg-0">
+                                <h3 class="mb-3">Siap Bekerja Sama dengan Anda</h3>
+                                <p class="mb-3">Saya terbuka untuk berbagai peluang kerja sama, baik proyek jangka pendek maupun jangka panjang. Dengan semangat dan dedikasi tinggi, saya siap memberikan kontribusi terbaik untuk kesuksesan proyek Anda.</p>
+                                <ul class="list-unstyled">
+                                    <li class="mb-1"><i class="fas fa-check-circle me-2"></i> Konsultasi gratis untuk proyek baru</li>
+                                    <li class="mb-1"><i class="fas fa-check-circle me-2"></i> Pengerjaan tepat waktu</li>
+                                    <li class="mb-1"><i class="fas fa-check-circle me-2"></i> Komunikasi yang transparan</li>
+                                    <li class="mb-1"><i class="fas fa-check-circle me-2"></i> Hasil berkualitas tinggi</li>
+                                </ul>
+                            </div>
+                            <div class="col-lg-6">
+                                <h4 class="mb-3">Mulai Proyek Bersama</h4>
+                                <form>
+                                    <div class="mb-2">
+                                        <input type="text" class="form-control" placeholder="Nama Lengkap" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <input type="email" class="form-control" placeholder="Alamat Email" required>
+                                    </div>
+                                    <div class="mb-2">
+                                        <select class="form-control" required>
+                                            <option value="" disabled selected>Jenis Proyek</option>
+                                            <option value="web">Web Development</option>
+                                            <option value="design">Design</option>
+                                            <option value="consultation">Konsultasi</option>
+                                            <option value="other">Lainnya</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <textarea class="form-control" rows="3" placeholder="Deskripsi Proyek" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-light w-100">Kirim Permintaan</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -448,58 +975,70 @@
     </section>
 
     <!-- Contact Section -->
-    <section id="contact" class="contact-info">
+    <section id="contact" class="section">
         <div class="container">
-            <h2 class="section-title">Kontak</h2>
+            <h2 class="section-title" data-aos="fade-up">Hubungi Saya</h2>
             <div class="row">
-                <div class="col-md-6">
-                    <div class="contact-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-phone"></i>
+                <div class="col-lg-10 mx-auto">
+                    <div class="row mb-4">
+                        <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                            <div class="contact-item">
+                                <div class="contact-icon">
+                                    <i class="fas fa-phone"></i>
+                                </div>
+                                <div>
+                                    <h5>Telepon</h5>
+                                    <p class="mb-0">0857-0945-8101</p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h5>Telepon</h5>
-                            <p>0857-0945-8101</p>
+                        <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                            <div class="contact-item">
+                                <div class="contact-icon">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <div>
+                                    <h5>Email</h5>
+                                    <p class="mb-0">vlbusiness35@gmail.com</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                            <div class="contact-item">
+                                <div class="contact-icon">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <div>
+                                    <h5>Lokasi</h5>
+                                    <p class="mb-0">Indonesia</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="contact-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <div>
-                            <h5>Email</h5>
-                            <p>vlbusiness35@gmail.com</p>
-                        </div>
-                    </div>
-                    <div class="contact-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-map-marker-alt"></i>
-                        </div>
-                        <div>
-                            <h5>Lokasi</h5>
-                            <p>Indonesia</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Kirim Pesan Langsung</h5>
-                            <form>
-                                <div class="mb-3">
-                                    <label for="contactName" class="form-label">Nama</label>
-                                    <input type="text" class="form-control" id="contactName" required>
+                    <div class="row">
+                        <div class="col-lg-8 mx-auto" data-aos="fade-up" data-aos-delay="400">
+                            <div class="card shadow-lg">
+                                <div class="card-body p-3 p-md-4">
+                                    <h4 class="card-title text-center mb-3">Kirim Pesan Langsung</h4>
+                                    <form>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-2">
+                                                <input type="text" class="form-control" placeholder="Nama Lengkap" required>
+                                            </div>
+                                            <div class="col-md-6 mb-2">
+                                                <input type="email" class="form-control" placeholder="Alamat Email" required>
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <input type="text" class="form-control" placeholder="Subjek" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <textarea class="form-control" rows="4" placeholder="Pesan Anda" required></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100">Kirim Pesan</button>
+                                    </form>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="contactEmail" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="contactEmail" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="contactMessage" class="form-label">Pesan</label>
-                                    <textarea class="form-control" id="contactMessage" rows="4" required></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Kirim Pesan</button>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -511,28 +1050,38 @@
     <footer class="footer">
         <div class="container">
             <div class="row">
-                <div class="col-md-4 mb-4 mb-md-0">
-                    <h5>Vicky Satria Lindy</h5>
-                    <p>Profesional muda yang berdedikasi untuk memberikan hasil terbaik dalam setiap proyek.</p>
+                <div class="col-lg-4 mb-3 mb-lg-0">
+                    <h4 class="mb-3">Vicky Satria Lindy</h4>
+                    <p class="mb-0">Profesional muda yang berdedikasi untuk memberikan hasil terbaik dalam setiap proyek.</p>
                 </div>
-                <div class="col-md-4 mb-4 mb-md-0">
-                    <h5>Tautan Cepat</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#home" class="text-white text-decoration-none">Beranda</a></li>
-                        <li><a href="#about" class="text-white text-decoration-none">Tentang Saya</a></li>
-                        <li><a href="#portfolio" class="text-white text-decoration-none">Portofolio</a></li>
-                        <li><a href="#contact" class="text-white text-decoration-none">Kontak</a></li>
-                    </ul>
+                <div class="col-lg-4 mb-3 mb-lg-0">
+                    <h4 class="mb-3">Tautan Cepat</h4>
+                    <div class="row">
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-1"><a href="#home" class="text-white text-decoration-none">Beranda</a></li>
+                                <li class="mb-1"><a href="#about" class="text-white text-decoration-none">Tentang</a></li>
+                                <li class="mb-1"><a href="#skills" class="text-white text-decoration-none">Keahlian</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-1"><a href="#portfolio" class="text-white text-decoration-none">Portofolio</a></li>
+                                <li class="mb-1"><a href="#collaboration" class="text-white text-decoration-none">Kerja Sama</a></li>
+                                <li class="mb-1"><a href="#contact" class="text-white text-decoration-none">Kontak</a></li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <h5>Terhubung</h5>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                <div class="col-lg-4">
+                    <h4 class="mb-3">Terhubung</h4>
+                    <div class="social-links mb-3">
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
                         <a href="#"><i class="fab fa-instagram"></i></a>
                         <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
                     </div>
-                    <p class="mt-3">&copy; 2023 Vicky Satria Lindy. Semua hak dilindungi.</p>
+                    <p class="mb-0">&copy; 2023 Vicky Satria Lindy. Semua hak dilindungi.</p>
                 </div>
             </div>
         </div>
@@ -543,15 +1092,53 @@
         <i class="fas fa-arrow-up"></i>
     </a>
 
+    <!-- Portfolio Modal -->
+    <div class="modal fade portfolio-modal" id="portfolioModal" tabindex="-1" aria-labelledby="portfolioModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="portfolioModalLabel">Detail Proyek</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="portfolioModalBody">
+                    <!-- Content will be loaded here by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <a href="#" class="btn btn-primary" id="liveDemoLink" target="_blank">Lihat Demo</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AOS JS -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <!-- Custom JS -->
     <script>
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 80
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 30) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
         // Back to top button
         const backToTopButton = document.getElementById('backToTop');
         
         window.addEventListener('scroll', () => {
-            if (window.pageYOffset > 300) {
+            if (window.pageYOffset > 200) {
                 backToTopButton.classList.add('show');
             } else {
                 backToTopButton.classList.remove('show');
@@ -562,7 +1149,7 @@
             e.preventDefault();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
-        
+
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -573,6 +1160,14 @@
                 
                 const targetElement = document.querySelector(targetId);
                 if (targetElement) {
+                    // Close mobile navbar when clicking a link
+                    const navbarToggler = document.querySelector('.navbar-toggler');
+                    const navbarCollapse = document.querySelector('.navbar-collapse');
+                    
+                    if (navbarCollapse.classList.contains('show')) {
+                        navbarToggler.click();
+                    }
+                    
                     window.scrollTo({
                         top: targetElement.offsetTop - 70,
                         behavior: 'smooth'
@@ -580,7 +1175,35 @@
                 }
             });
         });
-        
+
+        // Create particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = window.innerWidth < 768 ? 20 : 35;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // Random size
+                const size = Math.random() * 12 + 3;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                // Random position
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                
+                // Random animation delay
+                particle.style.animationDelay = `${Math.random() * 15}s`;
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Initialize particles
+        createParticles();
+
         // Form submission handling
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', function(e) {
@@ -589,6 +1212,139 @@
                 this.reset();
             });
         });
+
+        // Animate skill bars on scroll
+        const skillBars = document.querySelectorAll('.skill-level');
+        
+        function animateSkillBars() {
+            skillBars.forEach(bar => {
+                const barWidth = bar.style.width;
+                bar.style.width = '0';
+                
+                setTimeout(() => {
+                    bar.style.width = barWidth;
+                }, 200);
+            });
+        }
+        
+        // Use Intersection Observer to trigger animation when skills section is in view
+        const skillsSection = document.getElementById('skills');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateSkillBars();
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+        
+        observer.observe(skillsSection);
+
+        // Portfolio Modal Functionality
+        const portfolioModal = new bootstrap.Modal(document.getElementById('portfolioModal'));
+        const portfolioModalBody = document.getElementById('portfolioModalBody');
+        const portfolioModalLabel = document.getElementById('portfolioModalLabel');
+        const liveDemoLink = document.getElementById('liveDemoLink');
+
+        // Portfolio data
+        const portfolioData = {
+            1: {
+                title: "Aplikasi E-Commerce",
+                image: "https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
+                description: "Platform e-commerce lengkap dengan sistem pembayaran terintegrasi, manajemen produk, dan dashboard admin. Dibangun dengan teknologi modern untuk memberikan pengalaman belanja online yang optimal.",
+                features: [
+                    "Sistem pembayaran terintegrasi dengan multiple gateway",
+                    "Manajemen produk dan kategori yang mudah",
+                    "Dashboard admin untuk monitoring penjualan",
+                    "Responsive design untuk semua perangkat",
+                    "Optimasi SEO untuk meningkatkan visibilitas"
+                ],
+                technologies: ["React", "Node.js", "MongoDB", "Express", "Stripe API"],
+                demoLink: "https://example.com/ecommerce-demo"
+            },
+            2: {
+                title: "Dashboard Analytics",
+                image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1115&q=80",
+                description: "Sistem dashboard analytics real-time untuk memantau performa bisnis. Menyajikan data dalam bentuk visual yang mudah dipahami dengan grafik interaktif dan laporan detail.",
+                features: [
+                    "Visualisasi data real-time dengan grafik interaktif",
+                    "Custom report generator",
+                    "Export data dalam berbagai format",
+                    "Alert system untuk anomaly detection",
+                    "Multi-user access dengan role management"
+                ],
+                technologies: ["Vue.js", "Python", "PostgreSQL", "D3.js", "Firebase"],
+                demoLink: "https://example.com/analytics-demo"
+            },
+            3: {
+                title: "Mobile App UI/UX",
+                image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+                description: "Desain user interface dan user experience untuk aplikasi mobile dengan fokus pada usability dan aesthetic. Menerapkan prinsip-prinsip design thinking untuk menciptakan pengalaman pengguna yang optimal.",
+                features: [
+                    "User-centered design approach",
+                    "Interactive prototypes dengan micro-interactions",
+                    "Design system yang konsisten",
+                    "Usability testing dan user feedback integration",
+                    "Cross-platform design consistency"
+                ],
+                technologies: ["Figma", "Adobe XD", "Sketch", "InVision", "Principle"],
+                demoLink: "https://example.com/mobileapp-demo"
+            }
+        };
+
+        // Add event listeners to portfolio buttons
+        document.querySelectorAll('.view-portfolio').forEach(button => {
+            button.addEventListener('click', function() {
+                const projectId = this.getAttribute('data-project');
+                loadPortfolioData(projectId);
+                portfolioModal.show();
+            });
+        });
+
+        // Function to load portfolio data into modal
+        function loadPortfolioData(projectId) {
+            const project = portfolioData[projectId];
+            
+            if (project) {
+                portfolioModalLabel.textContent = project.title;
+                liveDemoLink.href = project.demoLink;
+                
+                // Generate technologies badges
+                const techStackHTML = project.technologies.map(tech => 
+                    `<span class="tech-badge">${tech}</span>`
+                ).join('');
+                
+                // Generate features list
+                const featuresHTML = project.features.map(feature => 
+                    `<li>${feature}</li>`
+                ).join('');
+                
+                portfolioModalBody.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <img src="${project.image}" alt="${project.title}" class="portfolio-modal-img">
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Deskripsi Proyek</h5>
+                            <p>${project.description}</p>
+                            
+                            <h5 class="mt-4">Fitur Utama</h5>
+                            <ul>
+                                ${featuresHTML}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h5>Teknologi yang Digunakan</h5>
+                            <div class="tech-stack">
+                                ${techStackHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
     </script>
 </body>
 </html>
