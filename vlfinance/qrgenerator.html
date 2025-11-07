@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QRIS Generator - Vistra Pedia</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #8b5cf6;
+      --accent: #06d6a0;
+      --background: #0f172a;
+      --surface: #1e293b;
+      --surface-light: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --border: rgba(255, 255, 255, 0.1);
+      --shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 20%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      width: 100%;
+      padding: 30px;
+      border-radius: 20px;
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+      transform: translateY(-5px);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 4px;
+      background: var(--gradient);
+      border-radius: 2px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 15px;
+      color: var(--text-muted);
+      z-index: 1;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 14px 15px 14px 45px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text);
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .amount-input {
+      position: relative;
+    }
+
+    .currency {
+      position: absolute;
+      left: 45px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    .amount-input input {
+      padding-left: 70px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 14px 24px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .btn-primary {
+      background: var(--gradient);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--surface-light);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface);
+      transform: translateY(-2px);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #0da271;
+      transform: translateY(-2px);
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #e69008;
+      transform: translateY(-2px);
+    }
+
+    .result-section {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    #qrcode {
+      margin: 20px auto;
+      text-align: center;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      display: inline-block;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .qr-placeholder {
+      width: 256px;
+      height: 256px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      margin: 20px auto;
+    }
+
+    .qr-placeholder i {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      background: var(--success);
+      color: white;
+      box-shadow: var(--shadow);
+      transform: translateX(150%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.error {
+      background: var(--error);
+    }
+
+    .loader {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .amount-display {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 15px 0;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1><i class="fas fa-qrcode"></i> QRIS Generator</h1>
+        <p class="subtitle">Buat kode QRIS dengan nominal custom dan unduh sebagai gambar PNG</p>
+      </div>
+
+      <div class="form-group">
+        <label for="amount">Nominal Pembayaran</label>
+        <div class="amount-input">
+          <div class="input-group">
+            <i class="fas fa-money-bill-wave input-icon"></i>
+            <span class="currency">Rp</span>
+            <input id="amount" placeholder="Masukkan nominal (contoh: 25000)" value="25000" />
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="generate" class="btn-primary">
+          <i class="fas fa-bolt"></i> Generate QR
+        </button>
+        <button id="downloadPng" class="btn-success">
+          <i class="fas fa-download"></i> Download PNG
+        </button>
+      </div>
+
+      <div class="result-section">
+        <div id="amountDisplay" class="amount-display"></div>
+        <div id="qrcode">
+          <div class="qr-placeholder">
+            <i class="fas fa-qrcode"></i>
+            <p>Masukkan nominal dan tekan Generate</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>QRIS Generator &copy; 2023 Vistra Pedia</p>
+    </div>
+  </div>
+
+  <div class="notification" id="notification">
+    <i class="fas fa-check-circle"></i>
+    <span id="notification-text">Operasi berhasil!</span>
+  </div>
+
+  <script>
+    // Template payload QRIS (tetap ada di kode, tapi tidak ditampilkan)
+    const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Vistra Pedia6011Kab. Bangka610533253621960150011ID.DANA.WWW630491F1";
+
+    // Utility: replace or insert tag (EMV style: tag(2) + length(2) + value)
+    function replaceTag(payload, tag, newValue) {
+      const pos = payload.indexOf(tag);
+      if (pos !== -1) {
+        const oldLen = parseInt(payload.substr(pos+2,2), 10);
+        const start = pos;
+        const end = pos + 2 + 2 + oldLen;
+        const newLen = newValue.length.toString().padStart(2,'0');
+        return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
+      } else {
+        // insert before CRC tag '63' if exists, otherwise append
+        const crcPos = payload.indexOf('63');
+        const newLen = newValue.length.toString().padStart(2,'0');
+        const insert = tag + newLen + newValue;
+        if (crcPos !== -1) {
+          return payload.slice(0,crcPos) + insert + payload.slice(crcPos);
+        } else {
+          return payload + insert;
+        }
+      }
+    }
+
+    // CRC16-CCITT (0x1021) with initial value 0xFFFF, process bytes of ASCII characters
+    function crc16_ccitt(input) {
+      let crc = 0xFFFF;
+      for (let i=0;i<input.length;i++){
+        crc ^= (input.charCodeAt(i) & 0xFF) << 8;
+        for (let j=0;j<8;j++){
+          if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+          else crc = (crc << 1) & 0xFFFF;
+        }
+      }
+      return crc & 0xFFFF;
+    }
+
+    function toHex4(n) {
+      return n.toString(16).toUpperCase().padStart(4,'0');
+    }
+
+    // Format currency to Indonesian format
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+      }).format(amount);
+    }
+
+    // QR code generator
+    function generateQRCode(text) {
+      const container = document.getElementById('qrcode');
+      container.innerHTML = '';
+      
+      // Show loader
+      const loader = document.createElement('div');
+      loader.className = 'loader';
+      container.appendChild(loader);
+      
+      // Small delay to show loader
+      setTimeout(() => {
+        container.innerHTML = '';
+        try {
+          new QRCode(container, {
+            text: text,
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+          });
+        } catch (e) {
+          container.innerHTML = '<p>Error generating QR code. Please try again.</p>';
+          console.error(e);
+        }
+      }, 300);
+    }
+
+    // Show notification
+    function showNotification(message, isError = false) {
+      const notification = document.getElementById('notification');
+      const notificationText = document.getElementById('notification-text');
+      
+      notificationText.textContent = message;
+      notification.className = 'notification' + (isError ? ' error' : '');
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+
+    function prepareAndGenerate() {
+      const amountInput = document.getElementById('amount').value.trim();
+      
+      // Normalize amount: remove commas/whitespace
+      let amount = amountInput.replace(/[,\s]/g,'');
+      
+      // If user uses decimal like 25000.00, remove trailing .00
+      if (/^\d+\.00$/.test(amount)) amount = amount.split('.')[0];
+      
+      if (!/^\d+(\.\d+)?$/.test(amount)) { 
+        showNotification('Nominal tidak valid. Masukkan angka, contoh: 25000 atau 25000.00', true);
+        return; 
+      }
+      
+      // Display formatted amount
+      document.getElementById('amountDisplay').textContent = formatCurrency(amount);
+      
+      // For QRIS amount field, use without thousand separators and without currency symbol.
+      let amountValue = amount;
+
+      // Replace tag 54
+      let newPayload = replaceTag(template, '54', amountValue);
+
+      // Remove existing CRC (tag 63) if any
+      const crcTagPos = newPayload.indexOf('63');
+      if (crcTagPos !== -1) {
+        newPayload = newPayload.slice(0, crcTagPos);
+      }
+      
+      // Append CRC placeholder
+      const toCrc = newPayload + '63' + '04';
+      const crc = crc16_ccitt(toCrc);
+      const crcHex = toHex4(crc);
+      const finalPayload = toCrc + crcHex;
+
+      generateQRCode(finalPayload);
+      
+      showNotification('QR Code berhasil digenerate!');
+    }
+
+    // Download PNG via rendering canvas from QR
+    function downloadPNG(){
+      const container = document.getElementById('qrcode');
+      const img = container.querySelector('img');
+      const canvas = container.querySelector('canvas');
+      
+      if (img) {
+        const url = img.src;
+        const a = document.createElement('a'); 
+        a.href = url; 
+        a.download = 'qris.png'; 
+        a.click();
+        showNotification('QR Code berhasil diunduh!');
+      } else if (canvas) {
+        const url = canvas.toDataURL('image/png'); 
+        const a = document.createElement('a'); 
+        a.href = url; 
+        a.download = 'qris.png'; 
+        a.click();
+        showNotification('QR Code berhasil diunduh!');
+      } else {
+        showNotification('QR belum tersedia. Tekan Generate dan tunggu hingga QR muncul.', true);
+      }
+    }
+
+    // Attach events
+    document.getElementById('generate').addEventListener('click', prepareAndGenerate);
+    document.getElementById('downloadPng').addEventListener('click', downloadPNG);
+
+    // Auto-generate on load with default amount
+    window.addEventListener('load', () => {
+      try { 
+        prepareAndGenerate(); 
+      } catch(e) {
+        console.error(e);
+      }
+    });
+
+    // Auto-generate when Enter key is pressed in amount input
+    document.getElementById('amount').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        prepareAndGenerate();
+      }
+    });
+  </script>
+</body>
+</html>
