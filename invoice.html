@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLCrave Express - Invoice Generator</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better mobile experience */
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #f97316 0%, #eab308 100%);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #ea580c 0%, #ca8a04 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+        }
+        
+        /* Invoice modal styles */
+        .invoice-modal-container {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 1rem;
+        }
+        
+        .invoice-modal-content {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 28rem;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .invoice-modal-scroll {
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex: 1;
+            padding: 1.5rem;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .invoice-modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        .invoice-header-orange {
+            background: linear-gradient(135deg, #f97316 0%, #eab308 100%) !important;
+            padding: 1.5rem;
+            color: white;
+        }
+
+        .invoice-header-orange .logo-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 4rem;
+            height: 4rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            margin-bottom: 1rem;
+        }
+
+        .invoice-header-orange .logo-container img {
+            width: 2rem;
+            height: 2rem;
+        }
+
+        .invoice-header-orange h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .invoice-header-orange .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.875rem;
+            font-weight: 300;
+        }
+
+        .btn-orange-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #eab308 100%) !important;
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+
+        .btn-orange-gradient:hover {
+            background: linear-gradient(135deg, #ea580c 0%, #ca8a04 100%) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+        }
+
+        /* Invoice Generator Modal Styles */
+        .invoice-gen-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            padding: 1rem;
+        }
+        
+        .invoice-gen-content {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 28rem;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .invoice-gen-scroll {
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex: 1;
+            padding: 1.5rem;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .invoice-gen-footer {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-top: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+
+        /* Custom scrollbar styling */
+        .invoice-modal-scroll::-webkit-scrollbar,
+        .invoice-gen-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .invoice-modal-scroll::-webkit-scrollbar-track,
+        .invoice-gen-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .invoice-modal-scroll::-webkit-scrollbar-thumb,
+        .invoice-gen-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .invoice-modal-scroll::-webkit-scrollbar-thumb:hover,
+        .invoice-gen-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            .invoice-modal-container,
+            .invoice-gen-modal {
+                padding: 0.5rem;
+            }
+            
+            .invoice-modal-content,
+            .invoice-gen-content {
+                max-height: 95vh;
+                max-width: 100%;
+                border-radius: 0.75rem;
+            }
+            
+            .invoice-modal-scroll,
+            .invoice-gen-scroll {
+                padding: 1rem;
+            }
+            
+            .invoice-modal-actions,
+            .invoice-gen-footer {
+                flex-direction: column;
+                padding: 0.75rem;
+            }
+            
+            .invoice-modal-actions button,
+            .invoice-gen-footer button {
+                flex: 1;
+                min-height: 44px;
+            }
+            
+            .invoice-header-orange {
+                padding: 1.25rem;
+            }
+
+            .invoice-header-orange .logo-container {
+                width: 3.5rem;
+                height: 3.5rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .invoice-header-orange h1 {
+                font-size: 1.25rem;
+            }
+            
+            button {
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+        }
+        
+        /* Very small screens */
+        @media (max-width: 375px) {
+            .invoice-modal-scroll,
+            .invoice-gen-scroll {
+                padding: 0.75rem;
+            }
+            
+            .invoice-modal-actions,
+            .invoice-gen-footer {
+                gap: 0.25rem;
+                padding: 0.5rem;
+            }
+
+            .invoice-header-orange {
+                padding: 1rem;
+            }
+        }
+        
+        /* Prevent body scroll when modal is open */
+        body.modal-open {
+            overflow: hidden;
+        }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10001;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .notification.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .notification.info {
+            background: #3b82f6;
+            color: white;
+        }
+
+        /* Hidden utility */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
+                <img src="https://vlcrave.github.io/project/img/icon.png" alt="VLCrave Express" class="w-8 h-8">
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">VLCrave Express</h1>
+            <p class="text-gray-600">Layanan Pengiriman Premium & Invoice Generator</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-md mx-auto">
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Invoice Generator</h2>
+                <p class="text-gray-600 mb-6">Buat invoice dengan mudah menggunakan AI. Cukup ketik detail pesanan dan biarkan AI menganalisisnya.</p>
+                
+                <button onclick="app.showInvoiceGeneratorModal()" class="btn-primary w-full flex items-center justify-center gap-2">
+                    <i class="fas fa-robot"></i>
+                    Buat Invoice dengan AI
+                </button>
+            </div>
+
+            <!-- Features -->
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-white rounded-xl p-4 text-center shadow">
+                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-robot text-orange-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">AI Analysis</h3>
+                    <p class="text-xs text-gray-600 mt-1">Analisis otomatis detail pesanan</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 text-center shadow">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-download text-green-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">Download PNG</h3>
+                    <p class="text-xs text-gray-600 mt-1">Simpan invoice sebagai gambar</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 text-center shadow">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-share-alt text-blue-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">Share</h3>
+                    <p class="text-xs text-gray-600 mt-1">Bagikan invoice dengan mudah</p>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 text-center shadow">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-print text-purple-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-800 text-sm">Print</h3>
+                    <p class="text-xs text-gray-600 mt-1">Cetak invoice langsung</p>
+                </div>
+            </div>
+
+            <!-- Recent Invoices -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Invoice Terbaru</h2>
+                <div id="invoiceList" class="space-y-4">
+                    <!-- Invoices will be loaded here -->
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-receipt text-3xl mb-3"></i>
+                        <p>Belum ada invoice</p>
+                        <p class="text-sm">Buat invoice pertama Anda</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>© 2023 VLCrave Express. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+       const firebaseConfig = {
+  apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+  authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+  projectId: "vlcrave-whatsapp-order",
+  storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+  messagingSenderId: "796602954067",
+  appId: "1:796602954067:web:e10a110ae904decdc471a6",
+  measurementId: "G-XLWNDN39ZD"
+};
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // App object to hold all methods
+        const app = {
+            currentProducts: null,
+            currentShippingCost: 0,
+            currentInvoiceData: null,
+            lastInvoiceNumber: 0,
+            invoices: [],
+            user: null,
+            db: db,
+            modalEscapeListener: null,
+
+            // Initialize the app
+            init() {
+                console.log("VLCrave Express Invoice Generator initialized");
+                // In a real app, you would initialize authentication here
+                // For demo purposes, we'll simulate a logged-in user
+                this.user = { uid: "demo-user-" + Date.now() };
+                
+                // Load existing invoices
+                this.loadInvoicesFromFirestore();
+            },
+
+            // Show invoice generator modal
+            showInvoiceGeneratorModal() {
+                console.log("Opening invoice generator modal");
+                
+                // Close any existing modals first
+                this.closeInvoiceModal();
+
+                const modal = document.createElement('div');
+                
+                modal.className = 'invoice-gen-modal';
+                modal.innerHTML = `
+                    <div class="invoice-gen-content">
+                        <!-- Header -->
+                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-robot text-2xl"></i>
+                                    <div>
+                                        <h2 class="text-lg font-bold">AI Invoice Generator</h2>
+                                        <p class="text-indigo-200 text-xs">Ongkir otomatis dari detail pesanan</p>
+                                    </div>
+                                </div>
+                                <button onclick="app.closeInvoiceModal()" 
+                                        class="text-white hover:text-indigo-200 transition-colors">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Scrollable Content -->
+                        <div class="invoice-gen-scroll">
+                            <!-- AI Input Section -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-semibold text-gray-800 mb-3">
+                                    <i class="fas fa-edit text-indigo-500 mr-2"></i>
+                                    Detail Pesanan:
+                                </label>
+                                <textarea id="aiOrderInput" 
+                                          rows="6"
+                                          placeholder="Contoh:&#10;2x Spotify Premium 3 bulan @25.000&#10;1x Netflix 1 bulan 15.000&#10;Ongkir 5.000&#10;3x YouTube Premium 2 bulan @30.000"
+                                          class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+                                          ></textarea>
+                                <p class="text-xs text-gray-500 mt-2">
+                                    💡 AI akan otomatis ekstrak: produk, harga, quantity, dan ongkir
+                                </p>
+                            </div>
+
+                            <!-- Analysis Result -->
+                            <div id="analysisResult" class="hidden mb-6">
+                                <!-- Result will be shown here -->
+                            </div>
+
+                            <!-- Payment Method Only -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-semibold text-gray-800 mb-3">
+                                    <i class="fas fa-credit-card text-indigo-500 mr-2"></i>
+                                    Metode Pembayaran:
+                                </label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <label class="relative">
+                                        <input type="radio" name="paymentMethod" value="tunai" class="hidden peer" checked>
+                                        <div class="p-4 border-2 border-gray-300 rounded-xl text-center cursor-pointer transition-all peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-300">
+                                            <i class="fas fa-money-bill-wave text-lg mb-2"></i>
+                                            <div class="font-medium">Tunai</div>
+                                        </div>
+                                    </label>
+                                    <label class="relative">
+                                        <input type="radio" name="paymentMethod" value="transfer" class="hidden peer">
+                                        <div class="p-4 border-2 border-gray-300 rounded-xl text-center cursor-pointer transition-all peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-300">
+                                            <i class="fas fa-mobile-alt text-lg mb-2"></i>
+                                            <div class="font-medium">Transfer</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Summary -->
+                            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
+                                <h3 class="font-semibold text-indigo-800 mb-3 text-sm uppercase tracking-wide">Ringkasan</h3>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-indigo-700">Subtotal Produk:</span>
+                                        <span id="subtotalAmount" class="font-semibold text-indigo-900">Rp 0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-indigo-700">Ongkos Kirim:</span>
+                                        <span id="shippingAmount" class="font-semibold text-indigo-900">Rp 0</span>
+                                    </div>
+                                    <div class="border-t border-indigo-200 pt-2 mt-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-bold text-indigo-900">Total:</span>
+                                            <span id="totalAmount" class="font-bold text-lg text-indigo-600">Rp 0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="invoice-gen-footer">
+                            <button onclick="app.closeInvoiceModal()" 
+                                    class="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium">
+                                <i class="fas fa-times mr-2"></i>Batal
+                            </button>
+                            <button onclick="app.analyzeOrderWithAI()" 
+                                    class="flex-1 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 transition-colors font-medium">
+                                <i class="fas fa-robot"></i>
+                                Analisis AI
+                            </button>
+                            <button onclick="app.generateSimpleInvoice()" 
+                                    class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors font-medium">
+                                <i class="fas fa-receipt"></i>
+                                Buat Invoice
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                document.body.classList.add('modal-open');
+
+                // Handle click outside to close
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        this.closeInvoiceModal();
+                    }
+                });
+
+                // Handle escape key to close
+                this.modalEscapeListener = (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeInvoiceModal();
+                    }
+                };
+                document.addEventListener('keydown', this.modalEscapeListener);
+                
+                console.log("Modal successfully opened");
+            },
+
+            // Close invoice modal
+            closeInvoiceModal() {
+                const modals = document.querySelectorAll('.invoice-gen-modal, .invoice-modal-container');
+                modals.forEach(modal => {
+                    modal.remove();
+                });
+                document.body.classList.remove('modal-open');
+                
+                if (this.modalEscapeListener) {
+                    document.removeEventListener('keydown', this.modalEscapeListener);
+                    this.modalEscapeListener = null;
+                }
+            },
+
+            // Method untuk AI Analysis
+            async analyzeOrderWithAI() {
+                try {
+                    const aiOrderInput = document.getElementById('aiOrderInput');
+                    if (!aiOrderInput) {
+                        alert('Error: Form tidak ditemukan. Silakan refresh halaman.');
+                        return;
+                    }
+
+                    const orderText = aiOrderInput.value.trim();
+                    if (!orderText) {
+                        alert('Masukkan detail pesanan terlebih dahulu!');
+                        return;
+                    }
+
+                    const analysisResult = document.getElementById('analysisResult');
+                    if (!analysisResult) return;
+
+                    // Show loading
+                    analysisResult.classList.remove('hidden');
+                    analysisResult.innerHTML = `
+                        <div class="flex items-center justify-center gap-3 py-4">
+                            <i class="fas fa-spinner fa-spin text-indigo-500 text-lg"></i>
+                            <span class="text-indigo-700 font-medium">AI sedang menganalisis pesanan...</span>
+                        </div>
+                    `;
+
+                    // Simulate AI processing with a timeout
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    // For demo purposes, we'll use a simple parsing instead of actual AI
+                    const parsedData = this.fallbackParsing(orderText);
+                    
+                    this.displayAnalysisResult(parsedData);
+                    this.calculateTotal();
+
+                } catch (error) {
+                    console.error('AI Analysis Error:', error);
+                    this.showAnalysisError('Gagal menganalisis pesanan: ' + error.message);
+                }
+            },
+
+            // Fallback parsing for demo purposes
+            fallbackParsing(orderText) {
+                const products = [];
+                let shippingCost = 0;
+                
+                // Simple regex patterns for extraction
+                const productPattern = /(\d+)x\s+([^@]+?)\s+@?\s*(\d+[.,]?\d*)\s*(?:rb|ribu|k)?/gi;
+                const shippingPattern = /(ongkir|ongkos|biaya\s*kirim|shipping|delivery)\s*:?\s*(\d+[.,]?\d*)\s*(?:rb|ribu|k)?/i;
+                
+                // Extract products
+                let match;
+                while ((match = productPattern.exec(orderText)) !== null) {
+                    const quantity = parseInt(match[1]);
+                    const name = match[2].trim();
+                    let price = parseFloat(match[3].replace(',', '.'));
+                    
+                    // Handle "rb" or "k" suffix (e.g., 25rb = 25000)
+                    if (orderText.includes('rb') || orderText.includes('ribu') || orderText.includes('k')) {
+                        price = price * 1000;
+                    }
+                    
+                    products.push({
+                        name: name,
+                        quantity: quantity,
+                        price: price,
+                        total: quantity * price
+                    });
+                }
+                
+                // Extract shipping cost
+                const shippingMatch = orderText.match(shippingPattern);
+                if (shippingMatch && shippingMatch[2]) {
+                    shippingCost = parseFloat(shippingMatch[2].replace(',', '.'));
+                    
+                    // Handle "rb" or "k" suffix
+                    if (orderText.includes('rb') || orderText.includes('ribu') || orderText.includes('k')) {
+                        shippingCost = shippingCost * 1000;
+                    }
+                }
+                
+                // If no products found with pattern, try to extract manually
+                if (products.length === 0) {
+                    const lines = orderText.split('\n');
+                    for (const line of lines) {
+                        const trimmedLine = line.trim();
+                        if (trimmedLine && !trimmedLine.toLowerCase().includes('ongkir') && 
+                            !trimmedLine.toLowerCase().includes('ongkos') && 
+                            !trimmedLine.toLowerCase().includes('biaya kirim')) {
+                            
+                            // Try to extract quantity, name and price
+                            const parts = trimmedLine.split(/\s+/);
+                            let quantity = 1;
+                            let price = 0;
+                            let nameParts = [];
+                            
+                            for (let i = 0; i < parts.length; i++) {
+                                // Check if part is a quantity (e.g., "2x")
+                                if (parts[i].includes('x') && !isNaN(parseInt(parts[i].replace('x', '')))) {
+                                    quantity = parseInt(parts[i].replace('x', ''));
+                                }
+                                // Check if part is a price (number)
+                                else if (!isNaN(parseInt(parts[i].replace(/[.,]/g, '')))) {
+                                    price = parseInt(parts[i].replace(/[.,]/g, ''));
+                                } else {
+                                    nameParts.push(parts[i]);
+                                }
+                            }
+                            
+                            if (price > 0 && nameParts.length > 0) {
+                                products.push({
+                                    name: nameParts.join(' '),
+                                    quantity: quantity,
+                                    price: price,
+                                    total: quantity * price
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                return {
+                    products: products,
+                    shipping_cost: shippingCost
+                };
+            },
+
+            // Method showAnalysisError
+            showAnalysisError(message) {
+                const analysisResult = document.getElementById('analysisResult');
+                if (!analysisResult) return;
+                
+                analysisResult.className = 'bg-red-50 border border-red-200 rounded-xl p-4 mb-6';
+                analysisResult.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        <span class="text-red-700 font-medium">${message}</span>
+                    </div>
+                `;
+            },
+
+            // Method displayAnalysisResult
+            displayAnalysisResult(parsedData) {
+                const analysisResult = document.getElementById('analysisResult');
+                if (!analysisResult) return;
+
+                if (!parsedData.products || parsedData.products.length === 0) {
+                    this.showAnalysisError('Tidak dapat menemukan produk dalam pesanan. Pastikan format sesuai contoh.');
+                    return;
+                }
+
+                const subtotal = parsedData.products.reduce((sum, product) => sum + product.total, 0);
+                
+                // Store data untuk calculateTotal
+                this.currentProducts = parsedData.products;
+                this.currentShippingCost = parsedData.shipping_cost || 0;
+                
+                analysisResult.className = 'bg-green-50 border border-green-200 rounded-xl p-4 mb-6';
+                
+                const productsHTML = parsedData.products.map(product => `
+                    <div class="flex justify-between items-center py-2 border-b border-green-100 last:border-b-0">
+                        <div class="flex-1">
+                            <div class="font-medium text-green-800 text-sm">${product.quantity}x ${product.name}</div>
+                        </div>
+                        <div class="font-semibold text-green-700 text-sm">${this.formatCurrency(product.total)}</div>
+                    </div>
+                `).join('');
+                
+                const shippingHTML = this.currentShippingCost > 0 ? `
+                    <div class="flex justify-between items-center py-2 border-b border-green-100">
+                        <div class="flex-1">
+                            <div class="font-medium text-green-800 text-sm">📦 Ongkos Kirim</div>
+                        </div>
+                        <div class="font-semibold text-green-700 text-sm">${this.formatCurrency(this.currentShippingCost)}</div>
+                    </div>
+                ` : '';
+                
+                analysisResult.innerHTML = `
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                        <span class="font-semibold text-green-800">Analisis Berhasil</span>
+                    </div>
+                    <div class="text-sm">
+                        ${productsHTML}
+                        ${shippingHTML}
+                        <div class="flex justify-between items-center pt-2 mt-2 border-t border-green-200">
+                            <span class="font-bold text-green-800">Subtotal:</span>
+                            <span class="font-bold text-green-700">${this.formatCurrency(subtotal)}</span>
+                        </div>
+                    </div>
+                `;
+            },
+
+            // Method calculateTotal
+            calculateTotal() {
+                // Gunakan data dari AI analysis
+                const subtotal = this.currentProducts ? 
+                    this.currentProducts.reduce((sum, product) => sum + product.total, 0) : 0;
+                
+                const shippingCost = this.currentShippingCost || 0;
+                const total = subtotal + shippingCost;
+
+                // Update display dengan null check
+                const updateElement = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = this.formatCurrency(value);
+                };
+
+                updateElement('subtotalAmount', subtotal);
+                updateElement('shippingAmount', shippingCost);
+                updateElement('totalAmount', total);
+            },
+
+            // Method untuk generate nomor invoice auto-increment
+            async generateInvoiceNumber() {
+                try {
+                    if (!this.user) {
+                        // Fallback untuk user belum login
+                        return `VLC-${Date.now().toString().slice(-4)}`;
+                    }
+
+                    // In a real app, this would query Firestore
+                    // For demo, we'll use localStorage
+                    let lastNumber = localStorage.getItem('lastInvoiceNumber') || 0;
+                    lastNumber = parseInt(lastNumber) + 1;
+                    localStorage.setItem('lastInvoiceNumber', lastNumber);
+                    
+                    // Format: VLC-0001, VLC-0002, dst
+                    const nextNumber = lastNumber.toString().padStart(4, '0');
+                    return `VLC-${nextNumber}`;
+                    
+                } catch (error) {
+                    console.error('Error generating invoice number:', error);
+                    // Fallback ke timestamp
+                    return `VLC-${Date.now().toString().slice(-4)}`;
+                }
+            },
+
+            // Method generateSimpleInvoice
+            async generateSimpleInvoice() {
+                try {
+                    if (!this.currentProducts || this.currentProducts.length === 0) {
+                        alert('Silakan analisis pesanan terlebih dahulu dengan AI!');
+                        return;
+                    }
+
+                    // Get payment method
+                    const paymentMethodRadio = document.querySelector('input[name="paymentMethod"]:checked');
+                    const paymentMethod = paymentMethodRadio ? paymentMethodRadio.value : 'tunai';
+
+                    // Generate invoice number
+                    const invoiceNumber = await this.generateInvoiceNumber();
+
+                    // Generate invoice data
+                    const invoiceData = {
+                        products: this.currentProducts,
+                        subtotal: this.currentProducts.reduce((sum, product) => sum + product.total, 0),
+                        shippingCost: this.currentShippingCost,
+                        total: this.currentProducts.reduce((sum, product) => sum + product.total, 0) + this.currentShippingCost,
+                        paymentMethod: paymentMethod,
+                        invoiceNumber: invoiceNumber,
+                        date: new Date().toLocaleDateString('id-ID'),
+                        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    };
+
+                    this.showSimpleInvoice(invoiceData);
+
+                } catch (error) {
+                    console.error('Error generating invoice:', error);
+                    alert('Error membuat invoice: ' + error.message);
+                }
+            },
+
+            // Show simple invoice
+            showSimpleInvoice(invoiceData) {
+                const modal = document.createElement('div');
+
+                modal.className = 'invoice-modal-container';
+                modal.innerHTML = `
+                    <div class="invoice-modal-content">
+                        <!-- Header dengan Gradient Oranye-Kuning -->
+                        <div class="invoice-header-orange">
+                            <div class="text-center">
+                                <div class="logo-container">
+                                    <img src="https://vlcrave.github.io/project/img/icon.png" 
+                                         alt="VLCrave Express" class="w-8 h-8">
+                                </div>
+                                <h1>VLCrave Express</h1>
+                                <p class="subtitle">Layanan Pengiriman Premium</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Scrollable Content Area -->
+                        <div class="invoice-modal-scroll">
+                            <!-- Invoice Info Card -->
+                            <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">No Invoice</div>
+                                        <div class="font-mono font-bold text-slate-800 text-lg tracking-wide">${invoiceData.invoiceNumber}</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal</div>
+                                        <div class="font-semibold text-slate-700">${invoiceData.date}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Products Section -->
+                            <div class="mb-6">
+                                <div class="flex justify-between items-center mb-4 px-2">
+                                    <h3 class="font-semibold text-slate-800 text-sm uppercase tracking-wide">Detail Pesanan</h3>
+                                    <div class="flex gap-8 text-xs text-slate-500 font-medium">
+                                        <span class="w-8 text-center">Qty</span>
+                                        <span class="w-20 text-right">Harga</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    ${invoiceData.products.map(product => `
+                                        <div class="flex justify-between items-center bg-slate-50 rounded-lg p-3 border border-slate-100 hover:border-slate-200 transition-colors">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="font-medium text-slate-800 text-sm leading-tight truncate">${product.name}</div>
+                                            </div>
+                                            <div class="flex gap-8 items-center shrink-0">
+                                                <span class="w-8 text-center font-semibold text-slate-700 text-sm">${product.quantity}</span>
+                                                <span class="w-20 text-right font-semibold text-slate-800 text-sm">${this.formatCurrency(product.price)}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Summary Card -->
+                            <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-5 mb-6 border border-orange-200">
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-orange-800 font-medium">Subtotal</span>
+                                        <span class="font-semibold text-orange-800">${this.formatCurrency(invoiceData.subtotal)}</span>
+                                    </div>
+                                    ${invoiceData.shippingCost > 0 ? `
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-orange-800 font-medium">Biaya Pengiriman</span>
+                                        <span class="font-semibold text-orange-800">${this.formatCurrency(invoiceData.shippingCost)}</span>
+                                    </div>
+                                    ` : ''}
+                                    <div class="border-t border-orange-300 pt-3 mt-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-bold text-orange-900 text-lg">Total Pembayaran</span>
+                                            <span class="font-bold text-xl text-orange-900">${this.formatCurrency(invoiceData.total)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Method -->
+                            <div class="mb-6">
+                                ${invoiceData.paymentMethod === 'tunai' ? 
+                                    `<div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-sm shrink-0">
+                                                <i class="fas fa-money-bill-wave text-white text-sm"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="font-semibold text-orange-800 text-sm">Pembayaran Tunai</div>
+                                                <div class="text-xs text-orange-600">Mohon siapkan uang pas</div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white rounded-lg p-3 border border-orange-100 mt-2">
+                                            <div class="text-center">
+                                                <div class="text-xs text-orange-600 mb-1">Jumlah yang harus disiapkan</div>
+                                                <div class="font-bold text-lg text-orange-700">${this.formatCurrency(invoiceData.total)}</div>
+                                            </div>
+                                        </div>
+                                    </div>` :
+                                    `<div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                                        <div class="flex items-center gap-3 mb-2">
+                                            <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-sm shrink-0">
+                                                <i class="fas fa-mobile-alt text-white text-sm"></i>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="font-semibold text-orange-800 text-sm">Transfer</div>
+                                                <div class="text-xs text-orange-600">Anda tidak perlu membayar tagihan ini.</div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white rounded-lg p-3 border border-orange-100 mt-2">
+                                            <div class="text-center">
+                                                <div class="text-xs text-orange-600 mb-1">Tagihan akan diproses</div>
+                                                <div class="font-bold text-lg text-orange-700">${this.formatCurrency(invoiceData.total)}</div>
+                                            </div>
+                                        </div>
+                                    </div>`
+                                }
+                            </div>
+
+                            <!-- Footer Message -->
+                            <div class="text-center pt-4 border-t border-slate-200">
+                                <div class="text-xs text-slate-500 font-light">
+                                    Terima kasih telah memilih<br>
+                                    <span class="font-semibold text-orange-600">VLCrave Express Delivery Service</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="invoice-modal-actions">
+                            <button onclick="app.closeInvoiceModal()" 
+                                    class="flex-1 px-4 py-3 border border-slate-300 rounded-xl text-slate-700 hover:bg-white transition-all duration-200 font-medium text-sm shadow-sm">
+                                <i class="fas fa-times mr-2"></i>Tutup
+                            </button>
+                            <button onclick="app.printSimpleInvoice()" 
+                                    class="flex-1 px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-medium text-sm shadow-lg">
+                                <i class="fas fa-print"></i>
+                                Print
+                            </button>
+                            <button onclick="app.downloadAsPNG()" 
+                                    class="btn-orange-gradient flex-1 px-4 py-3 flex items-center justify-center gap-2">
+                                <i class="fas fa-download"></i>
+                                Download PNG
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                this.currentInvoiceData = invoiceData;
+
+                // Handle click outside to close
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        this.closeInvoiceModal();
+                    }
+                });
+
+                // Handle escape key to close
+                this.modalEscapeListener = (e) => {
+                    if (e.key === 'Escape') {
+                        this.closeInvoiceModal();
+                    }
+                };
+                document.addEventListener('keydown', this.modalEscapeListener);
+            },
+
+            // Method downloadAsPNG
+            async downloadAsPNG() {
+                try {
+                    if (!this.currentInvoiceData) {
+                        this.showNotification('❌ Tidak ada data invoice untuk didownload', 'error');
+                        return;
+                    }
+
+                    const data = this.currentInvoiceData;
+
+                    // Buat container struk dengan styling lengkap
+                    const receiptContainer = document.createElement('div');
+                    receiptContainer.id = 'invoice-receipt-container';
+                    receiptContainer.style.cssText = `
+                        width: 380px;
+                        min-height: 600px;
+                        background: white;
+                        padding: 25px;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        font-size: 13px;
+                        line-height: 1.4;
+                        color: #000000;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                        position: fixed;
+                        top: -10000px;
+                        left: -10000px;
+                        z-index: 10000;
+                        opacity: 1;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    `;
+
+                    // HTML content untuk receipt
+                    receiptContainer.innerHTML = this.generateReceiptHTML(data);
+
+                    // Tambahkan ke DOM
+                    document.body.appendChild(receiptContainer);
+
+                    // Tunggu untuk memastikan DOM terrender
+                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                    // Konfigurasi html2canvas
+                    const canvas = await html2canvas(receiptContainer, {
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        width: receiptContainer.offsetWidth,
+                        height: receiptContainer.scrollHeight,
+                        scrollX: 0,
+                        scrollY: 0,
+                        allowTaint: false,
+                        removeContainer: true,
+                        foreignObjectRendering: false,
+                        imageTimeout: 10000
+                    });
+
+                    // Convert to PNG dan download
+                    const pngData = canvas.toDataURL('image/png', 1.0);
+                    
+                    const link = document.createElement('a');
+                    link.download = `invoice-${data.invoiceNumber}-${new Date().getTime()}.png`;
+                    link.href = pngData;
+                    
+                    // Trigger download
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Cleanup
+                    this.cleanupReceiptContainer();
+                    
+                    this.showNotification(`✅ Invoice ${data.invoiceNumber} berhasil didownload!`, 'success');
+                    
+                } catch (error) {
+                    console.error('Error in downloadAsPNG:', error);
+                    this.showNotification('❌ Gagal download invoice: ' + error.message, 'error');
+                    
+                    // Cleanup jika error
+                    this.cleanupReceiptContainer();
+                }
+            },
+
+            // Helper function untuk cleanup
+            cleanupReceiptContainer() {
+                const container = document.getElementById('invoice-receipt-container');
+                if (container) {
+                    container.remove();
+                }
+            },
+
+            // Helper function untuk generate HTML receipt
+            generateReceiptHTML(data) {
+                return `
+                    <!-- Header dengan Logo Asli -->
+                    <div style="text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f1f5f9; box-sizing: border-box;">
+                        <div style="font-weight: 800; font-size: 18px; color: #1e293b; letter-spacing: -0.5px; margin-bottom: 4px;">
+                            VLCrave Express
+                        </div>
+                        <div style="font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
+                            Delivery Service
+                        </div>
+                    </div>
+
+                    <!-- Invoice Info Card -->
+                    <div style="background: linear-gradient(135deg, #fef7ed 0%, #fefce8 100%); border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+                            <div style="box-sizing: border-box;">
+                                <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
+                                    Invoice No
+                                </div>
+                                <div style="font-family: 'Courier New', monospace; font-weight: 800; font-size: 14px; color: #1e293b; box-sizing: border-box;">
+                                    ${data.invoiceNumber}
+                                </div>
+                            </div>
+                            <div style="text-align: right; box-sizing: border-box;">
+                                <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
+                                    Tanggal
+                                </div>
+                                <div style="font-weight: 600; font-size: 12px; color: #475569; box-sizing: border-box;">
+                                    ${data.date}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Section -->
+                    <div style="margin-bottom: 20px; box-sizing: border-box;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; box-sizing: border-box;">
+                            <div style="font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
+                                Detail Pesanan
+                            </div>
+                            <div style="display: flex; gap: 25px; font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
+                                <span style="width: 30px; text-align: center; box-sizing: border-box;">Qty</span>
+                                <span style="width: 70px; text-align: right; box-sizing: border-box;">Harga</span>
+                            </div>
+                        </div>
+
+                        <div style="box-sizing: border-box;">
+                            ${data.products.map(product => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 12px; margin-bottom: 6px; box-sizing: border-box;">
+                                    <div style="flex: 1; min-width: 0; box-sizing: border-box;">
+                                        <div style="font-weight: 600; font-size: 12px; color: #1e293b; margin-bottom: 2px; line-height: 1.3; box-sizing: border-box;">
+                                            ${product.name}
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 25px; align-items: center; flex-shrink: 0; box-sizing: border-box;">
+                                        <span style="width: 30px; text-align: center; font-weight: 700; color: #475569; font-size: 11px; box-sizing: border-box;">
+                                            ${product.quantity}
+                                        </span>
+                                        <span style="width: 70px; text-align: right; font-weight: 700; color: #1e293b; font-size: 11px; box-sizing: border-box;">
+                                            ${this.formatCurrencyNoSymbol(product.price)}
+                                        </span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Payment Method -->
+                    ${this.generatePaymentMethodHTML(data)}
+
+                    <!-- Summary Card -->
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; box-sizing: border-box;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
+                            <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Subtotal</span>
+                            <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.subtotal)}</span>
+                        </div>
+                        ${data.shippingCost > 0 ? `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
+                            <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Biaya Pengiriman</span>
+                            <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.shippingCost)}</span>
+                        </div>
+                        ` : ''}
+                        <div style="border-top: 1px solid #475569; padding-top: 12px; margin-top: 8px; box-sizing: border-box;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+                                <span style="font-weight: 800; font-size: 14px; color: white; box-sizing: border-box;">Total Pembayaran</span>
+                                <span style="font-weight: 800; font-size: 16px; color: white; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.total)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="text-align: center; padding-top: 16px; border-top: 2px dashed #e2e8f0; box-sizing: border-box;">
+                        <div style="font-size: 10px; color: #64748b; line-height: 1.4; margin-bottom: 8px; box-sizing: border-box;">
+                            Terima kasih telah mempercayai VLCrave Express sebagai layanan pengiriman anda
+                        </div>
+                        <div style="font-weight: 800; font-size: 12px; color: #f97316; letter-spacing: -0.5px; box-sizing: border-box;">
+                            VLCrave Express
+                        </div>
+                        <div style="font-size: 9px; color: #94a3b8; margin-top: 4px; box-sizing: border-box;">
+                            WA : 0857-0945-8101
+                        </div>
+                    </div>
+                `;
+            },
+
+            generatePaymentMethodHTML(data) {
+                if (data.paymentMethod === 'tunai') {
+                    return `
+                        <div style="margin-bottom: 20px; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-sizing: border-box;">
+                                <div style="width: 24px; height: 24px; background: #ea580c; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                                    <i class="fas fa-money-bill-wave" style="color: white; font-size: 12px;"></i>
+                                </div>
+                                <div style="box-sizing: border-box;">
+                                    <div style="font-weight: 700; font-size: 14px; color: #9a3412; box-sizing: border-box;">
+                                        Pembayaran Tunai
+                                    </div>
+                                    <div style="font-size: 11px; color: #ea580c; font-weight: 500; box-sizing: border-box;">
+                                        Mohon siapkan uang tunai
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background: #fff7ed; border-radius: 8px; padding: 16px; text-align: center; box-sizing: border-box;">
+                                <div style="font-size: 11px; color: #ea580c; font-weight: 600; margin-bottom: 6px; box-sizing: border-box;">
+                                    Jumlah yang harus disiapkan
+                                </div>
+                                <div style="font-weight: 800; font-size: 18px; color: #ea580c; box-sizing: border-box;">
+                                    ${this.formatCurrency(data.total)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div style="margin-bottom: 20px; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-sizing: border-box;">
+                                <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                                    <i class="fas fa-mobile-alt" style="color: white; font-size: 12px;"></i>
+                                </div>
+                                <div style="box-sizing: border-box;">
+                                    <div style="font-weight: 700; font-size: 14px; color: #166534; box-sizing: border-box;">
+                                        Transfer 
+                                    </div>
+                                    <div style="font-size: 11px; color: #16a34a; font-weight: 500; box-sizing: border-box;">
+                                        Anda tidak perlu membayar uang tunai kepada kurir
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="background: #f0fdf4; border-radius: 8px; padding: 16px; text-align: center; box-sizing: border-box;">
+                                <div style="font-size: 11px; color: #16a34a; font-weight: 600; margin-bottom: 6px; box-sizing: border-box;">
+                                    Tagihan akan diproses
+                                </div>
+                                <div style="font-weight: 800; font-size: 18px; color: #16a34a; box-sizing: border-box;">
+                                    ${this.formatCurrency(data.total)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+
+            // Method untuk print invoice
+            printSimpleInvoice() {
+                if (!this.currentInvoiceData) {
+                    this.showNotification('❌ Tidak ada data invoice untuk dicetak', 'error');
+                    return;
+                }
+
+                const data = this.currentInvoiceData;
+                const printWindow = window.open('', '_blank');
+                
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Invoice ${data.invoiceNumber} - VLCrave Express</title>
+                        <style>
+                            body { 
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                font-size: 14px;
+                                margin: 0;
+                                padding: 20px;
+                                background: white;
+                                color: black;
+                                max-width: 400px;
+                                margin: 0 auto;
+                            }
+                            .header {
+                                text-align: center;
+                                margin-bottom: 20px;
+                                padding-bottom: 20px;
+                                border-bottom: 2px solid #f1f5f9;
+                            }
+                            .company-name {
+                                font-weight: 800;
+                                font-size: 18px;
+                                color: #1e293b;
+                                margin-bottom: 4px;
+                            }
+                            .company-subtitle {
+                                font-size: 11px;
+                                color: #64748b;
+                                font-weight: 500;
+                                text-transform: uppercase;
+                                letter-spacing: 1px;
+                            }
+                            .invoice-info {
+                                background: #fef7ed;
+                                border: 1px solid #fed7aa;
+                                border-radius: 12px;
+                                padding: 16px;
+                                margin-bottom: 20px;
+                            }
+                            .invoice-number {
+                                font-family: 'Courier New', monospace;
+                                font-weight: 800;
+                                font-size: 16px;
+                                color: #1e293b;
+                            }
+                            .section-title {
+                                font-weight: 700;
+                                font-size: 12px;
+                                color: #475569;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                margin-bottom: 12px;
+                            }
+                            .product-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                background: #ffffff;
+                                border: 1px solid #f1f5f9;
+                                border-radius: 8px;
+                                padding: 12px;
+                                margin-bottom: 6px;
+                            }
+                            .product-name {
+                                font-weight: 600;
+                                font-size: 12px;
+                                color: #1e293b;
+                            }
+                            .product-qty {
+                                width: 30px;
+                                text-align: center;
+                                font-weight: 700;
+                                color: #475569;
+                                font-size: 11px;
+                            }
+                            .product-price {
+                                width: 70px;
+                                text-align: right;
+                                font-weight: 700;
+                                color: #1e293b;
+                                font-size: 11px;
+                            }
+                            .summary {
+                                background: #1e293b;
+                                border-radius: 12px;
+                                padding: 20px;
+                                margin-bottom: 20px;
+                                color: white;
+                            }
+                            .summary-row {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                margin-bottom: 8px;
+                            }
+                            .total-row {
+                                border-top: 1px solid #475569;
+                                padding-top: 12px;
+                                margin-top: 8px;
+                            }
+                            .footer {
+                                text-align: center;
+                                padding-top: 16px;
+                                border-top: 2px dashed #e2e8f0;
+                            }
+                            .thank-you {
+                                font-size: 10px;
+                                color: #64748b;
+                                line-height: 1.4;
+                                margin-bottom: 8px;
+                            }
+                            .contact {
+                                font-size: 9px;
+                                color: #94a3b8;
+                                margin-top: 4px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <div class="company-name">VLCrave Express</div>
+                            <div class="company-subtitle">Delivery Service</div>
+                        </div>
+                        
+                        <div class="invoice-info">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                                        Invoice No
+                                    </div>
+                                    <div class="invoice-number">${data.invoiceNumber}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                                        Tanggal
+                                    </div>
+                                    <div style="font-weight: 600; font-size: 12px; color: #475569;">
+                                        ${data.date}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="section-title">Detail Pesanan</div>
+                            ${data.products.map(product => `
+                                <div class="product-row">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div class="product-name">${product.name}</div>
+                                    </div>
+                                    <div style="display: flex; gap: 25px; align-items: center; flex-shrink: 0;">
+                                        <span class="product-qty">${product.quantity}</span>
+                                        <span class="product-price">${this.formatCurrencyNoSymbol(product.price)}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="summary">
+                            <div class="summary-row">
+                                <span style="font-size: 11px; color: #cbd5e1; font-weight: 600;">Subtotal</span>
+                                <span style="font-weight: 600; font-size: 12px;">${this.formatCurrencyNoSymbol(data.subtotal)}</span>
+                            </div>
+                            ${data.shippingCost > 0 ? `
+                            <div class="summary-row">
+                                <span style="font-size: 11px; color: #cbd5e1; font-weight: 600;">Biaya Pengiriman</span>
+                                <span style="font-weight: 600; font-size: 12px;">${this.formatCurrencyNoSymbol(data.shippingCost)}</span>
+                            </div>
+                            ` : ''}
+                            <div class="summary-row total-row">
+                                <span style="font-weight: 800; font-size: 14px; color: white;">Total Pembayaran</span>
+                                <span style="font-weight: 800; font-size: 16px; color: white;">${this.formatCurrencyNoSymbol(data.total)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="footer">
+                            <div class="thank-you">
+                                Terima kasih telah mempercayai VLCrave Express sebagai layanan pengiriman anda
+                            </div>
+                            <div style="font-weight: 800; font-size: 12px; color: #f97316; letter-spacing: -0.5px;">
+                                VLCrave Express
+                            </div>
+                            <div class="contact">
+                                WA : 0857-0945-8101
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `);
+                
+                printWindow.document.close();
+                printWindow.print();
+            },
+
+            // Method untuk save ke Firestore
+            async saveToFirestoreAndClose() {
+                try {
+                    if (!this.user) {
+                        alert('Silakan login terlebih dahulu untuk menyimpan invoice');
+                        return;
+                    }
+
+                    if (!this.currentInvoiceData) {
+                        alert('Tidak ada data invoice untuk disimpan');
+                        return;
+                    }
+
+                    // Siapkan data untuk Firestore
+                    const firestoreData = {
+                        ...this.currentInvoiceData,
+                        userId: this.user.uid,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        status: 'completed',
+                        type: 'delivery'
+                    };
+
+                    // Simpan ke Firestore
+                    await db.collection("invoices").add(firestoreData);
+                    
+                    this.showNotification(`✅ Invoice ${this.currentInvoiceData.invoiceNumber} berhasil disimpan!`, 'success');
+                    this.closeInvoiceModal();
+                    
+                } catch (error) {
+                    console.error("Error saving invoice to Firestore: ", error);
+                    this.showNotification('❌ Error menyimpan invoice: ' + error.message, 'error');
+                }
+            },
+
+            // Method untuk load invoices dari Firestore
+            async loadInvoicesFromFirestore() {
+                try {
+                    if (!this.user) {
+                        console.log('User not authenticated');
+                        return;
+                    }
+
+                    // In a real app, this would query Firestore
+                    // For demo, we'll use localStorage
+                    const storedInvoices = localStorage.getItem('invoices');
+                    if (storedInvoices) {
+                        this.invoices = JSON.parse(storedInvoices);
+                    } else {
+                        this.invoices = [];
+                    }
+
+                    this.renderInvoiceList();
+                    
+                } catch (error) {
+                    console.error("Error loading invoices from Firestore: ", error);
+                }
+            },
+
+            // Render invoice list
+            renderInvoiceList() {
+                const invoiceList = document.getElementById('invoiceList');
+                if (!invoiceList) return;
+
+                if (this.invoices.length === 0) {
+                    invoiceList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-receipt text-3xl mb-3"></i>
+                            <p>Belum ada invoice</p>
+                            <p class="text-sm">Buat invoice pertama Anda</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                invoiceList.innerHTML = this.invoices.map(invoice => `
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 hover:border-orange-300 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="font-bold text-gray-800">${invoice.invoiceNumber}</div>
+                                <div class="text-sm text-gray-600">${invoice.date}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-orange-600">${this.formatCurrency(invoice.total)}</div>
+                                <div class="text-xs text-gray-500 capitalize">${invoice.paymentMethod}</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="text-xs text-gray-500">
+                                ${invoice.products.length} item • ${invoice.products.reduce((sum, p) => sum + p.quantity, 0)} pcs
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="app.viewInvoice('${invoice.invoiceNumber}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-colors">
+                                    <i class="fas fa-eye mr-1"></i>Lihat
+                                </button>
+                                <button onclick="app.shareInvoice('${invoice.invoiceNumber}')" class="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1 rounded-lg transition-colors">
+                                    <i class="fas fa-share-alt mr-1"></i>Share
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            // View invoice
+            viewInvoice(invoiceNumber) {
+                const invoice = this.invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+                if (invoice) {
+                    this.currentInvoiceData = invoice;
+                    this.showSimpleInvoice(invoice);
+                }
+            },
+
+            // Share invoice
+            async shareInvoice(invoiceNumber) {
+                const invoice = this.invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+                if (!invoice) {
+                    this.showNotification('❌ Invoice tidak ditemukan', 'error');
+                    return;
+                }
+
+                try {
+                    // Create a temporary container for the invoice
+                    const tempContainer = document.createElement('div');
+                    tempContainer.id = 'temp-share-container';
+                    tempContainer.style.cssText = `
+                        width: 380px;
+                        min-height: 600px;
+                        background: white;
+                        padding: 25px;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        font-size: 13px;
+                        line-height: 1.4;
+                        color: #000000;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                        position: fixed;
+                        top: -10000px;
+                        left: -10000px;
+                        z-index: 10000;
+                        opacity: 1;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    `;
+
+                    tempContainer.innerHTML = this.generateReceiptHTML(invoice);
+                    document.body.appendChild(tempContainer);
+
+                    // Wait for rendering
+                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                    // Convert to canvas
+                    const canvas = await html2canvas(tempContainer, {
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        width: tempContainer.offsetWidth,
+                        height: tempContainer.scrollHeight,
+                        scrollX: 0,
+                        scrollY: 0
+                    });
+
+                    // Convert to blob
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                    
+                    // Check if Web Share API is available
+                    if (navigator.share && navigator.canShare) {
+                        const file = new File([blob], `invoice-${invoice.invoiceNumber}.png`, { type: 'image/png' });
+                        
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: `Invoice ${invoice.invoiceNumber}`,
+                                text: `Invoice dari VLCrave Express - ${invoice.invoiceNumber}`
+                            });
+                            this.showNotification('✅ Invoice berhasil dibagikan!', 'success');
+                        } else {
+                            // Fallback: download the image
+                            this.downloadBlob(blob, `invoice-${invoice.invoiceNumber}.png`);
+                            this.showNotification('✅ Invoice berhasil didownload!', 'success');
+                        }
+                    } else {
+                        // Fallback: download the image
+                        this.downloadBlob(blob, `invoice-${invoice.invoiceNumber}.png`);
+                        this.showNotification('✅ Invoice berhasil didownload!', 'success');
+                    }
+
+                    // Cleanup
+                    tempContainer.remove();
+                    
+                } catch (error) {
+                    console.error('Error sharing invoice:', error);
+                    this.showNotification('❌ Gagal membagikan invoice: ' + error.message, 'error');
+                }
+            },
+
+            // Download blob as file
+            downloadBlob(blob, filename) {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            },
+
+            // Method untuk show notification
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                // Animate in
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 100);
+                
+                // Auto remove setelah 3 detik
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            },
+
+            // Format currency dengan symbol
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(amount);
+            },
+
+            // Format currency tanpa symbol
+            formatCurrencyNoSymbol(amount) {
+                return new Intl.NumberFormat('id-ID').format(amount);
+            }
+        };
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
