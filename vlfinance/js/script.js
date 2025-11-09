@@ -803,7 +803,8 @@ renderSimpleInvoicePage() {
 
             <div class="bg-white rounded-lg border p-6 text-center">
                 <i class="fas fa-receipt text-4xl text-gray-300 mb-4"></i>
-                <h3 class="text-lg font-semibold text-gray-600 mb-2">Buat Invoice Simple</h3>
+                <h3 class="
+				text-lg font-semibold text-gray-600 mb-2">Buat Invoice Simple</h3>
                 <p class="text-gray-500 mb-4">Generate invoice cepat untuk VLCrave Express</p>
                 <button onclick="app.showInvoiceGeneratorModal()" 
                         class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg">
@@ -1825,11 +1826,11 @@ renderUserDashboard() {
                     </button>
                     
                     <button class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 active:scale-95 flex flex-col items-center"
-                            onclick="app.showScanReceiptModal()">
+                            onclick="app.showInvoiceGeneratorModal()">
                         <div class="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center mb-1">
                             <i class="fas fa-camera text-green-500 text-xs"></i>
                         </div>
-                        <span class="text-gray-600 text-xs font-medium">Scan</span>
+                        <span class="text-gray-600 text-xs font-medium">Invoice</span>
                     </button>
                 </div>
             </div>
