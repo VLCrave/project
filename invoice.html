@@ -301,6 +301,78 @@
         .hidden {
             display: none !important;
         }
+
+        /* Income Stats */
+        .income-stats {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Payment Method Styles - Simplified */
+        .payment-method-simple {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .payment-method-tunai {
+            background: #fef7ed;
+            border: 1px solid #fed7aa;
+        }
+
+        .payment-method-transfer {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+
+        .payment-icon {
+            font-size: 20px;
+        }
+
+        .payment-icon-tunai {
+            color: #ea580c;
+        }
+
+        .payment-icon-transfer {
+            color: #16a34a;
+        }
+
+        .payment-text {
+            flex: 1;
+        }
+
+        .payment-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .payment-title-tunai {
+            color: #9a3412;
+        }
+
+        .payment-title-transfer {
+            color: #166534;
+        }
+
+        .payment-subtitle {
+            font-size: 12px;
+        }
+
+        .payment-subtitle-tunai {
+            color: #ea580c;
+        }
+
+        .payment-subtitle-transfer {
+            color: #16a34a;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -313,6 +385,21 @@
             <h1 class="text-3xl font-bold text-gray-800 mb-2">VLCrave Express</h1>
             <p class="text-gray-600">Layanan Pengiriman Premium & Invoice Generator</p>
         </header>
+
+        <!-- Total Income Section -->
+        <div class="income-stats max-w-md mx-auto">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-lg font-bold">Total Pendapatan</h2>
+                    <p class="text-green-100 text-sm">Dari ongkir saja</p>
+                </div>
+                <i class="fas fa-money-bill-wave text-2xl"></i>
+            </div>
+            <div class="text-center">
+                <div id="totalIncome" class="text-3xl font-bold">Rp 0</div>
+                <p class="text-green-100 text-sm mt-2">Real-time update</p>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <main class="max-w-md mx-auto">
@@ -383,15 +470,15 @@
     </div>
 
     <script>
-       const firebaseConfig = {
-  apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
-  authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
-  projectId: "vlcrave-whatsapp-order",
-  storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
-  messagingSenderId: "796602954067",
-  appId: "1:796602954067:web:e10a110ae904decdc471a6",
-  measurementId: "G-XLWNDN39ZD"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
@@ -407,16 +494,49 @@
             user: null,
             db: db,
             modalEscapeListener: null,
+            unsubscribeIncome: null,
 
             // Initialize the app
             init() {
                 console.log("VLCrave Express Invoice Generator initialized");
-                // In a real app, you would initialize authentication here
-                // For demo purposes, we'll simulate a logged-in user
-                this.user = { uid: "demo-user-" + Date.now() };
+                
+                // Tidak perlu login untuk membuat invoice
+                this.user = { uid: "guest-user" };
                 
                 // Load existing invoices
                 this.loadInvoicesFromFirestore();
+                
+                // Load total income
+                this.loadTotalIncome();
+            },
+
+            // Load total income from ongkir only
+            loadTotalIncome() {
+                try {
+                    // Use onSnapshot for real-time updates
+                    this.unsubscribeIncome = db.collection("invoices")
+                        .onSnapshot((snapshot) => {
+                            let totalIncome = 0;
+                            snapshot.forEach((doc) => {
+                                const data = doc.data();
+                                if (data.shippingCost) {
+                                    totalIncome += data.shippingCost;
+                                }
+                            });
+                            
+                            // Update the UI
+                            const totalIncomeElement = document.getElementById('totalIncome');
+                            if (totalIncomeElement) {
+                                totalIncomeElement.textContent = this.formatCurrency(totalIncome);
+                            }
+                            
+                            console.log("Total income updated:", totalIncome);
+                        }, (error) => {
+                            console.error("Error loading total income:", error);
+                        });
+                } catch (error) {
+                    console.error("Error setting up income listener:", error);
+                }
             },
 
             // Show invoice generator modal
@@ -458,7 +578,7 @@
                                 </label>
                                 <textarea id="aiOrderInput" 
                                           rows="6"
-                                          placeholder="Contoh:&#10;2x Spotify Premium 3 bulan @25.000&#10;1x Netflix 1 bulan 15.000&#10;Ongkir 5.000&#10;3x YouTube Premium 2 bulan @30.000"
+                                          placeholder="Contoh:&#10;Teh tarik 10bngkus/serenceng/sepack (EV 8 Mart) 13.000&#10;Susu kental manis 1kleng (tiga sapi) (EV8 Mart) 15.000&#10;Gula 2kg (EV8 Mart) 25.000&#10;Ongkir 5.000"
                                           class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
                                           ></textarea>
                                 <p class="text-xs text-gray-500 mt-2">
@@ -614,83 +734,112 @@
                 }
             },
 
-            // Fallback parsing for demo purposes
+            // Enhanced parsing untuk menangani satuan dengan benar
             fallbackParsing(orderText) {
                 const products = [];
                 let shippingCost = 0;
                 
-                // Simple regex patterns for extraction
-                const productPattern = /(\d+)x\s+([^@]+?)\s+@?\s*(\d+[.,]?\d*)\s*(?:rb|ribu|k)?/gi;
-                const shippingPattern = /(ongkir|ongkos|biaya\s*kirim|shipping|delivery)\s*:?\s*(\d+[.,]?\d*)\s*(?:rb|ribu|k)?/i;
+                // Patterns for units that should be part of the product name
+                const unitPatterns = [
+                    /\b\d+\s*(pack|pax|pak|bngkus|bungkus)\b/gi,
+                    /\b\d+\s*(kg|kilogram|kilo)\b/gi,
+                    /\b\d+\s*(gr|gram)\b/gi,
+                    /\b\d+\s*(ons)\b/gi,
+                    /\b\d+\s*(pcs|pieces|buah|biji)\b/gi,
+                    /\b\d+\s*(botol|bottle)\b/gi,
+                    /\b\d+\s*(sachet)\b/gi,
+                    /\b\d+\s*(liter|ltr)\b/gi,
+                    /\b\d+\s*(ml|mililiter)\b/gi,
+                    /\b\d+\s*(kleng|kaleng)\b/gi,
+                    /\b\d+\s*(renceng|renceng)\b/gi,
+                    /\b\d+\s*(pck|pck)\b/gi
+                ];
                 
-                // Extract products
-                let match;
-                while ((match = productPattern.exec(orderText)) !== null) {
-                    const quantity = parseInt(match[1]);
-                    const name = match[2].trim();
-                    let price = parseFloat(match[3].replace(',', '.'));
-                    
-                    // Handle "rb" or "k" suffix (e.g., 25rb = 25000)
-                    if (orderText.includes('rb') || orderText.includes('ribu') || orderText.includes('k')) {
-                        price = price * 1000;
-                    }
-                    
-                    products.push({
-                        name: name,
-                        quantity: quantity,
-                        price: price,
-                        total: quantity * price
-                    });
-                }
-                
-                // Extract shipping cost
+                // Extract shipping cost first
+                const shippingPattern = /(ongkir|ongkos|biaya\s*kirim|shipping|delivery)\s*:?\s*(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k)?/i;
                 const shippingMatch = orderText.match(shippingPattern);
                 if (shippingMatch && shippingMatch[2]) {
                     shippingCost = parseFloat(shippingMatch[2].replace(',', '.'));
                     
                     // Handle "rb" or "k" suffix
-                    if (orderText.includes('rb') || orderText.includes('ribu') || orderText.includes('k')) {
+                    if (shippingMatch[0].toLowerCase().includes('rb') || 
+                        shippingMatch[0].toLowerCase().includes('ribu') || 
+                        shippingMatch[0].toLowerCase().includes('k')) {
                         shippingCost = shippingCost * 1000;
                     }
                 }
                 
-                // If no products found with pattern, try to extract manually
-                if (products.length === 0) {
-                    const lines = orderText.split('\n');
-                    for (const line of lines) {
-                        const trimmedLine = line.trim();
-                        if (trimmedLine && !trimmedLine.toLowerCase().includes('ongkir') && 
-                            !trimmedLine.toLowerCase().includes('ongkos') && 
-                            !trimmedLine.toLowerCase().includes('biaya kirim')) {
-                            
-                            // Try to extract quantity, name and price
-                            const parts = trimmedLine.split(/\s+/);
-                            let quantity = 1;
-                            let price = 0;
-                            let nameParts = [];
-                            
-                            for (let i = 0; i < parts.length; i++) {
-                                // Check if part is a quantity (e.g., "2x")
-                                if (parts[i].includes('x') && !isNaN(parseInt(parts[i].replace('x', '')))) {
-                                    quantity = parseInt(parts[i].replace('x', ''));
-                                }
-                                // Check if part is a price (number)
-                                else if (!isNaN(parseInt(parts[i].replace(/[.,]/g, '')))) {
-                                    price = parseInt(parts[i].replace(/[.,]/g, ''));
-                                } else {
-                                    nameParts.push(parts[i]);
-                                }
-                            }
-                            
-                            if (price > 0 && nameParts.length > 0) {
-                                products.push({
-                                    name: nameParts.join(' '),
-                                    quantity: quantity,
-                                    price: price,
-                                    total: quantity * price
-                                });
-                            }
+                // Split by lines and process each line
+                const lines = orderText.split('\n');
+                
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    
+                    // Skip empty lines and shipping lines
+                    if (!trimmedLine || 
+                        trimmedLine.toLowerCase().includes('ongkir') || 
+                        trimmedLine.toLowerCase().includes('ongkos') || 
+                        trimmedLine.toLowerCase().includes('biaya kirim')) {
+                        continue;
+                    }
+                    
+                    // Default quantity is 1
+                    let quantity = 1;
+                    let name = '';
+                    let price = 0;
+                    
+                    // Try to extract price (look for numbers at the end of the line)
+                    const priceMatch = trimmedLine.match(/(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k)?\s*$/);
+                    if (priceMatch) {
+                        price = parseFloat(priceMatch[1].replace(',', '.'));
+                        
+                        // Handle "rb" or "k" suffix
+                        if (trimmedLine.toLowerCase().includes('rb') || 
+                            trimmedLine.toLowerCase().includes('ribu') || 
+                            trimmedLine.toLowerCase().includes('k')) {
+                            price = price * 1000;
                         }
+                        
+                        // Remove price part from the line to get the product name
+                        name = trimmedLine.substring(0, priceMatch.index).trim();
+                    } else {
+                        // If no price found, try to find price anywhere in the line
+                        const anyPriceMatch = trimmedLine.match(/(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k)?/);
+                        if (anyPriceMatch) {
+                            price = parseFloat(anyPriceMatch[1].replace(',', '.'));
+                            
+                            // Handle "rb" or "k" suffix
+                            if (trimmedLine.toLowerCase().includes('rb') || 
+                                trimmedLine.toLowerCase().includes('ribu') || 
+                                trimmedLine.toLowerCase().includes('k')) {
+                                price = price * 1000;
+                            }
+                            
+                            name = trimmedLine.replace(anyPriceMatch[0], '').trim();
+                        } else {
+                            // If still no price, skip this line
+                            continue;
+                        }
+                    }
+                    
+                    // Check if there's an explicit quantity at the beginning (e.g., "2x", "3 pcs")
+                    const quantityMatch = name.match(/^(\d+)\s*(?:x|\s)/);
+                    if (quantityMatch) {
+                        quantity = parseInt(quantityMatch[1]);
+                        name = name.substring(quantityMatch[0].length).trim();
+                    }
+                    
+                    // Clean up the name - remove extra spaces and special characters
+                    name = name.replace(/\s+/g, ' ').trim();
+                    
+                    // Add the product if we have a valid name and price
+                    if (name && price > 0) {
+                        products.push({
+                            name: name,
+                            quantity: quantity,
+                            price: price,
+                            total: quantity * price
+                        });
                     }
                 }
                 
@@ -789,13 +938,7 @@
             // Method untuk generate nomor invoice auto-increment
             async generateInvoiceNumber() {
                 try {
-                    if (!this.user) {
-                        // Fallback untuk user belum login
-                        return `VLC-${Date.now().toString().slice(-4)}`;
-                    }
-
-                    // In a real app, this would query Firestore
-                    // For demo, we'll use localStorage
+                    // Generate invoice number tanpa perlu login
                     let lastNumber = localStorage.getItem('lastInvoiceNumber') || 0;
                     lastNumber = parseInt(lastNumber) + 1;
                     localStorage.setItem('lastInvoiceNumber', lastNumber);
@@ -838,6 +981,9 @@
                         time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     };
 
+                    // Save to Firestore tanpa perlu login
+                    await this.saveToFirestore(invoiceData);
+                    
                     this.showSimpleInvoice(invoiceData);
 
                 } catch (error) {
@@ -846,7 +992,31 @@
                 }
             },
 
-            // Show simple invoice
+            // Save to Firestore tanpa login
+            async saveToFirestore(invoiceData) {
+                try {
+                    const firestoreData = {
+                        ...invoiceData,
+                        userId: "guest-user",
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        status: 'completed',
+                        type: 'delivery'
+                    };
+
+                    // Simpan ke Firestore
+                    await db.collection("invoices").add(firestoreData);
+                    
+                    this.showNotification(`✅ Invoice ${invoiceData.invoiceNumber} berhasil dibuat!`, 'success');
+                    
+                } catch (error) {
+                    console.error("Error saving invoice to Firestore: ", error);
+                    // Tetap tampilkan invoice meskipun gagal save ke Firestore
+                    this.showNotification('⚠️ Invoice dibuat tapi gagal disimpan ke database', 'info');
+                }
+            },
+
+            // Show simple invoice dengan tampilan pembayaran yang disederhanakan
             showSimpleInvoice(invoiceData) {
                 const modal = document.createElement('div');
 
@@ -927,41 +1097,21 @@
                                 </div>
                             </div>
                             
-                            <!-- Payment Method -->
+                            <!-- Payment Method - Simplified -->
                             <div class="mb-6">
                                 ${invoiceData.paymentMethod === 'tunai' ? 
-                                    `<div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                                        <div class="flex items-center gap-3 mb-2">
-                                            <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-sm shrink-0">
-                                                <i class="fas fa-money-bill-wave text-white text-sm"></i>
-                                            </div>
-                                            <div class="min-w-0 flex-1">
-                                                <div class="font-semibold text-orange-800 text-sm">Pembayaran Tunai</div>
-                                                <div class="text-xs text-orange-600">Mohon siapkan uang pas</div>
-                                            </div>
-                                        </div>
-                                        <div class="bg-white rounded-lg p-3 border border-orange-100 mt-2">
-                                            <div class="text-center">
-                                                <div class="text-xs text-orange-600 mb-1">Jumlah yang harus disiapkan</div>
-                                                <div class="font-bold text-lg text-orange-700">${this.formatCurrency(invoiceData.total)}</div>
-                                            </div>
+                                    `<div class="payment-method-simple payment-method-tunai">
+                                        <i class="fas fa-money-bill-wave payment-icon payment-icon-tunai"></i>
+                                        <div class="payment-text">
+                                            <div class="payment-title payment-title-tunai">Pembayaran Tunai</div>
+                                            <div class="payment-subtitle payment-subtitle-tunai">Mohon siapkan uang pas</div>
                                         </div>
                                     </div>` :
-                                    `<div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                                        <div class="flex items-center gap-3 mb-2">
-                                            <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-sm shrink-0">
-                                                <i class="fas fa-mobile-alt text-white text-sm"></i>
-                                            </div>
-                                            <div class="min-w-0 flex-1">
-                                                <div class="font-semibold text-orange-800 text-sm">Transfer</div>
-                                                <div class="text-xs text-orange-600">Anda tidak perlu membayar tagihan ini.</div>
-                                            </div>
-                                        </div>
-                                        <div class="bg-white rounded-lg p-3 border border-orange-100 mt-2">
-                                            <div class="text-center">
-                                                <div class="text-xs text-orange-600 mb-1">Tagihan akan diproses</div>
-                                                <div class="font-bold text-lg text-orange-700">${this.formatCurrency(invoiceData.total)}</div>
-                                            </div>
+                                    `<div class="payment-method-simple payment-method-transfer">
+                                        <i class="fas fa-mobile-alt payment-icon payment-icon-transfer"></i>
+                                        <div class="payment-text">
+                                            <div class="payment-title payment-title-transfer">Transfer</div>
+                                            <div class="payment-subtitle payment-subtitle-transfer">Anda tidak perlu membayar uang tunai kepada kurir</div>
                                         </div>
                                     </div>`
                                 }
@@ -982,10 +1132,10 @@
                                     class="flex-1 px-4 py-3 border border-slate-300 rounded-xl text-slate-700 hover:bg-white transition-all duration-200 font-medium text-sm shadow-sm">
                                 <i class="fas fa-times mr-2"></i>Tutup
                             </button>
-                            <button onclick="app.printSimpleInvoice()" 
-                                    class="flex-1 px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-medium text-sm shadow-lg">
-                                <i class="fas fa-print"></i>
-                                Print
+                            <button onclick="app.shareInvoiceIOS()" 
+                                    class="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-medium text-sm shadow-lg">
+                                <i class="fab fa-apple mr-1"></i>
+                                Bagikan iOS
                             </button>
                             <button onclick="app.downloadAsPNG()" 
                                     class="btn-orange-gradient flex-1 px-4 py-3 flex items-center justify-center gap-2">
@@ -1013,6 +1163,116 @@
                     }
                 };
                 document.addEventListener('keydown', this.modalEscapeListener);
+            },
+
+            // Method untuk share di iOS - benar-benar share, bukan download
+            async shareInvoiceIOS() {
+                try {
+                    if (!this.currentInvoiceData) {
+                        this.showNotification('❌ Tidak ada data invoice untuk dibagikan', 'error');
+                        return;
+                    }
+
+                    const data = this.currentInvoiceData;
+
+                    // Buat container struk dengan styling lengkap
+                    const receiptContainer = document.createElement('div');
+                    receiptContainer.id = 'invoice-receipt-container';
+                    receiptContainer.style.cssText = `
+                        width: 380px;
+                        min-height: 600px;
+                        background: white;
+                        padding: 25px;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        font-size: 13px;
+                        line-height: 1.4;
+                        color: #000000;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                        position: fixed;
+                        top: -10000px;
+                        left: -10000px;
+                        z-index: 10000;
+                        opacity: 1;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    `;
+
+                    // HTML content untuk receipt
+                    receiptContainer.innerHTML = this.generateReceiptHTML(data);
+
+                    // Tambahkan ke DOM
+                    document.body.appendChild(receiptContainer);
+
+                    // Tunggu untuk memastikan DOM terrender
+                    await new Promise(resolve => setTimeout(resolve, 300));
+
+                    // Konfigurasi html2canvas
+                    const canvas = await html2canvas(receiptContainer, {
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        width: receiptContainer.offsetWidth,
+                        height: receiptContainer.scrollHeight,
+                        scrollX: 0,
+                        scrollY: 0,
+                        allowTaint: false,
+                        removeContainer: true,
+                        foreignObjectRendering: false,
+                        imageTimeout: 10000
+                    });
+
+                    // Convert to PNG
+                    const pngData = canvas.toDataURL('image/png', 1.0);
+                    
+                    // Convert data URL to blob untuk sharing
+                    const response = await fetch(pngData);
+                    const blob = await response.blob();
+                    const file = new File([blob], `invoice-${data.invoiceNumber}.png`, { type: 'image/png' });
+                    
+                    // Check if Web Share API is available (iOS/mobile)
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: `Invoice ${data.invoiceNumber} - VLCrave Express`,
+                                text: `Invoice dari VLCrave Express\nNo: ${data.invoiceNumber}\nTotal: ${this.formatCurrency(data.total)}`
+                            });
+                            this.showNotification('✅ Invoice berhasil dibagikan!', 'success');
+                        } catch (shareError) {
+                            console.error('Error sharing:', shareError);
+                            // Fallback: show download option
+                            this.downloadDataURL(pngData, `invoice-${data.invoiceNumber}.png`);
+                            this.showNotification('✅ Invoice berhasil didownload!', 'success');
+                        }
+                    } else {
+                        // Web Share API tidak tersedia, berikan opsi download
+                        this.downloadDataURL(pngData, `invoice-${data.invoiceNumber}.png`);
+                        this.showNotification('✅ Invoice berhasil didownload!', 'success');
+                    }
+
+                    // Cleanup
+                    this.cleanupReceiptContainer();
+                    
+                } catch (error) {
+                    console.error('Error in shareInvoiceIOS:', error);
+                    this.showNotification('❌ Gagal membagikan invoice: ' + error.message, 'error');
+                    
+                    // Cleanup jika error
+                    this.cleanupReceiptContainer();
+                }
+            },
+
+            // Helper function untuk download data URL
+            downloadDataURL(dataURL, filename) {
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = dataURL;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             },
 
             // Method downloadAsPNG
@@ -1077,14 +1337,7 @@
                     // Convert to PNG dan download
                     const pngData = canvas.toDataURL('image/png', 1.0);
                     
-                    const link = document.createElement('a');
-                    link.download = `invoice-${data.invoiceNumber}-${new Date().getTime()}.png`;
-                    link.href = pngData;
-                    
-                    // Trigger download
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    this.downloadDataURL(pngData, `invoice-${data.invoiceNumber}-${new Date().getTime()}.png`);
                     
                     // Cleanup
                     this.cleanupReceiptContainer();
@@ -1176,8 +1429,35 @@
                         </div>
                     </div>
 
-                    <!-- Payment Method -->
-                    ${this.generatePaymentMethodHTML(data)}
+                    <!-- Payment Method - Simplified -->
+                    ${data.paymentMethod === 'tunai' ? 
+                        `<div style="margin-bottom: 20px; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #fef7ed; border: 1px solid #fed7aa; border-radius: 8px; box-sizing: border-box;">
+                                <i class="fas fa-money-bill-wave" style="color: #ea580c; font-size: 20px; box-sizing: border-box;"></i>
+                                <div style="box-sizing: border-box;">
+                                    <div style="font-weight: 600; font-size: 14px; color: #9a3412; box-sizing: border-box;">
+                                        Pembayaran Tunai
+                                    </div>
+                                    <div style="font-size: 11px; color: #ea580c; font-weight: 500; box-sizing: border-box;">
+                                        Mohon siapkan uang pas
+                                    </div>
+                                </div>
+                            </div>
+                        </div>` :
+                        `<div style="margin-bottom: 20px; box-sizing: border-box;">
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; box-sizing: border-box;">
+                                <i class="fas fa-mobile-alt" style="color: #16a34a; font-size: 20px; box-sizing: border-box;"></i>
+                                <div style="box-sizing: border-box;">
+                                    <div style="font-weight: 600; font-size: 14px; color: #166534; box-sizing: border-box;">
+                                        Transfer
+                                    </div>
+                                    <div style="font-size: 11px; color: #16a34a; font-weight: 500; box-sizing: border-box;">
+                                        Anda tidak perlu membayar uang tunai kepada kurir
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`
+                    }
 
                     <!-- Summary Card -->
                     <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; box-sizing: border-box;">
@@ -1214,320 +1494,19 @@
                 `;
             },
 
-            generatePaymentMethodHTML(data) {
-                if (data.paymentMethod === 'tunai') {
-                    return `
-                        <div style="margin-bottom: 20px; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-sizing: border-box;">
-                                <div style="width: 24px; height: 24px; background: #ea580c; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                                    <i class="fas fa-money-bill-wave" style="color: white; font-size: 12px;"></i>
-                                </div>
-                                <div style="box-sizing: border-box;">
-                                    <div style="font-weight: 700; font-size: 14px; color: #9a3412; box-sizing: border-box;">
-                                        Pembayaran Tunai
-                                    </div>
-                                    <div style="font-size: 11px; color: #ea580c; font-weight: 500; box-sizing: border-box;">
-                                        Mohon siapkan uang tunai
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="background: #fff7ed; border-radius: 8px; padding: 16px; text-align: center; box-sizing: border-box;">
-                                <div style="font-size: 11px; color: #ea580c; font-weight: 600; margin-bottom: 6px; box-sizing: border-box;">
-                                    Jumlah yang harus disiapkan
-                                </div>
-                                <div style="font-weight: 800; font-size: 18px; color: #ea580c; box-sizing: border-box;">
-                                    ${this.formatCurrency(data.total)}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    return `
-                        <div style="margin-bottom: 20px; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-sizing: border-box;">
-                                <div style="width: 24px; height: 24px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-                                    <i class="fas fa-mobile-alt" style="color: white; font-size: 12px;"></i>
-                                </div>
-                                <div style="box-sizing: border-box;">
-                                    <div style="font-weight: 700; font-size: 14px; color: #166534; box-sizing: border-box;">
-                                        Transfer 
-                                    </div>
-                                    <div style="font-size: 11px; color: #16a34a; font-weight: 500; box-sizing: border-box;">
-                                        Anda tidak perlu membayar uang tunai kepada kurir
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="background: #f0fdf4; border-radius: 8px; padding: 16px; text-align: center; box-sizing: border-box;">
-                                <div style="font-size: 11px; color: #16a34a; font-weight: 600; margin-bottom: 6px; box-sizing: border-box;">
-                                    Tagihan akan diproses
-                                </div>
-                                <div style="font-weight: 800; font-size: 18px; color: #16a34a; box-sizing: border-box;">
-                                    ${this.formatCurrency(data.total)}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            },
-
-            // Method untuk print invoice
-            printSimpleInvoice() {
-                if (!this.currentInvoiceData) {
-                    this.showNotification('❌ Tidak ada data invoice untuk dicetak', 'error');
-                    return;
-                }
-
-                const data = this.currentInvoiceData;
-                const printWindow = window.open('', '_blank');
-                
-                printWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Invoice ${data.invoiceNumber} - VLCrave Express</title>
-                        <style>
-                            body { 
-                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                                font-size: 14px;
-                                margin: 0;
-                                padding: 20px;
-                                background: white;
-                                color: black;
-                                max-width: 400px;
-                                margin: 0 auto;
-                            }
-                            .header {
-                                text-align: center;
-                                margin-bottom: 20px;
-                                padding-bottom: 20px;
-                                border-bottom: 2px solid #f1f5f9;
-                            }
-                            .company-name {
-                                font-weight: 800;
-                                font-size: 18px;
-                                color: #1e293b;
-                                margin-bottom: 4px;
-                            }
-                            .company-subtitle {
-                                font-size: 11px;
-                                color: #64748b;
-                                font-weight: 500;
-                                text-transform: uppercase;
-                                letter-spacing: 1px;
-                            }
-                            .invoice-info {
-                                background: #fef7ed;
-                                border: 1px solid #fed7aa;
-                                border-radius: 12px;
-                                padding: 16px;
-                                margin-bottom: 20px;
-                            }
-                            .invoice-number {
-                                font-family: 'Courier New', monospace;
-                                font-weight: 800;
-                                font-size: 16px;
-                                color: #1e293b;
-                            }
-                            .section-title {
-                                font-weight: 700;
-                                font-size: 12px;
-                                color: #475569;
-                                text-transform: uppercase;
-                                letter-spacing: 0.5px;
-                                margin-bottom: 12px;
-                            }
-                            .product-row {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                background: #ffffff;
-                                border: 1px solid #f1f5f9;
-                                border-radius: 8px;
-                                padding: 12px;
-                                margin-bottom: 6px;
-                            }
-                            .product-name {
-                                font-weight: 600;
-                                font-size: 12px;
-                                color: #1e293b;
-                            }
-                            .product-qty {
-                                width: 30px;
-                                text-align: center;
-                                font-weight: 700;
-                                color: #475569;
-                                font-size: 11px;
-                            }
-                            .product-price {
-                                width: 70px;
-                                text-align: right;
-                                font-weight: 700;
-                                color: #1e293b;
-                                font-size: 11px;
-                            }
-                            .summary {
-                                background: #1e293b;
-                                border-radius: 12px;
-                                padding: 20px;
-                                margin-bottom: 20px;
-                                color: white;
-                            }
-                            .summary-row {
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                margin-bottom: 8px;
-                            }
-                            .total-row {
-                                border-top: 1px solid #475569;
-                                padding-top: 12px;
-                                margin-top: 8px;
-                            }
-                            .footer {
-                                text-align: center;
-                                padding-top: 16px;
-                                border-top: 2px dashed #e2e8f0;
-                            }
-                            .thank-you {
-                                font-size: 10px;
-                                color: #64748b;
-                                line-height: 1.4;
-                                margin-bottom: 8px;
-                            }
-                            .contact {
-                                font-size: 9px;
-                                color: #94a3b8;
-                                margin-top: 4px;
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header">
-                            <div class="company-name">VLCrave Express</div>
-                            <div class="company-subtitle">Delivery Service</div>
-                        </div>
-                        
-                        <div class="invoice-info">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                                        Invoice No
-                                    </div>
-                                    <div class="invoice-number">${data.invoiceNumber}</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                                        Tanggal
-                                    </div>
-                                    <div style="font-weight: 600; font-size: 12px; color: #475569;">
-                                        ${data.date}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <div class="section-title">Detail Pesanan</div>
-                            ${data.products.map(product => `
-                                <div class="product-row">
-                                    <div style="flex: 1; min-width: 0;">
-                                        <div class="product-name">${product.name}</div>
-                                    </div>
-                                    <div style="display: flex; gap: 25px; align-items: center; flex-shrink: 0;">
-                                        <span class="product-qty">${product.quantity}</span>
-                                        <span class="product-price">${this.formatCurrencyNoSymbol(product.price)}</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div class="summary">
-                            <div class="summary-row">
-                                <span style="font-size: 11px; color: #cbd5e1; font-weight: 600;">Subtotal</span>
-                                <span style="font-weight: 600; font-size: 12px;">${this.formatCurrencyNoSymbol(data.subtotal)}</span>
-                            </div>
-                            ${data.shippingCost > 0 ? `
-                            <div class="summary-row">
-                                <span style="font-size: 11px; color: #cbd5e1; font-weight: 600;">Biaya Pengiriman</span>
-                                <span style="font-weight: 600; font-size: 12px;">${this.formatCurrencyNoSymbol(data.shippingCost)}</span>
-                            </div>
-                            ` : ''}
-                            <div class="summary-row total-row">
-                                <span style="font-weight: 800; font-size: 14px; color: white;">Total Pembayaran</span>
-                                <span style="font-weight: 800; font-size: 16px; color: white;">${this.formatCurrencyNoSymbol(data.total)}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="footer">
-                            <div class="thank-you">
-                                Terima kasih telah mempercayai VLCrave Express sebagai layanan pengiriman anda
-                            </div>
-                            <div style="font-weight: 800; font-size: 12px; color: #f97316; letter-spacing: -0.5px;">
-                                VLCrave Express
-                            </div>
-                            <div class="contact">
-                                WA : 0857-0945-8101
-                            </div>
-                        </div>
-                    </body>
-                    </html>
-                `);
-                
-                printWindow.document.close();
-                printWindow.print();
-            },
-
-            // Method untuk save ke Firestore
-            async saveToFirestoreAndClose() {
-                try {
-                    if (!this.user) {
-                        alert('Silakan login terlebih dahulu untuk menyimpan invoice');
-                        return;
-                    }
-
-                    if (!this.currentInvoiceData) {
-                        alert('Tidak ada data invoice untuk disimpan');
-                        return;
-                    }
-
-                    // Siapkan data untuk Firestore
-                    const firestoreData = {
-                        ...this.currentInvoiceData,
-                        userId: this.user.uid,
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                        status: 'completed',
-                        type: 'delivery'
-                    };
-
-                    // Simpan ke Firestore
-                    await db.collection("invoices").add(firestoreData);
-                    
-                    this.showNotification(`✅ Invoice ${this.currentInvoiceData.invoiceNumber} berhasil disimpan!`, 'success');
-                    this.closeInvoiceModal();
-                    
-                } catch (error) {
-                    console.error("Error saving invoice to Firestore: ", error);
-                    this.showNotification('❌ Error menyimpan invoice: ' + error.message, 'error');
-                }
-            },
-
             // Method untuk load invoices dari Firestore
             async loadInvoicesFromFirestore() {
                 try {
-                    if (!this.user) {
-                        console.log('User not authenticated');
-                        return;
-                    }
-
-                    // In a real app, this would query Firestore
-                    // For demo, we'll use localStorage
-                    const storedInvoices = localStorage.getItem('invoices');
-                    if (storedInvoices) {
-                        this.invoices = JSON.parse(storedInvoices);
-                    } else {
-                        this.invoices = [];
-                    }
+                    // Load invoices tanpa perlu user login
+                    const querySnapshot = await db.collection("invoices")
+                        .orderBy("createdAt", "desc")
+                        .limit(10)
+                        .get();
+                    
+                    this.invoices = [];
+                    querySnapshot.forEach((doc) => {
+                        this.invoices.push(doc.data());
+                    });
 
                     this.renderInvoiceList();
                     
