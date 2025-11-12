@@ -373,6 +373,138 @@
         .payment-subtitle-transfer {
             color: #16a34a;
         }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat-card-today {
+            border-left: 4px solid #f97316;
+        }
+
+        .stat-card-total {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-icon-today {
+            background: #fed7aa;
+            color: #ea580c;
+        }
+
+        .stat-icon-total {
+            background: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .pagination-btn {
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .pagination-btn.active {
+            background: #f97316;
+            color: white;
+            border-color: #f97316;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* History Actions */
+        .history-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .history-action-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: #374151;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .history-action-btn:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .history-action-btn.active {
+            background: #fef7ed;
+            border-color: #fdba74;
+            color: #ea580c;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -385,6 +517,38 @@
             <h1 class="text-3xl font-bold text-gray-800 mb-2">VLCrave Express</h1>
             <p class="text-gray-600">Layanan Pengiriman Premium & Invoice Generator</p>
         </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid max-w-md mx-auto">
+            <div class="stat-card stat-card-today">
+                <div class="stat-icon stat-icon-today">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <div class="stat-value" id="deliveryToday">0</div>
+                <div class="stat-label">Pengantaran Hari Ini</div>
+            </div>
+            <div class="stat-card stat-card-total">
+                <div class="stat-icon stat-icon-total">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-value" id="deliveryTotal">0</div>
+                <div class="stat-label">Total Pengantaran</div>
+            </div>
+            <div class="stat-card stat-card-today">
+                <div class="stat-icon stat-icon-today">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-value" id="incomeToday">Rp 0</div>
+                <div class="stat-label">Penghasilan Hari Ini</div>
+            </div>
+            <div class="stat-card stat-card-total">
+                <div class="stat-icon stat-icon-total">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="stat-value" id="incomeTotal">Rp 0</div>
+                <div class="stat-label">Total Penghasilan</div>
+            </div>
+        </div>
 
         <!-- Total Income Section -->
         <div class="income-stats max-w-md mx-auto">
@@ -449,9 +613,27 @@
                 </div>
             </div>
 
-            <!-- Recent Invoices -->
+            <!-- History Section -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Invoice Terbaru</h2>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">History Invoice</h2>
+                    <div class="text-sm text-gray-500" id="invoiceCount">0 invoices</div>
+                </div>
+
+                <!-- History Actions -->
+                <div class="history-actions">
+                    <button id="filterAll" class="history-action-btn active" onclick="app.filterInvoices('all')">
+                        <i class="fas fa-list"></i> Semua
+                    </button>
+                    <button id="filterToday" class="history-action-btn" onclick="app.filterInvoices('today')">
+                        <i class="fas fa-calendar-day"></i> Hari Ini
+                    </button>
+                    <button id="filterWeek" class="history-action-btn" onclick="app.filterInvoices('week')">
+                        <i class="fas fa-calendar-week"></i> Minggu Ini
+                    </button>
+                </div>
+
+                <!-- Invoice List -->
                 <div id="invoiceList" class="space-y-4">
                     <!-- Invoices will be loaded here -->
                     <div class="text-center py-8 text-gray-500">
@@ -459,6 +641,11 @@
                         <p>Belum ada invoice</p>
                         <p class="text-sm">Buat invoice pertama Anda</p>
                     </div>
+                </div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="pagination hidden">
+                    <!-- Pagination buttons will be generated here -->
                 </div>
             </div>
         </main>
@@ -491,10 +678,15 @@
             currentInvoiceData: null,
             lastInvoiceNumber: 0,
             invoices: [],
+            filteredInvoices: [],
+            currentPage: 1,
+            invoicesPerPage: 10,
+            currentFilter: 'all',
             user: null,
             db: db,
             modalEscapeListener: null,
             unsubscribeIncome: null,
+            unsubscribeStats: null,
 
             // Initialize the app
             init() {
@@ -508,6 +700,9 @@
                 
                 // Load total income
                 this.loadTotalIncome();
+                
+                // Load stats
+                this.loadStats();
             },
 
             // Load total income from ongkir only
@@ -537,6 +732,89 @@
                 } catch (error) {
                     console.error("Error setting up income listener:", error);
                 }
+            },
+
+            // Load stats for dashboard
+            loadStats() {
+                try {
+                    this.unsubscribeStats = db.collection("invoices")
+                        .onSnapshot((snapshot) => {
+                            let deliveryToday = 0;
+                            let deliveryTotal = 0;
+                            let incomeToday = 0;
+                            let incomeTotal = 0;
+                            
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            snapshot.forEach((doc) => {
+                                const data = doc.data();
+                                const invoiceDate = data.createdAt ? data.createdAt.toDate() : new Date();
+                                
+                                // Count deliveries
+                                deliveryTotal++;
+                                if (invoiceDate >= today) {
+                                    deliveryToday++;
+                                }
+                                
+                                // Calculate income
+                                const shippingCost = data.shippingCost || 0;
+                                incomeTotal += shippingCost;
+                                if (invoiceDate >= today) {
+                                    incomeToday += shippingCost;
+                                }
+                            });
+                            
+                            // Update the UI
+                            document.getElementById('deliveryToday').textContent = deliveryToday;
+                            document.getElementById('deliveryTotal').textContent = deliveryTotal;
+                            document.getElementById('incomeToday').textContent = this.formatCurrency(incomeToday);
+                            document.getElementById('incomeTotal').textContent = this.formatCurrency(incomeTotal);
+                            
+                        }, (error) => {
+                            console.error("Error loading stats:", error);
+                        });
+                } catch (error) {
+                    console.error("Error setting up stats listener:", error);
+                }
+            },
+
+            // Filter invoices based on criteria
+            filterInvoices(filterType) {
+                this.currentFilter = filterType;
+                this.currentPage = 1;
+                
+                // Update active filter button
+                document.querySelectorAll('.history-action-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(`filter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`).classList.add('active');
+                
+                // Apply filter
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const weekAgo = new Date(today);
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                
+                switch(filterType) {
+                    case 'today':
+                        this.filteredInvoices = this.invoices.filter(invoice => {
+                            const invoiceDate = invoice.createdAt ? invoice.createdAt.toDate() : new Date(invoice.date);
+                            return invoiceDate >= today;
+                        });
+                        break;
+                    case 'week':
+                        this.filteredInvoices = this.invoices.filter(invoice => {
+                            const invoiceDate = invoice.createdAt ? invoice.createdAt.toDate() : new Date(invoice.date);
+                            return invoiceDate >= weekAgo;
+                        });
+                        break;
+                    default:
+                        this.filteredInvoices = [...this.invoices];
+                        break;
+                }
+                
+                this.renderInvoiceList();
             },
 
             // Show invoice generator modal
@@ -1500,14 +1778,17 @@
                     // Load invoices tanpa perlu user login
                     const querySnapshot = await db.collection("invoices")
                         .orderBy("createdAt", "desc")
-                        .limit(10)
+                        .limit(100) // Load more for pagination
                         .get();
                     
                     this.invoices = [];
                     querySnapshot.forEach((doc) => {
-                        this.invoices.push(doc.data());
+                        const data = doc.data();
+                        data.id = doc.id; // Store document ID for CRUD operations
+                        this.invoices.push(data);
                     });
 
+                    this.filteredInvoices = [...this.invoices];
                     this.renderInvoiceList();
                     
                 } catch (error) {
@@ -1515,12 +1796,20 @@
                 }
             },
 
-            // Render invoice list
+            // Render invoice list with pagination
             renderInvoiceList() {
                 const invoiceList = document.getElementById('invoiceList');
+                const pagination = document.getElementById('pagination');
+                const invoiceCount = document.getElementById('invoiceCount');
+                
                 if (!invoiceList) return;
 
-                if (this.invoices.length === 0) {
+                // Update invoice count
+                if (invoiceCount) {
+                    invoiceCount.textContent = `${this.filteredInvoices.length} invoices`;
+                }
+
+                if (this.filteredInvoices.length === 0) {
                     invoiceList.innerHTML = `
                         <div class="text-center py-8 text-gray-500">
                             <i class="fas fa-receipt text-3xl mb-3"></i>
@@ -1528,10 +1817,18 @@
                             <p class="text-sm">Buat invoice pertama Anda</p>
                         </div>
                     `;
+                    pagination.classList.add('hidden');
                     return;
                 }
 
-                invoiceList.innerHTML = this.invoices.map(invoice => `
+                // Calculate pagination
+                const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
+                const startIndex = (this.currentPage - 1) * this.invoicesPerPage;
+                const endIndex = startIndex + this.invoicesPerPage;
+                const currentInvoices = this.filteredInvoices.slice(startIndex, endIndex);
+
+                // Render invoices
+                invoiceList.innerHTML = currentInvoices.map(invoice => `
                     <div class="bg-white rounded-xl p-4 border border-gray-200 hover:border-orange-300 transition-colors">
                         <div class="flex justify-between items-start mb-2">
                             <div>
@@ -1551,13 +1848,63 @@
                                 <button onclick="app.viewInvoice('${invoice.invoiceNumber}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-colors">
                                     <i class="fas fa-eye mr-1"></i>Lihat
                                 </button>
-                                <button onclick="app.shareInvoice('${invoice.invoiceNumber}')" class="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1 rounded-lg transition-colors">
+                                <button onclick="app.shareInvoice('${invoice.id}', '${invoice.invoiceNumber}', '${invoice.paymentMethod}', ${invoice.total})" class="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1 rounded-lg transition-colors">
                                     <i class="fas fa-share-alt mr-1"></i>Share
+                                </button>
+                                <button onclick="app.deleteInvoice('${invoice.id}', '${invoice.invoiceNumber}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition-colors">
+                                    <i class="fas fa-trash mr-1"></i>Hapus
                                 </button>
                             </div>
                         </div>
                     </div>
                 `).join('');
+
+                // Render pagination
+                if (totalPages > 1) {
+                    pagination.classList.remove('hidden');
+                    let paginationHTML = '';
+                    
+                    // Previous button
+                    paginationHTML += `
+                        <button onclick="app.changePage(${this.currentPage - 1})" 
+                                class="pagination-btn" 
+                                ${this.currentPage === 1 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                    `;
+                    
+                    // Page numbers
+                    for (let i = 1; i <= totalPages; i++) {
+                        paginationHTML += `
+                            <button onclick="app.changePage(${i})" 
+                                    class="pagination-btn ${i === this.currentPage ? 'active' : ''}">
+                                ${i}
+                            </button>
+                        `;
+                    }
+                    
+                    // Next button
+                    paginationHTML += `
+                        <button onclick="app.changePage(${this.currentPage + 1})" 
+                                class="pagination-btn" 
+                                ${this.currentPage === totalPages ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    `;
+                    
+                    pagination.innerHTML = paginationHTML;
+                } else {
+                    pagination.classList.add('hidden');
+                }
+            },
+
+            // Change page for pagination
+            changePage(page) {
+                const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
+                if (page < 1 || page > totalPages) return;
+                
+                this.currentPage = page;
+                this.renderInvoiceList();
             },
 
             // View invoice
@@ -1569,88 +1916,102 @@
                 }
             },
 
-            // Share invoice
-            async shareInvoice(invoiceNumber) {
-                const invoice = this.invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+            // Share invoice dengan pesan khusus
+            async shareInvoice(id, invoiceNumber, paymentMethod, total) {
+                const invoice = this.invoices.find(inv => inv.id === id);
                 if (!invoice) {
                     this.showNotification('❌ Invoice tidak ditemukan', 'error');
                     return;
                 }
 
                 try {
-                    // Create a temporary container for the invoice
-                    const tempContainer = document.createElement('div');
-                    tempContainer.id = 'temp-share-container';
-                    tempContainer.style.cssText = `
-                        width: 380px;
-                        min-height: 600px;
-                        background: white;
-                        padding: 25px;
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        font-size: 13px;
-                        line-height: 1.4;
-                        color: #000000;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 16px;
-                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-                        position: fixed;
-                        top: -10000px;
-                        left: -10000px;
-                        z-index: 10000;
-                        opacity: 1;
-                        box-sizing: border-box;
-                        overflow: hidden;
-                    `;
-
-                    tempContainer.innerHTML = this.generateReceiptHTML(invoice);
-                    document.body.appendChild(tempContainer);
-
-                    // Wait for rendering
-                    await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Convert to canvas
-                    const canvas = await html2canvas(tempContainer, {
-                        scale: 3,
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: '#ffffff',
-                        width: tempContainer.offsetWidth,
-                        height: tempContainer.scrollHeight,
-                        scrollX: 0,
-                        scrollY: 0
-                    });
-
-                    // Convert to blob
-                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                    let shareText = '';
                     
-                    // Check if Web Share API is available
-                    if (navigator.share && navigator.canShare) {
-                        const file = new File([blob], `invoice-${invoice.invoiceNumber}.png`, { type: 'image/png' });
-                        
-                        if (navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                files: [file],
-                                title: `Invoice ${invoice.invoiceNumber}`,
-                                text: `Invoice dari VLCrave Express - ${invoice.invoiceNumber}`
-                            });
-                            this.showNotification('✅ Invoice berhasil dibagikan!', 'success');
-                        } else {
-                            // Fallback: download the image
-                            this.downloadBlob(blob, `invoice-${invoice.invoiceNumber}.png`);
-                            this.showNotification('✅ Invoice berhasil didownload!', 'success');
-                        }
+                    if (paymentMethod === 'transfer') {
+                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
+
+Untuk pembayaran Transfer silahkan ke nomor rekening dibawah
+
+BCA 
+6455106421
+a/n VICKY SATRIA LINDY
+Nominal : ${this.formatCurrency(total)}
+
+Terima kasih telah mempercayai VLCrave Express!`;
                     } else {
-                        // Fallback: download the image
-                        this.downloadBlob(blob, `invoice-${invoice.invoiceNumber}.png`);
-                        this.showNotification('✅ Invoice berhasil didownload!', 'success');
+                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
+
+Silahkan bayar sesuai nominal dibawah secara Tunai/Cash
+Nominal : ${this.formatCurrency(total)}
+
+Terima kasih telah mempercayai VLCrave Express!`;
                     }
 
-                    // Cleanup
-                    tempContainer.remove();
+                    // Check if Web Share API is available
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                title: `Invoice ${invoiceNumber} - VLCrave Express`,
+                                text: shareText
+                            });
+                            this.showNotification('✅ Pesan berhasil dibagikan!', 'success');
+                        } catch (shareError) {
+                            console.error('Error sharing:', shareError);
+                            // Fallback: copy to clipboard
+                            this.copyToClipboard(shareText);
+                            this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
+                        }
+                    } else {
+                        // Fallback: copy to clipboard
+                        this.copyToClipboard(shareText);
+                        this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
+                    }
                     
                 } catch (error) {
                     console.error('Error sharing invoice:', error);
-                    this.showNotification('❌ Gagal membagikan invoice: ' + error.message, 'error');
+                    this.showNotification('❌ Gagal membagikan pesan: ' + error.message, 'error');
+                }
+            },
+
+            // Copy text to clipboard
+            async copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (err) {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        return true;
+                    } catch (err) {
+                        document.body.removeChild(textArea);
+                        return false;
+                    }
+                }
+            },
+
+            // Delete invoice
+            async deleteInvoice(id, invoiceNumber) {
+                if (!confirm(`Apakah Anda yakin ingin menghapus invoice ${invoiceNumber}?`)) {
+                    return;
+                }
+
+                try {
+                    await db.collection("invoices").doc(id).delete();
+                    this.showNotification(`✅ Invoice ${invoiceNumber} berhasil dihapus!`, 'success');
+                    
+                    // Reload invoices
+                    this.loadInvoicesFromFirestore();
+                    
+                } catch (error) {
+                    console.error('Error deleting invoice:', error);
+                    this.showNotification('❌ Gagal menghapus invoice: ' + error.message, 'error');
                 }
             },
 
