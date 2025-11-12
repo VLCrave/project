@@ -505,14 +505,115 @@
             border-color: #fdba74;
             color: #ea580c;
         }
+
+        /* Refresh Button */
+        .btn-refresh {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-refresh:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-refresh:active {
+            transform: translateY(0);
+        }
+
+        .btn-refresh.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-refresh.loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Product Input Styles */
+        .product-item {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            align-items: end;
+        }
+
+        .product-input {
+            flex: 1;
+        }
+
+        .quantity-input {
+            width: 80px;
+        }
+
+        .price-input {
+            width: 120px;
+        }
+
+        .btn-remove {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-remove:hover {
+            background: #dc2626;
+        }
+
+        .btn-add {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-add:hover {
+            background: #059669;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
         <!-- Header -->
-        <header class="text-center mb-12">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg mb-4">
-                <img src="https://vlcrave.github.io/project/img/icon.png" alt="VLCrave Express" class="w-8 h-8">
+        <header class="text-center mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg">
+                    <img src="https://vlcrave.github.io/project/img/icon.png" alt="VLCrave Express" class="w-8 h-8">
+                </div>
+                <button onclick="app.refreshAllData()" class="btn-refresh flex items-center gap-2">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh Data
+                </button>
             </div>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">VLCrave Express</h1>
             <p class="text-gray-600">Layanan Pengiriman Premium & Invoice Generator</p>
@@ -570,11 +671,16 @@
             <!-- Quick Actions -->
             <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Invoice Generator</h2>
-                <p class="text-gray-600 mb-6">Buat invoice dengan mudah menggunakan AI. Cukup ketik detail pesanan dan biarkan AI menganalisisnya.</p>
+                <p class="text-gray-600 mb-6">Buat invoice dengan mudah menggunakan form input manual.</p>
                 
-                <button onclick="app.showInvoiceGeneratorModal()" class="btn-primary w-full flex items-center justify-center gap-2">
-                    <i class="fas fa-robot"></i>
-                    Buat Invoice dengan AI
+                <button onclick="app.showInvoiceGeneratorModal()" class="btn-primary w-full flex items-center justify-center gap-2 mb-3">
+                    <i class="fas fa-receipt"></i>
+                    Buat Invoice Manual
+                </button>
+                
+                <button onclick="app.cleanupOldData()" class="w-full flex items-center justify-center gap-2 px-4 py-3 border border-red-300 text-red-600 rounded-xl hover:bg-red-50 transition-colors">
+                    <i class="fas fa-trash"></i>
+                    Reset Semua Data
                 </button>
             </div>
 
@@ -582,10 +688,10 @@
             <div class="grid grid-cols-2 gap-4 mb-8">
                 <div class="bg-white rounded-xl p-4 text-center shadow">
                     <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-robot text-orange-500 text-xl"></i>
+                        <i class="fas fa-edit text-orange-500 text-xl"></i>
                     </div>
-                    <h3 class="font-semibold text-gray-800 text-sm">AI Analysis</h3>
-                    <p class="text-xs text-gray-600 mt-1">Analisis otomatis detail pesanan</p>
+                    <h3 class="font-semibold text-gray-800 text-sm">Input Manual</h3>
+                    <p class="text-xs text-gray-600 mt-1">Input produk satu per satu</p>
                 </div>
                 
                 <div class="bg-white rounded-xl p-4 text-center shadow">
@@ -673,7 +779,7 @@
 
         // App object to hold all methods
         const app = {
-            currentProducts: null,
+            currentProducts: [],
             currentShippingCost: 0,
             currentInvoiceData: null,
             lastInvoiceNumber: 0,
@@ -687,6 +793,7 @@
             modalEscapeListener: null,
             unsubscribeIncome: null,
             unsubscribeStats: null,
+            isRefreshing: false,
 
             // Initialize the app
             init() {
@@ -703,6 +810,40 @@
                 
                 // Load stats
                 this.loadStats();
+            },
+
+            // Refresh all data
+            async refreshAllData() {
+                if (this.isRefreshing) return;
+                
+                this.isRefreshing = true;
+                const refreshBtn = document.querySelector('.btn-refresh');
+                if (refreshBtn) {
+                    refreshBtn.classList.add('loading');
+                }
+                
+                try {
+                    this.showNotification('🔄 Memuat ulang semua data...', 'info');
+                    
+                    // Unsubscribe existing listeners
+                    if (this.unsubscribeIncome) this.unsubscribeIncome();
+                    if (this.unsubscribeStats) this.unsubscribeStats();
+                    
+                    // Reload all data
+                    await this.loadInvoicesFromFirestore();
+                    this.loadTotalIncome();
+                    this.loadStats();
+                    
+                    this.showNotification('✅ Data berhasil dimuat ulang!', 'success');
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                    this.showNotification('❌ Gagal memuat ulang data', 'error');
+                } finally {
+                    this.isRefreshing = false;
+                    if (refreshBtn) {
+                        refreshBtn.classList.remove('loading');
+                    }
+                }
             },
 
             // Load total income from ongkir only
@@ -725,7 +866,6 @@
                                 totalIncomeElement.textContent = this.formatCurrency(totalIncome);
                             }
                             
-                            console.log("Total income updated:", totalIncome);
                         }, (error) => {
                             console.error("Error loading total income:", error);
                         });
@@ -734,7 +874,7 @@
                 }
             },
 
-            // Load stats for dashboard
+            // Load stats for dashboard - FIXED VERSION
             loadStats() {
                 try {
                     this.unsubscribeStats = db.collection("invoices")
@@ -744,23 +884,34 @@
                             let incomeToday = 0;
                             let incomeTotal = 0;
                             
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
+                            // Get today's date properly
+                            const now = new Date();
+                            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+                            const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
                             
                             snapshot.forEach((doc) => {
                                 const data = doc.data();
-                                const invoiceDate = data.createdAt ? data.createdAt.toDate() : new Date();
+                                
+                                // Handle date properly
+                                let invoiceDate;
+                                if (data.createdAt) {
+                                    invoiceDate = data.createdAt.toDate();
+                                } else {
+                                    invoiceDate = new Date();
+                                }
                                 
                                 // Count deliveries
                                 deliveryTotal++;
-                                if (invoiceDate >= today) {
+                                
+                                // Check if invoice is from today
+                                if (invoiceDate >= todayStart && invoiceDate <= todayEnd) {
                                     deliveryToday++;
                                 }
                                 
                                 // Calculate income
                                 const shippingCost = data.shippingCost || 0;
                                 incomeTotal += shippingCost;
-                                if (invoiceDate >= today) {
+                                if (invoiceDate >= todayStart && invoiceDate <= todayEnd) {
                                     incomeToday += shippingCost;
                                 }
                             });
@@ -779,44 +930,6 @@
                 }
             },
 
-            // Filter invoices based on criteria
-            filterInvoices(filterType) {
-                this.currentFilter = filterType;
-                this.currentPage = 1;
-                
-                // Update active filter button
-                document.querySelectorAll('.history-action-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                document.getElementById(`filter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`).classList.add('active');
-                
-                // Apply filter
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const weekAgo = new Date(today);
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                
-                switch(filterType) {
-                    case 'today':
-                        this.filteredInvoices = this.invoices.filter(invoice => {
-                            const invoiceDate = invoice.createdAt ? invoice.createdAt.toDate() : new Date(invoice.date);
-                            return invoiceDate >= today;
-                        });
-                        break;
-                    case 'week':
-                        this.filteredInvoices = this.invoices.filter(invoice => {
-                            const invoiceDate = invoice.createdAt ? invoice.createdAt.toDate() : new Date(invoice.date);
-                            return invoiceDate >= weekAgo;
-                        });
-                        break;
-                    default:
-                        this.filteredInvoices = [...this.invoices];
-                        break;
-                }
-                
-                this.renderInvoiceList();
-            },
-
             // Show invoice generator modal
             showInvoiceGeneratorModal() {
                 console.log("Opening invoice generator modal");
@@ -833,10 +946,10 @@
                         <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
-                                    <i class="fas fa-robot text-2xl"></i>
+                                    <i class="fas fa-receipt text-2xl"></i>
                                     <div>
-                                        <h2 class="text-lg font-bold">AI Invoice Generator</h2>
-                                        <p class="text-indigo-200 text-xs">Ongkir otomatis dari detail pesanan</p>
+                                        <h2 class="text-lg font-bold">Manual Invoice Generator</h2>
+                                        <p class="text-indigo-200 text-xs">Input produk dan harga manual</p>
                                     </div>
                                 </div>
                                 <button onclick="app.closeInvoiceModal()" 
@@ -848,28 +961,37 @@
                         
                         <!-- Scrollable Content -->
                         <div class="invoice-gen-scroll">
-                            <!-- AI Input Section -->
+                            <!-- Products Section -->
                             <div class="mb-6">
                                 <label class="block text-sm font-semibold text-gray-800 mb-3">
-                                    <i class="fas fa-edit text-indigo-500 mr-2"></i>
-                                    Detail Pesanan:
+                                    <i class="fas fa-boxes text-indigo-500 mr-2"></i>
+                                    Daftar Produk:
                                 </label>
-                                <textarea id="aiOrderInput" 
-                                          rows="6"
-                                          placeholder="Contoh:&#10;Teh tarik 10bngkus/serenceng/sepack (EV 8 Mart) 13.000&#10;Susu kental manis 1kleng (tiga sapi) (EV8 Mart) 15.000&#10;Gula 2kg (EV8 Mart) 25.000&#10;Ongkir 5.000"
-                                          class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
-                                          ></textarea>
-                                <p class="text-xs text-gray-500 mt-2">
-                                    💡 AI akan otomatis ekstrak: produk, harga, quantity, dan ongkir
-                                </p>
+                                
+                                <div id="productsContainer">
+                                    <!-- Products will be added here -->
+                                </div>
+                                
+                                <button onclick="app.addProduct()" class="btn-add">
+                                    <i class="fas fa-plus"></i>
+                                    Tambah Produk
+                                </button>
                             </div>
 
-                            <!-- Analysis Result -->
-                            <div id="analysisResult" class="hidden mb-6">
-                                <!-- Result will be shown here -->
+                            <!-- Shipping Cost -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-semibold text-gray-800 mb-3">
+                                    <i class="fas fa-shipping-fast text-indigo-500 mr-2"></i>
+                                    Ongkos Kirim:
+                                </label>
+                                <input type="number" 
+                                       id="shippingCost" 
+                                       placeholder="0"
+                                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                       oninput="app.calculateTotalManual()">
                             </div>
 
-                            <!-- Payment Method Only -->
+                            <!-- Payment Method -->
                             <div class="mb-6">
                                 <label class="block text-sm font-semibold text-gray-800 mb-3">
                                     <i class="fas fa-credit-card text-indigo-500 mr-2"></i>
@@ -921,12 +1043,7 @@
                                     class="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium">
                                 <i class="fas fa-times mr-2"></i>Batal
                             </button>
-                            <button onclick="app.analyzeOrderWithAI()" 
-                                    class="flex-1 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 transition-colors font-medium">
-                                <i class="fas fa-robot"></i>
-                                Analisis AI
-                            </button>
-                            <button onclick="app.generateSimpleInvoice()" 
+                            <button onclick="app.generateManualInvoice()" 
                                     class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors font-medium">
                                 <i class="fas fa-receipt"></i>
                                 Buat Invoice
@@ -937,6 +1054,10 @@
 
                 document.body.appendChild(modal);
                 document.body.classList.add('modal-open');
+
+                // Initialize products
+                this.currentProducts = [];
+                this.addProduct();
 
                 // Handle click outside to close
                 modal.addEventListener('click', (e) => {
@@ -956,261 +1077,135 @@
                 console.log("Modal successfully opened");
             },
 
-            // Close invoice modal
-            closeInvoiceModal() {
-                const modals = document.querySelectorAll('.invoice-gen-modal, .invoice-modal-container');
-                modals.forEach(modal => {
-                    modal.remove();
-                });
-                document.body.classList.remove('modal-open');
+            // Add product input
+            addProduct() {
+                const productsContainer = document.getElementById('productsContainer');
+                const productId = Date.now();
                 
-                if (this.modalEscapeListener) {
-                    document.removeEventListener('keydown', this.modalEscapeListener);
-                    this.modalEscapeListener = null;
+                const productHtml = `
+                    <div class="product-item" id="product-${productId}">
+                        <div class="product-input">
+                            <label class="block text-xs text-gray-600 mb-1">Nama Produk</label>
+                            <input type="text" 
+                                   placeholder="Nama produk"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   oninput="app.calculateTotalManual()">
+                        </div>
+                        <div class="quantity-input">
+                            <label class="block text-xs text-gray-600 mb-1">Qty</label>
+                            <input type="number" 
+                                   value="1" 
+                                   min="1"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   oninput="app.calculateTotalManual()">
+                        </div>
+                        <div class="price-input">
+                            <label class="block text-xs text-gray-600 mb-1">Harga</label>
+                            <input type="number" 
+                                   placeholder="0"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   oninput="app.calculateTotalManual()">
+                        </div>
+                        <button type="button" onclick="app.removeProduct(${productId})" class="btn-remove">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                
+                productsContainer.insertAdjacentHTML('beforeend', productHtml);
+            },
+
+            // Remove product input
+            removeProduct(productId) {
+                const productElement = document.getElementById(`product-${productId}`);
+                if (productElement) {
+                    productElement.remove();
+                    this.calculateTotalManual();
                 }
             },
 
-            // Method untuk AI Analysis
-            async analyzeOrderWithAI() {
-                try {
-                    const aiOrderInput = document.getElementById('aiOrderInput');
-                    if (!aiOrderInput) {
-                        alert('Error: Form tidak ditemukan. Silakan refresh halaman.');
-                        return;
-                    }
-
-                    const orderText = aiOrderInput.value.trim();
-                    if (!orderText) {
-                        alert('Masukkan detail pesanan terlebih dahulu!');
-                        return;
-                    }
-
-                    const analysisResult = document.getElementById('analysisResult');
-                    if (!analysisResult) return;
-
-                    // Show loading
-                    analysisResult.classList.remove('hidden');
-                    analysisResult.innerHTML = `
-                        <div class="flex items-center justify-center gap-3 py-4">
-                            <i class="fas fa-spinner fa-spin text-indigo-500 text-lg"></i>
-                            <span class="text-indigo-700 font-medium">AI sedang menganalisis pesanan...</span>
-                        </div>
-                    `;
-
-                    // Simulate AI processing with a timeout
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-
-                    // For demo purposes, we'll use a simple parsing instead of actual AI
-                    const parsedData = this.fallbackParsing(orderText);
+            // Calculate total for manual input
+            calculateTotalManual() {
+                let subtotal = 0;
+                const productElements = document.querySelectorAll('.product-item');
+                
+                productElements.forEach(element => {
+                    const quantity = parseInt(element.querySelector('.quantity-input input').value) || 0;
+                    const price = parseInt(element.querySelector('.price-input input').value) || 0;
+                    subtotal += quantity * price;
+                });
+                
+                const shippingCost = parseInt(document.getElementById('shippingCost').value) || 0;
+                const total = subtotal + shippingCost;
+                
+                // Update display
+                document.getElementById('subtotalAmount').textContent = this.formatCurrency(subtotal);
+                document.getElementById('shippingAmount').textContent = this.formatCurrency(shippingCost);
+                document.getElementById('totalAmount').textContent = this.formatCurrency(total);
+                
+                // Store current data
+                this.currentProducts = Array.from(productElements).map(element => {
+                    const name = element.querySelector('.product-input input').value || 'Produk';
+                    const quantity = parseInt(element.querySelector('.quantity-input input').value) || 1;
+                    const price = parseInt(element.querySelector('.price-input input').value) || 0;
                     
-                    this.displayAnalysisResult(parsedData);
-                    this.calculateTotal();
+                    return {
+                        name: name,
+                        quantity: quantity,
+                        price: price,
+                        total: quantity * price
+                    };
+                });
+                
+                this.currentShippingCost = shippingCost;
+            },
+
+            // Generate invoice from manual input
+            async generateManualInvoice() {
+                try {
+                    // Validate products
+                    const validProducts = this.currentProducts.filter(product => 
+                        product.name && product.name !== 'Produk' && product.price > 0
+                    );
+                    
+                    if (validProducts.length === 0) {
+                        alert('Silakan tambahkan minimal satu produk dengan harga yang valid!');
+                        return;
+                    }
+
+                    // Get payment method
+                    const paymentMethodRadio = document.querySelector('input[name="paymentMethod"]:checked');
+                    const paymentMethod = paymentMethodRadio ? paymentMethodRadio.value : 'tunai';
+
+                    // Generate invoice number
+                    const invoiceNumber = await this.generateInvoiceNumber();
+
+                    // Calculate totals
+                    const subtotal = validProducts.reduce((sum, product) => sum + product.total, 0);
+                    const shippingCost = this.currentShippingCost || 0;
+                    const total = subtotal + shippingCost;
+
+                    // Generate invoice data
+                    const invoiceData = {
+                        products: validProducts,
+                        subtotal: subtotal,
+                        shippingCost: shippingCost,
+                        total: total,
+                        paymentMethod: paymentMethod,
+                        invoiceNumber: invoiceNumber,
+                        date: new Date().toLocaleDateString('id-ID'),
+                        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    };
+
+                    // Save to Firestore
+                    await this.saveToFirestore(invoiceData);
+                    
+                    this.showSimpleInvoice(invoiceData);
 
                 } catch (error) {
-                    console.error('AI Analysis Error:', error);
-                    this.showAnalysisError('Gagal menganalisis pesanan: ' + error.message);
+                    console.error('Error generating invoice:', error);
+                    alert('Error membuat invoice: ' + error.message);
                 }
-            },
-
-            // Enhanced parsing untuk menangani satuan dengan benar
-            fallbackParsing(orderText) {
-                const products = [];
-                let shippingCost = 0;
-                
-                // Patterns for units that should be part of the product name
-                const unitPatterns = [
-                    /\b\d+\s*(pack|pax|pak|bngkus|bungkus)\b/gi,
-                    /\b\d+\s*(kg|kilogram|kilo)\b/gi,
-                    /\b\d+\s*(gr|gram)\b/gi,
-                    /\b\d+\s*(ons)\b/gi,
-                    /\b\d+\s*(pcs|pieces|buah|biji)\b/gi,
-                    /\b\d+\s*(botol|bottle)\b/gi,
-                    /\b\d+\s*(sachet)\b/gi,
-                    /\b\d+\s*(liter|ltr)\b/gi,
-                    /\b\d+\s*(ml|mililiter)\b/gi,
-                    /\b\d+\s*(kleng|kaleng)\b/gi,
-                    /\b\d+\s*(renceng|renceng)\b/gi,
-                    /\b\d+\s*(pck|pck)\b/gi
-                ];
-                
-                // Extract shipping cost first
-                const shippingPattern = /(ongkir|ongkos|biaya\s*kirim|shipping|delivery)\s*:?\s*(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k)?/i;
-                const shippingMatch = orderText.match(shippingPattern);
-                if (shippingMatch && shippingMatch[2]) {
-                    shippingCost = parseFloat(shippingMatch[2].replace(',', '.'));
-                    
-                    // Handle "rb" or "k" suffix
-                    if (shippingMatch[0].toLowerCase().includes('rb') || 
-                        shippingMatch[0].toLowerCase().includes('ribu') || 
-                        shippingMatch[0].toLowerCase().includes('k')) {
-                        shippingCost = shippingCost * 1000;
-                    }
-                }
-                
-                // Split by lines and process each line
-                const lines = orderText.split('\n');
-                
-                for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    
-                    // Skip empty lines and shipping lines
-                    if (!trimmedLine || 
-                        trimmedLine.toLowerCase().includes('ongkir') || 
-                        trimmedLine.toLowerCase().includes('ongkos') || 
-                        trimmedLine.toLowerCase().includes('biaya kirim')) {
-                        continue;
-                    }
-                    
-                    // Default quantity is 1
-                    let quantity = 1;
-                    let name = '';
-                    let price = 0;
-                    
-                    // Try to extract price (look for numbers at the end of the line)
-                    const priceMatch = trimmedLine.match(/(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k)?\s*$/);
-                    if (priceMatch) {
-                        price = parseFloat(priceMatch[1].replace(',', '.'));
-                        
-                        // Handle "rb" or "k" suffix
-                        if (trimmedLine.toLowerCase().includes('rb') || 
-                            trimmedLine.toLowerCase().includes('ribu') || 
-                            trimmedLine.toLowerCase().includes('k')) {
-                            price = price * 1000;
-                        }
-                        
-                        // Remove price part from the line to get the product name
-                        name = trimmedLine.substring(0, priceMatch.index).trim();
-                    } else {
-                        // If no price found, try to find price anywhere in the line
-                        const anyPriceMatch = trimmedLine.match(/(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k)?/);
-                        if (anyPriceMatch) {
-                            price = parseFloat(anyPriceMatch[1].replace(',', '.'));
-                            
-                            // Handle "rb" or "k" suffix
-                            if (trimmedLine.toLowerCase().includes('rb') || 
-                                trimmedLine.toLowerCase().includes('ribu') || 
-                                trimmedLine.toLowerCase().includes('k')) {
-                                price = price * 1000;
-                            }
-                            
-                            name = trimmedLine.replace(anyPriceMatch[0], '').trim();
-                        } else {
-                            // If still no price, skip this line
-                            continue;
-                        }
-                    }
-                    
-                    // Check if there's an explicit quantity at the beginning (e.g., "2x", "3 pcs")
-                    const quantityMatch = name.match(/^(\d+)\s*(?:x|\s)/);
-                    if (quantityMatch) {
-                        quantity = parseInt(quantityMatch[1]);
-                        name = name.substring(quantityMatch[0].length).trim();
-                    }
-                    
-                    // Clean up the name - remove extra spaces and special characters
-                    name = name.replace(/\s+/g, ' ').trim();
-                    
-                    // Add the product if we have a valid name and price
-                    if (name && price > 0) {
-                        products.push({
-                            name: name,
-                            quantity: quantity,
-                            price: price,
-                            total: quantity * price
-                        });
-                    }
-                }
-                
-                return {
-                    products: products,
-                    shipping_cost: shippingCost
-                };
-            },
-
-            // Method showAnalysisError
-            showAnalysisError(message) {
-                const analysisResult = document.getElementById('analysisResult');
-                if (!analysisResult) return;
-                
-                analysisResult.className = 'bg-red-50 border border-red-200 rounded-xl p-4 mb-6';
-                analysisResult.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-exclamation-triangle text-red-500"></i>
-                        <span class="text-red-700 font-medium">${message}</span>
-                    </div>
-                `;
-            },
-
-            // Method displayAnalysisResult
-            displayAnalysisResult(parsedData) {
-                const analysisResult = document.getElementById('analysisResult');
-                if (!analysisResult) return;
-
-                if (!parsedData.products || parsedData.products.length === 0) {
-                    this.showAnalysisError('Tidak dapat menemukan produk dalam pesanan. Pastikan format sesuai contoh.');
-                    return;
-                }
-
-                const subtotal = parsedData.products.reduce((sum, product) => sum + product.total, 0);
-                
-                // Store data untuk calculateTotal
-                this.currentProducts = parsedData.products;
-                this.currentShippingCost = parsedData.shipping_cost || 0;
-                
-                analysisResult.className = 'bg-green-50 border border-green-200 rounded-xl p-4 mb-6';
-                
-                const productsHTML = parsedData.products.map(product => `
-                    <div class="flex justify-between items-center py-2 border-b border-green-100 last:border-b-0">
-                        <div class="flex-1">
-                            <div class="font-medium text-green-800 text-sm">${product.quantity}x ${product.name}</div>
-                        </div>
-                        <div class="font-semibold text-green-700 text-sm">${this.formatCurrency(product.total)}</div>
-                    </div>
-                `).join('');
-                
-                const shippingHTML = this.currentShippingCost > 0 ? `
-                    <div class="flex justify-between items-center py-2 border-b border-green-100">
-                        <div class="flex-1">
-                            <div class="font-medium text-green-800 text-sm">📦 Ongkos Kirim</div>
-                        </div>
-                        <div class="font-semibold text-green-700 text-sm">${this.formatCurrency(this.currentShippingCost)}</div>
-                    </div>
-                ` : '';
-                
-                analysisResult.innerHTML = `
-                    <div class="flex items-center gap-2 mb-3">
-                        <i class="fas fa-check-circle text-green-500 text-lg"></i>
-                        <span class="font-semibold text-green-800">Analisis Berhasil</span>
-                    </div>
-                    <div class="text-sm">
-                        ${productsHTML}
-                        ${shippingHTML}
-                        <div class="flex justify-between items-center pt-2 mt-2 border-t border-green-200">
-                            <span class="font-bold text-green-800">Subtotal:</span>
-                            <span class="font-bold text-green-700">${this.formatCurrency(subtotal)}</span>
-                        </div>
-                    </div>
-                `;
-            },
-
-            // Method calculateTotal
-            calculateTotal() {
-                // Gunakan data dari AI analysis
-                const subtotal = this.currentProducts ? 
-                    this.currentProducts.reduce((sum, product) => sum + product.total, 0) : 0;
-                
-                const shippingCost = this.currentShippingCost || 0;
-                const total = subtotal + shippingCost;
-
-                // Update display dengan null check
-                const updateElement = (id, value) => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = this.formatCurrency(value);
-                };
-
-                updateElement('subtotalAmount', subtotal);
-                updateElement('shippingAmount', shippingCost);
-                updateElement('totalAmount', total);
             },
 
             // Method untuk generate nomor invoice auto-increment
@@ -1229,44 +1224,6 @@
                     console.error('Error generating invoice number:', error);
                     // Fallback ke timestamp
                     return `VLC-${Date.now().toString().slice(-4)}`;
-                }
-            },
-
-            // Method generateSimpleInvoice
-            async generateSimpleInvoice() {
-                try {
-                    if (!this.currentProducts || this.currentProducts.length === 0) {
-                        alert('Silakan analisis pesanan terlebih dahulu dengan AI!');
-                        return;
-                    }
-
-                    // Get payment method
-                    const paymentMethodRadio = document.querySelector('input[name="paymentMethod"]:checked');
-                    const paymentMethod = paymentMethodRadio ? paymentMethodRadio.value : 'tunai';
-
-                    // Generate invoice number
-                    const invoiceNumber = await this.generateInvoiceNumber();
-
-                    // Generate invoice data
-                    const invoiceData = {
-                        products: this.currentProducts,
-                        subtotal: this.currentProducts.reduce((sum, product) => sum + product.total, 0),
-                        shippingCost: this.currentShippingCost,
-                        total: this.currentProducts.reduce((sum, product) => sum + product.total, 0) + this.currentShippingCost,
-                        paymentMethod: paymentMethod,
-                        invoiceNumber: invoiceNumber,
-                        date: new Date().toLocaleDateString('id-ID'),
-                        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-                    };
-
-                    // Save to Firestore tanpa perlu login
-                    await this.saveToFirestore(invoiceData);
-                    
-                    this.showSimpleInvoice(invoiceData);
-
-                } catch (error) {
-                    console.error('Error generating invoice:', error);
-                    alert('Error membuat invoice: ' + error.message);
                 }
             },
 
@@ -1291,6 +1248,20 @@
                     console.error("Error saving invoice to Firestore: ", error);
                     // Tetap tampilkan invoice meskipun gagal save ke Firestore
                     this.showNotification('⚠️ Invoice dibuat tapi gagal disimpan ke database', 'info');
+                }
+            },
+
+            // Close invoice modal
+            closeInvoiceModal() {
+                const modals = document.querySelectorAll('.invoice-gen-modal, .invoice-modal-container');
+                modals.forEach(modal => {
+                    modal.remove();
+                });
+                document.body.classList.remove('modal-open');
+                
+                if (this.modalEscapeListener) {
+                    document.removeEventListener('keydown', this.modalEscapeListener);
+                    this.modalEscapeListener = null;
                 }
             },
 
@@ -1443,123 +1414,121 @@
                 document.addEventListener('keydown', this.modalEscapeListener);
             },
 
-            // Method untuk share di iOS - benar-benar share, bukan download
-            // Method untuk share di iOS - benar-benar share, bukan // Method untuk share di iOS - dengan gambar invoice
-async shareInvoiceIOS() {
-    try {
-        if (!this.currentInvoiceData) {
-            this.showNotification('❌ Tidak ada data invoice untuk dibagikan', 'error');
-            return;
-        }
+            // Method untuk share di iOS - dengan gambar invoice
+            async shareInvoiceIOS() {
+                try {
+                    if (!this.currentInvoiceData) {
+                        this.showNotification('❌ Tidak ada data invoice untuk dibagikan', 'error');
+                        return;
+                    }
 
-        const data = this.currentInvoiceData;
+                    const data = this.currentInvoiceData;
 
-        // Buat container struk dengan styling lengkap
-        const receiptContainer = document.createElement('div');
-        receiptContainer.id = 'invoice-receipt-container';
-        receiptContainer.style.cssText = `
-            width: 380px;
-            min-height: 600px;
-            background: white;
-            padding: 25px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 13px;
-            line-height: 1.4;
-            color: #000000;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            top: -10000px;
-            left: -10000px;
-            z-index: 10000;
-            opacity: 1;
-            box-sizing: border-box;
-            overflow: hidden;
-        `;
+                    // Buat container struk dengan styling lengkap
+                    const receiptContainer = document.createElement('div');
+                    receiptContainer.id = 'invoice-receipt-container';
+                    receiptContainer.style.cssText = `
+                        width: 380px;
+                        min-height: 600px;
+                        background: white;
+                        padding: 25px;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        font-size: 13px;
+                        line-height: 1.4;
+                        color: #000000;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 16px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                        position: fixed;
+                        top: -10000px;
+                        left: -10000px;
+                        z-index: 10000;
+                        opacity: 1;
+                        box-sizing: border-box;
+                        overflow: hidden;
+                    `;
 
-        // HTML content untuk receipt
-        receiptContainer.innerHTML = this.generateReceiptHTML(data);
-        document.body.appendChild(receiptContainer);
+                    // HTML content untuk receipt
+                    receiptContainer.innerHTML = this.generateReceiptHTML(data);
+                    document.body.appendChild(receiptContainer);
 
-        await new Promise(resolve => setTimeout(resolve, 300));
+                    await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Konversi struk ke canvas
-        const canvas = await html2canvas(receiptContainer, {
-            scale: 3,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff',
-            width: receiptContainer.offsetWidth,
-            height: receiptContainer.scrollHeight,
-            scrollX: 0,
-            scrollY: 0,
-            allowTaint: false,
-            removeContainer: true,
-            foreignObjectRendering: false,
-            imageTimeout: 10000
-        });
+                    // Konversi struk ke canvas
+                    const canvas = await html2canvas(receiptContainer, {
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff',
+                        width: receiptContainer.offsetWidth,
+                        height: receiptContainer.scrollHeight,
+                        scrollX: 0,
+                        scrollY: 0,
+                        allowTaint: false,
+                        removeContainer: true,
+                        foreignObjectRendering: false,
+                        imageTimeout: 10000
+                    });
 
-        const pngData = canvas.toDataURL('image/png', 1.0);
-        const response = await fetch(pngData);
-        const blob = await response.blob();
-        const file = new File([blob], `invoice-${data.invoiceNumber}.png`, { type: 'image/png' });
+                    const pngData = canvas.toDataURL('image/png', 1.0);
+                    const response = await fetch(pngData);
+                    const blob = await response.blob();
+                    const file = new File([blob], `invoice-${data.invoiceNumber}.png`, { type: 'image/png' });
 
-        // 🧾 Buat pesan berdasarkan metode pembayaran yang SESUAI
-        let paymentText = '';
-        
-        // Gunakan paymentMethod dari data invoice yang sebenarnya
-        if (data.paymentMethod === 'transfer') {
-            paymentText = 
-                `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
-                `💳 Metode: Transfer\n` +
-                `🏦 Tujuan: BCA 6455106431 a/n VICKY SATRIA LINDY\n` +
-                `💰 Nominal: ${this.formatCurrency(data.total)}\n\n` +
-                `Silakan transfer terlebih dahulu sebelum pengiriman.\n\n` +
-                `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
-        } else {
-            // Default untuk tunai
-            paymentText = 
-                `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
-                `💵 Metode: Tunai\n` +
-                `Silakan siapkan uang sebesar ${this.formatCurrency(data.total)} untuk pembayaran saat barang diterima.\n\n` +
-                `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
-        }
+                    // 🧾 Buat pesan berdasarkan metode pembayaran yang SESUAI
+                    let paymentText = '';
+                    
+                    // Gunakan paymentMethod dari data invoice yang sebenarnya
+                    if (data.paymentMethod === 'transfer') {
+                        paymentText = 
+                            `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
+                            `💳 Metode: Transfer\n` +
+                            `🏦 Tujuan: BCA 6455106431 a/n VICKY SATRIA LINDY\n` +
+                            `💰 Nominal: ${this.formatCurrency(data.total)}\n\n` +
+                            `Silakan transfer terlebih dahulu sebelum pengiriman.\n\n` +
+                            `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
+                    } else {
+                        // Default untuk tunai
+                        paymentText = 
+                            `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
+                            `💵 Metode: Tunai\n` +
+                            `Silakan siapkan uang sebesar ${this.formatCurrency(data.total)} untuk pembayaran saat barang diterima.\n\n` +
+                            `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
+                    }
 
-        // Cek apakah Web Share API dengan files tersedia
-        if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
-            throw new Error('Fitur share dengan gambar tidak didukung di browser ini');
-        }
+                    // Cek apakah Web Share API dengan files tersedia
+                    if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
+                        throw new Error('Fitur share dengan gambar tidak didukung di browser ini');
+                    }
 
-        // Kirim via Web Share API (iOS) dengan GAMBAR + TEKS
-        await navigator.share({
-            files: [file],
-            title: `Invoice ${data.invoiceNumber} - VLCrave Express`,
-            text: paymentText
-        });
+                    // Kirim via Web Share API (iOS) dengan GAMBAR + TEKS
+                    await navigator.share({
+                        files: [file],
+                        title: `Invoice ${data.invoiceNumber} - VLCrave Express`,
+                        text: paymentText
+                    });
 
-        this.showNotification('✅ Invoice berhasil dibagikan dengan gambar!', 'success');
+                    this.showNotification('✅ Invoice berhasil dibagikan dengan gambar!', 'success');
 
-        // Cleanup
-        this.cleanupReceiptContainer();
+                    // Cleanup
+                    this.cleanupReceiptContainer();
 
-    } catch (error) {
-        console.error('Error in shareInvoiceIOS:', error);
-        
-        // Cleanup jika error
-        this.cleanupReceiptContainer();
-        
-        // Tampilkan pesan error saja
-        if (error.name === 'AbortError') {
-            this.showNotification('❌ Share dibatalkan oleh user', 'error');
-        } else if (error.message.includes('tidak didukung')) {
-            this.showNotification('❌ Browser tidak mendukung share dengan gambar', 'error');
-        } else {
-            this.showNotification('❌ Gagal membagikan invoice: ' + error.message, 'error');
-        }
-    }
-},
-
+                } catch (error) {
+                    console.error('Error in shareInvoiceIOS:', error);
+                    
+                    // Cleanup jika error
+                    this.cleanupReceiptContainer();
+                    
+                    // Tampilkan pesan error saja
+                    if (error.name === 'AbortError') {
+                        this.showNotification('❌ Share dibatalkan oleh user', 'error');
+                    } else if (error.message.includes('tidak didukung')) {
+                        this.showNotification('❌ Browser tidak mendukung share dengan gambar', 'error');
+                    } else {
+                        this.showNotification('❌ Gagal membagikan invoice: ' + error.message, 'error');
+                    }
+                }
+            },
 
             // Method downloadAsPNG
             async downloadAsPNG() {
@@ -1645,6 +1614,16 @@ async shareInvoiceIOS() {
                 if (container) {
                     container.remove();
                 }
+            },
+
+            // Helper function untuk download data URL
+            downloadDataURL(dataURL, filename) {
+                const link = document.createElement('a');
+                link.href = dataURL;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             },
 
             // Helper function untuk generate HTML receipt
@@ -2023,16 +2002,26 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 }
             },
 
-            // Download blob as file
-            downloadBlob(blob, filename) {
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+            // Cleanup old data
+            async cleanupOldData() {
+                if (confirm('Hapus semua data invoice yang ada? Ini tidak bisa dibatalkan!')) {
+                    try {
+                        const snapshot = await db.collection("invoices").get();
+                        const batch = db.batch();
+                        
+                        snapshot.forEach((doc) => {
+                            batch.delete(doc.ref);
+                        });
+                        
+                        await batch.commit();
+                        this.showNotification('✅ Semua data berhasil dihapus!', 'success');
+                        this.loadInvoicesFromFirestore();
+                        this.loadStats();
+                    } catch (error) {
+                        console.error('Error cleaning up data:', error);
+                        this.showNotification('❌ Gagal menghapus data', 'error');
+                    }
+                }
             },
 
             // Method untuk show notification
