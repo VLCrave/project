@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLCrave Express - Goals & Target</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-600 to-blue-500 min-h-screen">
+    <div class="bg-white/95 backdrop-blur-xl min-h-screen">
+        <div class="container mx-auto px-4 py-6 max-w-md">
+            
+            <!-- Header -->
+            <header class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-xl shadow-md mb-3 border border-orange-200">
+                    <i class="fas fa-bullseye text-orange-500 text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-black text-gray-800 mb-1 bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">Goals & Target</h1>
+                <p class="text-gray-600 text-sm font-medium">Analisis Berdasarkan Total Saldo</p>
+            </header>
+
+            <!-- Total Saldo & Progress -->
+            <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-lg border border-white/20">
+                <h2 class="text-lg font-black text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fas fa-wallet text-green-500"></i>
+                    Progress Keuangan
+                </h2>
+                
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="text-center p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl text-white">
+                        <div class="text-xs opacity-90 mb-1">Total Saldo</div>
+                        <div class="font-black text-lg" id="totalSaldo">Rp 0</div>
+                    </div>
+                    <div class="text-center p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl text-white">
+                        <div class="text-xs opacity-90 mb-1">Total Target</div>
+                        <div class="font-black text-lg" id="totalTarget">Rp 0</div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-200 rounded-full h-3 overflow-hidden mb-2">
+                    <div class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-500" id="overallProgress" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-600">
+                    <span id="progressPercent">0% tercapai</span>
+                    <span id="remainingAmount">Butuh Rp 0 lagi</span>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl p-4 text-white text-center shadow-lg relative overflow-hidden">
+                    <div class="text-xl font-black mb-1 relative z-10" id="targetProgress">0%</div>
+                    <div class="text-sm font-semibold opacity-90 relative z-10">Progress Target</div>
+                    <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                </div>
+                <div class="bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl p-4 text-white text-center shadow-lg relative overflow-hidden">
+                    <div class="text-xl font-black mb-1 relative z-10" id="daysLeft">-</div>
+                    <div class="text-sm font-semibold opacity-90 relative z-10">Hari Tersisa</div>
+                    <div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                </div>
+            </div>
+
+            <!-- Current Goals -->
+            <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-lg border border-white/20">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-black text-gray-800 flex items-center gap-2">
+                        <i class="fas fa-flag text-orange-500"></i>
+                        Target Saat Ini
+                    </h2>
+                    <button onclick="app.showAddGoalModal()" class="bg-orange-500 text-white p-2 rounded-lg hover:bg-orange-600 transition-colors">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div id="goalsList">
+                    <!-- Goals will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-lg border border-white/20">
+                <button onclick="app.analyzeFinancialHealth()" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <i class="fas fa-robot"></i>
+                    Analisis AI
+                </button>
+            </div>
+
+            <!-- AI Analysis & Recommendations -->
+            <div class="bg-white/90 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-lg border border-white/20">
+                <h2 class="text-lg font-black text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fas fa-robot text-blue-500"></i>
+                    Analisis AI & Rekomendasi
+                </h2>
+                <div id="aiRecommendations">
+                    <!-- AI recommendations will be loaded here -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div id="addGoalModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden border border-white/20">
+            <div class="bg-gradient-to-r from-orange-500 to-red-500 p-5 text-white relative">
+                <h2 class="text-lg font-bold flex items-center">
+                    <i class="fas fa-bullseye mr-2"></i>Tambah Target Baru
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-5 right-5 text-white">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto flex-1">
+                <div class="mb-4">
+                    <label class="block font-bold text-gray-700 mb-2 text-sm">Nama Target</label>
+                    <input type="text" id="goalName" class="w-full p-3 border-2 border-gray-200 rounded-xl text-sm transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-200" placeholder="Contoh: Beli Laptop Baru">
+                </div>
+                <div class="mb-4">
+                    <label class="block font-bold text-gray-700 mb-2 text-sm">Target Amount</label>
+                    <input type="number" id="goalAmount" class="w-full p-3 border-2 border-gray-200 rounded-xl text-sm transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-200" placeholder="Jumlah target">
+                </div>
+                <div class="mb-4">
+                    <label class="block font-bold text-gray-700 mb-2 text-sm">Target Date</label>
+                    <input type="date" id="goalDate" class="w-full p-3 border-2 border-gray-200 rounded-xl text-sm transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-200">
+                </div>
+                <div class="mb-4">
+                    <label class="block font-bold text-gray-700 mb-2 text-sm">Deskripsi</label>
+                    <textarea id="goalDescription" class="w-full p-3 border-2 border-gray-200 rounded-xl text-sm transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-200" placeholder="Deskripsi target" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-3 p-4 border-t border-gray-200/50">
+                <button onclick="app.closeModal()" class="flex-1 bg-gray-500 text-white font-bold py-3 rounded-xl transition-all duration-300 hover:shadow-lg">
+                    Batal
+                </button>
+                <button onclick="app.saveGoal()" class="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-xl transition-all duration-300 hover:shadow-lg">
+                    Simpan Target
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Main Application
+        const app = {
+            financeAccounts: [],
+            goals: [],
+            totalSaldo: 0,
+            totalTarget: 0,
+
+            // Initialize App
+            async init() {
+                console.log("VLCrave Goals & Target Initialized");
+                this.setupRealtimeListeners();
+            },
+
+            // Setup real-time Firestore listeners
+            setupRealtimeListeners() {
+                // Finance Accounts listener
+                db.collection("finance_accounts")
+                    .onSnapshot((snapshot) => {
+                        this.financeAccounts = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.financeAccounts.push(data);
+                        });
+                        console.log(`Loaded ${this.financeAccounts.length} finance accounts`);
+                        this.calculateTotalSaldo();
+                        this.updateDashboard();
+                    });
+
+                // Goals listener
+                db.collection("financial_goals")
+                    .orderBy("createdAt", "desc")
+                    .onSnapshot((snapshot) => {
+                        this.goals = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.goals.push(data);
+                        });
+                        console.log(`Loaded ${this.goals.length} goals`);
+                        this.calculateTotalTarget();
+                        this.renderGoals();
+                        this.updateDashboard();
+                    });
+            },
+
+            // Calculate total saldo from finance accounts
+            calculateTotalSaldo() {
+                this.totalSaldo = this.financeAccounts.reduce((sum, account) => {
+                    return sum + (account.balance || 0);
+                }, 0);
+                console.log(`Total Saldo: ${this.totalSaldo}`);
+            },
+
+            // Calculate total target from all goals
+            calculateTotalTarget() {
+                this.totalTarget = this.goals.reduce((sum, goal) => {
+                    return sum + (goal.targetAmount || 0);
+                }, 0);
+                console.log(`Total Target: ${this.totalTarget}`);
+            },
+
+            // Modal Management
+            showAddGoalModal() {
+                document.getElementById('addGoalModal').classList.remove('hidden');
+                document.getElementById('goalName').value = '';
+                document.getElementById('goalAmount').value = '';
+                document.getElementById('goalDate').value = '';
+                document.getElementById('goalDescription').value = '';
+            },
+
+            closeModal() {
+                document.getElementById('addGoalModal').classList.add('hidden');
+            },
+
+            // Save Goal
+            async saveGoal() {
+                const name = document.getElementById('goalName').value.trim();
+                const amount = parseFloat(document.getElementById('goalAmount').value) || 0;
+                const targetDate = document.getElementById('goalDate').value;
+                const description = document.getElementById('goalDescription').value.trim();
+
+                if (!name || amount <= 0 || !targetDate) {
+                    this.showNotification('Isi semua field dengan benar', 'error');
+                    return;
+                }
+
+                const goalData = {
+                    name,
+                    targetAmount: amount,
+                    currentAmount: 0,
+                    targetDate: new Date(targetDate),
+                    description,
+                    status: 'active',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+
+                try {
+                    await db.collection("financial_goals").add(goalData);
+                    this.showNotification('Target berhasil disimpan!', 'success');
+                    this.closeModal();
+                } catch (error) {
+                    console.error("Error saving goal:", error);
+                    this.showNotification('Error menyimpan target', 'error');
+                }
+            },
+
+            // Render Goals
+            renderGoals() {
+                const container = document.getElementById('goalsList');
+                
+                if (this.goals.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-gray-500">
+                            <i class="fas fa-bullseye text-3xl mb-2 opacity-50"></i>
+                            <p class="text-sm font-medium">Belum ada target</p>
+                            <p class="text-xs">Buat target pertama Anda</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.goals.map(goal => {
+                    // Calculate progress based on total saldo distribution
+                    const totalProgress = this.totalTarget > 0 ? (this.totalSaldo / this.totalTarget) * 100 : 0;
+                    const goalShare = (goal.targetAmount / this.totalTarget) * this.totalSaldo;
+                    const goalProgress = goal.targetAmount > 0 ? (goalShare / goal.targetAmount) * 100 : 0;
+                    
+                    const daysLeft = Math.ceil((goal.targetDate.toDate() - new Date()) / (1000 * 60 * 60 * 24));
+                    
+                    return `
+                        <div class="flex items-center p-4 rounded-xl mb-3 bg-white/50 border border-gray-200/50">
+                            <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center mr-3">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold text-gray-800 text-sm">${goal.name}</div>
+                                <div class="text-gray-600 text-xs mt-1">${goal.description}</div>
+                                <div class="bg-gray-200 rounded-full h-2 mt-2 overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-500" style="width: ${Math.min(goalProgress, 100)}%"></div>
+                                </div>
+                                <div class="text-gray-500 text-xs mt-1">
+                                    ${daysLeft > 0 ? `${daysLeft} hari lagi` : 'Target date passed'} | ${Math.round(goalProgress)}%
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-orange-600 text-sm">${this.formatCurrency(goalShare)}</div>
+                                <div class="text-gray-500 text-xs">dari ${this.formatCurrency(goal.targetAmount)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            // Update Dashboard
+            updateDashboard() {
+                // Update total saldo and target
+                document.getElementById('totalSaldo').textContent = this.formatCurrency(this.totalSaldo);
+                document.getElementById('totalTarget').textContent = this.formatCurrency(this.totalTarget);
+                
+                // Calculate overall progress
+                const progressPercent = this.totalTarget > 0 ? 
+                    Math.min((this.totalSaldo / this.totalTarget) * 100, 100) : 0;
+                
+                const remainingAmount = Math.max(this.totalTarget - this.totalSaldo, 0);
+                
+                // Update progress bar and text
+                document.getElementById('overallProgress').style.width = `${progressPercent}%`;
+                document.getElementById('progressPercent').textContent = `${Math.round(progressPercent)}% tercapai`;
+                document.getElementById('remainingAmount').textContent = `Butuh ${this.formatCurrency(remainingAmount)} lagi`;
+                
+                // Update quick stats
+                document.getElementById('targetProgress').textContent = `${Math.round(progressPercent)}%`;
+                
+                // Days to nearest goal
+                const activeGoals = this.goals.filter(goal => goal.status === 'active');
+                if (activeGoals.length > 0) {
+                    const nearestGoal = activeGoals.reduce((nearest, goal) => {
+                        const goalDate = goal.targetDate.toDate();
+                        return (!nearest || goalDate < nearest) ? goalDate : nearest;
+                    }, null);
+                    
+                    if (nearestGoal) {
+                        const daysLeft = Math.ceil((nearestGoal - new Date()) / (1000 * 60 * 60 * 24));
+                        document.getElementById('daysLeft').textContent = daysLeft > 0 ? daysLeft : '0';
+                    } else {
+                        document.getElementById('daysLeft').textContent = '-';
+                    }
+                } else {
+                    document.getElementById('daysLeft').textContent = '-';
+                }
+            },
+
+            // Financial Analysis
+            analyzeFinancialHealth() {
+                if (this.goals.length === 0) {
+                    this.showAIRecommendations([]);
+                    return;
+                }
+
+                const recommendations = this.generateAIRecommendations();
+                this.showAIRecommendations(recommendations);
+            },
+
+            // Generate AI Recommendations
+            generateAIRecommendations() {
+                const recommendations = [];
+                const progressPercent = this.totalTarget > 0 ? (this.totalSaldo / this.totalTarget) * 100 : 0;
+                const remainingAmount = Math.max(this.totalTarget - this.totalSaldo, 0);
+
+                if (progressPercent >= 100) {
+                    recommendations.push({
+                        title: "🎉 Target Tercapai!",
+                        content: `Selamat! Anda telah mencapai semua target finansial. Total saldo ${this.formatCurrency(this.totalSaldo)} sudah melebihi target ${this.formatCurrency(this.totalTarget)}.`,
+                        priority: "low"
+                    });
+                } else if (progressPercent >= 75) {
+                    recommendations.push({
+                        title: "💪 Hampir Sampai!",
+                        content: `Luar biasa! Anda sudah mencapai ${Math.round(progressPercent)}% dari target. Tinggal ${this.formatCurrency(remainingAmount)} lagi untuk mencapai semua goal.`,
+                        priority: "low"
+                    });
+                } else if (progressPercent >= 50) {
+                    recommendations.push({
+                        title: "📈 Setengah Perjalanan",
+                        content: `Anda sudah di ${Math.round(progressPercent)}% perjalanan. Butuh ${this.formatCurrency(remainingAmount)} lagi untuk mencapai target. Pertahankan!`,
+                        priority: "medium"
+                    });
+                } else if (progressPercent >= 25) {
+                    recommendations.push({
+                        title: "🚀 Awal yang Baik",
+                        content: `Anda sudah mencapai ${Math.round(progressPercent)}% dari target. Fokus pada penambahan saldo untuk mencapai ${this.formatCurrency(remainingAmount)} yang dibutuhkan.`,
+                        priority: "medium"
+                    });
+                } else {
+                    recommendations.push({
+                        title: "💡 Mulai dari Sini",
+                        content: `Anda baru di ${Math.round(progressPercent)}% dari target. Butuh ${this.formatCurrency(remainingAmount)} lagi. Fokus pada strategi untuk meningkatkan saldo.`,
+                        priority: "high"
+                    });
+                }
+
+                // Add recommendation based on days left
+                const activeGoals = this.goals.filter(goal => goal.status === 'active');
+                if (activeGoals.length > 0) {
+                    const nearestGoal = activeGoals.reduce((nearest, goal) => {
+                        const goalDate = goal.targetDate.toDate();
+                        return (!nearest || goalDate < nearest) ? goalDate : nearest;
+                    }, null);
+                    
+                    if (nearestGoal) {
+                        const daysLeft = Math.ceil((nearestGoal - new Date()) / (1000 * 60 * 60 * 24));
+                        if (daysLeft < 30) {
+                            recommendations.push({
+                                title: "⏰ Deadline Mendekat",
+                                content: `Target terdekat hanya ${daysLeft} hari lagi. Percepat pengumpulan dana untuk mencapainya.`,
+                                priority: "high"
+                            });
+                        }
+                    }
+                }
+
+                return recommendations;
+            },
+
+            // Show AI Recommendations
+            showAIRecommendations(recommendations) {
+                const container = document.getElementById('aiRecommendations');
+                
+                if (recommendations.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-gray-500">
+                            <i class="fas fa-robot text-2xl mb-2 opacity-50"></i>
+                            <p class="text-sm">Tidak ada rekomendasi saat ini</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Sort by priority
+                recommendations.sort((a, b) => {
+                    const priorityOrder = { high: 3, medium: 2, low: 1 };
+                    return priorityOrder[b.priority] - priorityOrder[a.priority];
+                });
+
+                container.innerHTML = recommendations.map(rec => `
+                    <div class="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 mb-3">
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center mr-3 text-white">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <div class="font-bold text-blue-800 text-sm">${rec.title}</div>
+                        </div>
+                        <div class="text-blue-900 text-xs leading-relaxed">
+                            ${rec.content}
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            // Utility Functions
+            formatCurrency(amount) {
+                if (!amount || amount === 0) return 'Rp 0';
+                if (amount >= 1000000) {
+                    return `Rp ${(amount / 1000000).toFixed(1)}JT`;
+                } else if (amount >= 1000) {
+                    return `Rp ${Math.round(amount / 1000)}RB`;
+                }
+                return `Rp ${Math.round(amount)}`;
+            },
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 left-4 z-50 p-4 rounded-xl font-bold text-sm shadow-lg transform -translate-y-20 transition-transform duration-300 ${
+                    type === 'success' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' : 
+                    type === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' : 
+                    'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                }`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => notification.classList.replace('-translate-y-20', 'translate-y-0'), 100);
+                
+                setTimeout(() => {
+                    notification.classList.replace('translate-y-0', '-translate-y-20');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+        };
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
