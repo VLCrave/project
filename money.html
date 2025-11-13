@@ -3,47 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLCrave Express - Monitor Keuangan</title>
+    <title>VLCrave Express - All in One</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#f97316',
-                        'primary-dark': '#ea580c',
-                        success: '#10b981',
-                        danger: '#ef4444',
-                        warning: '#f59e0b',
-                        info: '#3b82f6'
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
                     },
                     animation: {
-                        'bounce-in': 'bounceIn 0.5s ease-out',
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
                         'slide-up': 'slideUp 0.3s ease-out',
-                        'fade-in': 'fadeIn 0.3s ease-out',
-                        'pulse-soft': 'pulseSoft 2s infinite'
                     },
                     keyframes: {
-                        bounceIn: {
-                            '0%': { transform: 'scale(0.8)', opacity: '0' },
-                            '50%': { transform: 'scale(1.05)', opacity: '0.8' },
-                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
                         },
                         slideUp: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' }
-                        },
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' }
-                        },
-                        pulseSoft: {
-                            '0%, 100%': { opacity: '1' },
-                            '50%': { opacity: '0.7' }
+                            '0%': { opacity: '0', transform: 'translateY(20px) scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
                         }
                     }
                 }
@@ -52,367 +42,507 @@
     </script>
     
     <style>
-        /* Custom animations and utilities */
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+        /* Custom minimal styles */
+        .text-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
-        .text-shadow {
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        .bubble {
+            transition: all 0.3s ease;
         }
         
-        .hover-lift {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .hover-lift:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .bubble:hover {
+            transform: scale(1.1);
         }
         
         .safe-area-bottom {
             padding-bottom: env(safe-area-inset-bottom);
         }
-
-        /* Fix untuk modal overlay */
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
+            display: none;
+        }
+        
+        .modal-overlay:not(.hidden) {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-            padding: 1rem;
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen">
-    <!-- App Container -->
-    <div class="app-container min-h-screen flex flex-col max-w-md mx-auto bg-white/95 backdrop-blur-xl">
-        
-        <!-- Header -->
-        <header class="bg-gradient-to-r from-primary to-primary-dark text-white p-4 shadow-lg">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                        <i class="fas fa-chart-line text-primary text-lg"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-lg font-bold text-shadow">VLCrave Express</h1>
-                        <p class="text-xs opacity-90">Monitor Keuangan Bisnis</p>
-                    </div>
-                </div>
-                <div class="flex space-x-2">
-                    <button onclick="app.showNotification('Data diperbarui', 'success')" 
-                            class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors">
-                        <i class="fas fa-sync-alt text-sm"></i>
-                    </button>
-                </div>
-            </div>
-        </header>
-
+<body class="bg-gray-50 min-h-screen font-sans antialiased">
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col">
         <!-- Main Content -->
-        <main class="flex-1 p-4 pb-24 overflow-y-auto">
-            
-            <!-- Beranda Tab -->
-            <div id="berandaTab" class="tab-content active animate-fade-in">
+        <main class="flex-1 pb-20 safe-area-bottom">
+            <div class="container mx-auto px-4 py-6 max-w-md">
                 
-                <!-- Stats Overview -->
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <!-- Pendapatan Hari Ini -->
-                    <div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-2xl p-4 text-center hover-lift">
-                        <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
-                            <i class="fas fa-money-bill-wave text-white text-lg"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-800 mb-1" id="incomeToday">Rp 0</div>
-                        <div class="text-xs text-green-600 font-semibold">Pendapatan Hari Ini</div>
+                <!-- Header -->
+                <header class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-sm mb-4 border border-orange-200">
+                        <img src="https://vlcrave.github.io/project/img/icon.png" alt="VLCrave Express" class="w-10 h-10">
                     </div>
-                    
-                    <!-- Total Saldo -->
-                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl p-4 text-center hover-lift">
-                        <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
-                            <i class="fas fa-wallet text-white text-lg"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-800 mb-1" id="totalBalance">Rp 0</div>
-                        <div class="text-xs text-blue-600 font-semibold">Total Saldo</div>
-                    </div>
-                    
-                    <!-- Pengantaran Hari Ini -->
-                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-2xl p-4 text-center hover-lift">
-                        <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
-                            <i class="fas fa-shipping-fast text-white text-lg"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-800 mb-1" id="deliveryToday">0</div>
-                        <div class="text-xs text-purple-600 font-semibold">Pengantaran Hari Ini</div>
-                    </div>
-                    
-                    <!-- Invoice Bulan Ini -->
-                    <div class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-4 text-center hover-lift">
-                        <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
-                            <i class="fas fa-receipt text-white text-lg"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-800 mb-1" id="invoiceCount">0</div>
-                        <div class="text-xs text-orange-600 font-semibold">Invoice Bulan Ini</div>
-                    </div>
-                </div>
+                    <h1 class="text-3xl font-black text-gray-800 mb-2 text-gradient">VLCrave Express</h1>
+                    <p class="text-gray-600 text-sm font-medium">All-in-One Business Solution</p>
+                </header>
 
-                <!-- Quick Actions -->
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <button onclick="app.showTransactionModal('income')" 
-                            class="bg-gradient-to-r from-success to-green-600 text-white p-4 rounded-2xl text-center hover-lift group">
-                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                            <i class="fas fa-arrow-down text-white text-lg"></i>
+                <!-- Dashboard Tab -->
+                <div id="dashboardTab" class="tab-content active animate-fade-in">
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="incomeToday">Rp 0</div>
+                            <div class="text-xs text-gray-500">Pendapatan Hari Ini</div>
+                            <i class="fas fa-money-bill-wave absolute top-4 right-4 text-orange-500 text-xl"></i>
                         </div>
-                        <div class="font-semibold text-sm">Pendapatan</div>
-                        <div class="text-xs opacity-90">Tambah pemasukan</div>
-                    </button>
-                    
-                    <button onclick="app.showTransactionModal('expense')" 
-                            class="bg-gradient-to-r from-danger to-red-600 text-white p-4 rounded-2xl text-center hover-lift group">
-                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                            <i class="fas fa-arrow-up text-white text-lg"></i>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="deliveryToday">0</div>
+                            <div class="text-xs text-gray-500">Pengantaran Hari Ini</div>
+                            <i class="fas fa-shipping-fast absolute top-4 right-4 text-blue-500 text-xl"></i>
                         </div>
-                        <div class="font-semibold text-sm">Pengeluaran</div>
-                        <div class="text-xs opacity-90">Catat pengeluaran</div>
-                    </button>
-                </div>
-
-                <!-- Account Balances -->
-                <div class="mb-6">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-sm font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-piggy-bank text-primary mr-2"></i>
-                            Saldo Rekening
-                        </h3>
-                        <button onclick="app.showManageAccountsModal()" 
-                                class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-lg transition-colors">
-                            <i class="fas fa-cog mr-1"></i> Kelola
-                        </button>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="totalBalance">Rp 0</div>
+                            <div class="text-xs text-gray-500">Total Saldo</div>
+                            <i class="fas fa-wallet absolute top-4 right-4 text-green-500 text-xl"></i>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="invoiceCount">0</div>
+                            <div class="text-xs text-gray-500">Invoice Bulan Ini</div>
+                            <i class="fas fa-receipt absolute top-4 right-4 text-purple-500 text-xl"></i>
+                        </div>
                     </div>
-                    <div id="accountBalances" class="space-y-3">
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-wallet text-4xl mb-3 opacity-50"></i>
-                            <p class="text-sm font-medium mb-2">Belum ada rekening</p>
-                            <button onclick="app.showManageAccountsModal()" 
-                                    class="text-primary text-xs font-bold">
-                                Tambah Rekening
+
+                    <!-- Account Balances -->
+                    <div class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-piggy-bank text-orange-500"></i>
+                                Saldo Rekening
+                            </h2>
+                            <button onclick="app.showManageAccountsModal()" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-cog text-gray-600"></i>
+                            </button>
+                        </div>
+                        <div id="accountBalances">
+                            <div class="text-center py-6 text-gray-500">
+                                <i class="fas fa-wallet text-4xl mb-3 opacity-50"></i>
+                                <p class="text-sm font-medium">Belum ada rekening</p>
+                                <button onclick="app.showManageAccountsModal()" class="text-orange-600 text-xs font-bold mt-2">
+                                    Tambah Rekening
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-bolt text-yellow-500"></i>
+                            Quick Actions
+                        </h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="app.showInvoiceGeneratorModal()" class="bg-orange-500 hover:bg-orange-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-receipt"></i>
+                                Buat Invoice
+                            </button>
+                            <button onclick="app.showTab('invoices')" class="bg-blue-500 hover:bg-blue-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-chart-line"></i>
+                                Keuangan
                             </button>
                         </div>
                     </div>
-                </div>
 
-                <!-- Recent Transactions -->
-                <div>
-                    <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center">
-                        <i class="fas fa-history text-primary mr-2"></i>
-                        Transaksi Terbaru
-                    </h3>
-                    <div id="recentTransactions" class="space-y-2">
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-exchange-alt text-4xl mb-3 opacity-50"></i>
-                            <p class="text-sm font-medium">Belum ada transaksi</p>
+                    <!-- Recent Invoices -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-history text-purple-500"></i>
+                                Invoice Terbaru
+                            </h2>
+                            <button onclick="app.showTab('invoices')" class="text-orange-600 font-bold text-sm">
+                                Lihat Semua
+                            </button>
+                        </div>
+                        <div id="recentInvoices">
+                            <div class="text-center py-6 text-gray-500">
+                                <i class="fas fa-receipt text-4xl mb-3 opacity-50"></i>
+                                <p class="text-sm font-medium">Belum ada invoice</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Transaksi Tab -->
-            <div id="transaksiTab" class="tab-content animate-fade-in">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-bold text-gray-800 flex items-center">
-                        <i class="fas fa-list-alt text-primary mr-2"></i>
-                        Semua Transaksi
-                    </h3>
-                    <div class="flex space-x-2">
-                        <select id="filterType" onchange="app.filterTransactions()" 
-                                class="text-xs border rounded-lg px-2 py-1">
-                            <option value="all">Semua</option>
-                            <option value="income">Pendapatan</option>
-                            <option value="expense">Pengeluaran</option>
-                        </select>
+                <!-- Invoices Tab -->
+                <div id="invoicesTab" class="tab-content animate-fade-in">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <div class="flex gap-3 mb-6">
+                            <button onclick="app.showInvoiceGeneratorModal()" class="flex-1 bg-orange-500 hover:bg-orange-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-plus"></i>
+                                Buat Invoice
+                            </button>
+                            <button onclick="app.showManageAccountsModal()" class="p-3 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-cog text-gray-600"></i>
+                            </button>
+                        </div>
+
+                        <!-- Invoice Container -->
+                        <div class="invoice-container max-h-96 overflow-y-auto custom-scrollbar rounded-xl border border-gray-200 p-4 mb-4 bg-gray-50">
+                            <div id="invoiceList">
+                                <!-- Invoices will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Pagination Controls -->
+                        <div id="paginationControls" class="pagination flex justify-center items-center gap-2 mt-4 hidden">
+                            <button id="firstPage" class="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <i class="fas fa-angle-double-left text-sm"></i>
+                            </button>
+                            <button id="prevPage" class="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <i class="fas fa-angle-left text-sm"></i>
+                            </button>
+                            
+                            <div id="pageNumbers" class="flex gap-1">
+                                <!-- Page numbers will be generated here -->
+                            </div>
+                            
+                            <button id="nextPage" class="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <i class="fas fa-angle-right text-sm"></i>
+                            </button>
+                            <button id="lastPage" class="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <i class="fas fa-angle-double-right text-sm"></i>
+                            </button>
+                            
+                            <div class="page-info text-sm text-gray-600 mx-2 font-medium" id="pageInfo">
+                                Halaman 1 dari 1
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div id="allTransactions" class="space-y-2">
-                    <div class="text-center py-12 text-gray-500">
-                        <i class="fas fa-receipt text-4xl mb-3 opacity-50"></i>
-                        <p class="text-sm font-medium mb-1">Belum ada transaksi</p>
-                        <p class="text-xs">Mulai dengan mencatat transaksi pertama Anda</p>
+
+                <!-- Finance Tab -->
+                <div id="financeTab" class="tab-content animate-fade-in">
+                    <!-- Finance Quick Stats -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="financeIncome">Rp 0</div>
+                            <div class="text-xs text-gray-500">Pendapatan Bulan Ini</div>
+                            <i class="fas fa-arrow-down absolute top-4 right-4 text-green-500 text-xl"></i>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="financeExpense">Rp 0</div>
+                            <div class="text-xs text-gray-500">Pengeluaran Bulan Ini</div>
+                            <i class="fas fa-arrow-up absolute top-4 right-4 text-red-500 text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Finance Actions -->
+                    <div class="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-coins text-yellow-500"></i>
+                            Aksi Cepat
+                        </h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="app.showAddTransactionModal()" class="bg-green-500 hover:bg-green-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-plus"></i>
+                                Transaksi
+                            </button>
+                            <button onclick="app.showTab('analysis')" class="bg-purple-500 hover:bg-purple-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-chart-pie"></i>
+                                Analisis
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-exchange-alt text-green-500"></i>
+                                Transaksi Terbaru
+                            </h2>
+                            <button onclick="app.showTransactionHistory()" class="text-orange-600 font-bold text-sm">
+                                Lihat Semua
+                            </button>
+                        </div>
+                        <div id="recentTransactions">
+                            <div class="text-center py-6 text-gray-500">
+                                <i class="fas fa-exchange-alt text-4xl mb-3 opacity-50"></i>
+                                <p class="text-sm font-medium">Belum ada transaksi</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Tab -->
+                <div id="analysisTab" class="tab-content animate-fade-in">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <button onclick="app.analyzeExpenses()" class="w-full bg-purple-500 hover:bg-purple-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 mb-6 transition-colors">
+                            <i class="fas fa-robot"></i>
+                            Analisis AI Pengeluaran
+                        </button>
+
+                        <div id="expenseAnalysis">
+                            <div class="bubble-chart-container h-64 relative mb-6 rounded-xl bg-gray-50 p-4" id="bubbleChart">
+                                <!-- Bubbles will be generated here -->
+                            </div>
+
+                            <div id="categoryDetails" class="space-y-2 mb-6">
+                                <!-- Category details will be generated here -->
+                            </div>
+
+                            <div id="aiInsights" class="p-4 rounded-xl bg-blue-50 border border-blue-200">
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-robot text-blue-500 text-xl mt-0.5"></i>
+                                    <div>
+                                        <h5 class="font-bold text-blue-800 mb-2 text-sm">AI Insights</h5>
+                                        <p class="text-blue-700 text-xs font-medium">Klik tombol analisis untuk melihat insights pengeluaran Anda</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Bottom Navigation -->
-        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-bottom max-w-md mx-auto">
-            <div class="flex">
-                <button onclick="app.showTab('beranda')" 
-                        class="nav-btn flex-1 flex flex-col items-center py-3 transition-all duration-300 text-primary scale-110"
-                        data-tab="beranda">
-                    <div class="w-6 h-6 mb-1 transition-transform duration-300">
-                        <i class="fas fa-home text-lg"></i>
-                    </div>
-                    <span class="text-xs font-medium">Beranda</span>
-                </button>
-                
-                <button onclick="app.showTab('transaksi')" 
-                        class="nav-btn flex-1 flex flex-col items-center py-3 transition-all duration-300 text-gray-500"
-                        data-tab="transaksi">
-                    <div class="w-6 h-6 mb-1 transition-transform duration-300">
-                        <i class="fas fa-exchange-alt text-lg"></i>
-                    </div>
-                    <span class="text-xs font-medium">Transaksi</span>
-                </button>
-            </div>
-        </nav>
-
         <!-- Floating Action Button -->
-        <button onclick="app.showTransactionModal('income')" 
-                class="fixed bottom-20 right-4 w-14 h-14 bg-gradient-to-r from-primary to-primary-dark rounded-full flex items-center justify-center text-white shadow-2xl hover-lift z-50 animate-bounce-in">
-            <i class="fas fa-plus text-xl"></i>
+        <button class="fab fixed bottom-24 right-4 w-14 h-14 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-lg transition-all hover:scale-110 active:scale-95 z-30" onclick="app.showInvoiceGeneratorModal()">
+            <i class="fas fa-plus text-lg"></i>
         </button>
+
+        <!-- Bottom Navigation - Fixed Footer -->
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex p-2 z-40 safe-area-bottom shadow-sm">
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="app.showTab('dashboard')">
+                <i class="fas fa-home text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Home</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="app.showTab('invoices')">
+                <i class="fas fa-receipt text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Invoice</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="app.showTab('finance')">
+                <i class="fas fa-wallet text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Keuangan</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="app.showTab('analysis')">
+                <i class="fas fa-chart-pie text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Analisis</span>
+            </button>
+        </nav>
     </div>
 
-    <!-- Transaction Modal -->
-    <div id="transactionModal" class="modal-overlay hidden">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate-slide-up">
-            <div class="bg-gradient-to-r from-primary to-primary-dark p-6 text-white">
-                <h2 id="modalTitle" class="text-lg font-bold text-center">Tambah Transaksi</h2>
+    <!-- Invoice Generator Modal -->
+    <div id="invoiceModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-orange-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-receipt"></i>
+                    Buat Invoice
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            
-            <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-2">Jenis Transaksi</label>
-                    <select id="transactionType" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-                        <option value="income">💰 Pendapatan</option>
-                        <option value="expense">💸 Pengeluaran</option>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Produk</label>
+                    <div id="productsContainer">
+                        <div class="product-row grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-gray-50">
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Nama Produk</label>
+                                <input type="text" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama produk" value="">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Qty</label>
+                                <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Qty" value="1" min="1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Harga</label>
+                                <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Harga" value="">
+                            </div>
+                            <div class="col-span-2 flex justify-end">
+                                <button onclick="app.removeProduct(this)" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                    <i class="fas fa-times"></i> Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="app.addProduct()" class="w-full py-2 bg-gray-100 hover:bg-gray-200 rounded-xl font-medium text-gray-700 flex items-center justify-center gap-2 transition-colors">
+                        <i class="fas fa-plus"></i>Tambah Produk
+                    </button>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Ongkos Kirim</label>
+                    <input type="number" id="shippingCost" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="0" value="">
+                </div>
+
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Metode Pembayaran</label>
+                    <select id="paymentMethod" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="tunai">Tunai</option>
+                        <option value="bca">BCA</option>
                     </select>
                 </div>
-                
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-2">Kategori</label>
-                    <select id="transactionCategory" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-                        <option value="penjualan">🛍️ Penjualan</option>
-                        <option value="servis">🔧 Servis</option>
-                        <option value="bahan_baku">📦 Bahan Baku</option>
-                        <option value="operasional">⚡ Operasional</option>
-                        <option value="transportasi">🚚 Transportasi</option>
-                        <option value="lainnya">📋 Lainnya</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-2">Rekening</label>
-                    <select id="transactionAccount" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-                        <!-- Accounts will be populated here -->
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-2">Jumlah</label>
-                    <input type="number" id="transactionAmount" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" 
-                           placeholder="0">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-2">Keterangan</label>
-                    <input type="text" id="transactionDescription" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" 
-                           placeholder="Deskripsi transaksi">
+
+                <!-- Invoice Summary -->
+                <div class="bg-gray-50 rounded-xl p-4 mt-4">
+                    <h3 class="font-bold text-gray-800 mb-3">Ringkasan Invoice</h3>
+                    <div id="invoiceSummary" class="space-y-2">
+                        <div class="flex justify-between text-sm">
+                            <span>Subtotal Produk:</span>
+                            <span id="subtotalDisplay" class="font-medium">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span>Ongkos Kirim:</span>
+                            <span id="shippingDisplay" class="font-medium">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold border-t border-gray-300 pt-2">
+                            <span>Total:</span>
+                            <span id="totalDisplay" class="text-orange-600">Rp 0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="p-4 border-t border-gray-200 flex space-x-3">
-                <button onclick="app.closeModal()" 
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95">
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
                     Batal
                 </button>
-                <button onclick="app.saveTransaction()" 
-                        class="flex-1 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white py-3 rounded-xl font-semibold text-sm transition-all active:scale-95">
-                    💾 Simpan
+                <button onclick="app.generateInvoice()" class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
+                    <i class="fas fa-check"></i>
+                    Buat Invoice
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Edit Transaction Modal -->
-    <div id="editTransactionModal" class="modal-overlay hidden">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate-slide-up">
-            <div class="bg-gradient-to-r from-info to-blue-600 p-6 text-white">
-                <h2 class="text-lg font-bold text-center">Edit Transaksi</h2>
+    <!-- Add Transaction Modal -->
+    <div id="transactionModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-orange-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-plus"></i>
+                    Tambah Transaksi
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            
-            <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                <div id="editTransactionForm">
-                    <!-- Form will be populated here -->
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jenis Transaksi</label>
+                    <select id="transactionType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="income">Pendapatan</option>
+                        <option value="expense">Pengeluaran</option>
+                    </select>
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Kategori</label>
+                    <select id="transactionCategory" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="operasional">Operasional</option>
+                        <option value="bahan_baku">Bahan Baku</option>
+                        <option value="transportasi">Transportasi</option>
+                        <option value="gaji">Gaji Karyawan</option>
+                        <option value="listrik">Listrik & Air</option>
+                        <option value="internet">Internet</option>
+                        <option value="pemeliharaan">Pemeliharaan</option>
+                        <option value="lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Rekening</label>
+                    <select id="transactionAccount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <!-- Accounts will be populated here -->
+                    </select>
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jumlah</label>
+                    <input type="number" id="transactionAmount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="0">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Keterangan</label>
+                    <input type="text" id="transactionDescription" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Deskripsi transaksi">
                 </div>
             </div>
-            
-            <div class="p-4 border-t border-gray-200 flex space-x-3">
-                <button onclick="app.closeModal()" 
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95">
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
                     Batal
                 </button>
-                <button onclick="app.updateTransaction()" 
-                        class="flex-1 bg-gradient-to-r from-info to-blue-600 hover:from-blue-600 hover:to-info text-white py-3 rounded-xl font-semibold text-sm transition-all active:scale-95">
-                    ✏️ Update
+                <button onclick="app.saveTransaction()" class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-colors">
+                    Simpan
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Manage Accounts Modal -->
-    <div id="manageAccountsModal" class="modal-overlay hidden">
-        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-hidden animate-slide-up">
-            <div class="bg-gradient-to-r from-warning to-yellow-600 p-6 text-white">
-                <h2 class="text-lg font-bold text-center">Kelola Rekening</h2>
+    <div id="manageAccountsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-orange-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-cog"></i>
+                    Kelola Rekening
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            
-            <div class="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-                <div class="space-y-3">
-                    <h3 class="text-sm font-bold text-gray-800">Tambah Rekening Baru</h3>
-                    <select id="newAccountType" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm">
-                        <option value="tunai">💵 Tunai</option>
-                        <option value="bca">🏦 BCA</option>
-                        <option value="dana">📱 Dana</option>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-6">
+                    <label class="form-label block font-bold text-gray-700 mb-3 text-sm">Tambah Rekening Baru</label>
+                    <select id="newAccountType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 mb-2">
+                        <option value="tunai">Tunai</option>
+                        <option value="bca">BCA</option>
+                        <option value="dana">Dana</option>
                     </select>
-                    <input type="number" id="newAccountBalance" 
-                           class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" 
-                           placeholder="Saldo awal" value="0">
-                    <button onclick="app.addAccount()" 
-                            class="w-full bg-gradient-to-r from-success to-green-600 text-white py-3 rounded-xl font-semibold text-sm transition-all active:scale-95">
-                        <i class="fas fa-plus mr-2"></i>Tambah Rekening
+                    <input type="number" id="newAccountBalance" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 mb-3" placeholder="Saldo awal" value="0">
+                    <button onclick="app.addAccount()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
+                        <i class="fas fa-plus"></i>
+                        Tambah Rekening
                     </button>
                 </div>
                 
-                <div class="border-t pt-4">
-                    <h3 class="text-sm font-bold text-gray-800 mb-3">Rekening Saat Ini</h3>
-                    <div id="accountsList" class="space-y-2">
+                <div class="mt-4">
+                    <h3 class="font-bold text-gray-800 mb-3">Rekening Saat Ini</h3>
+                    <div id="accountsList" class="space-y-3">
                         <!-- Accounts will be listed here -->
                     </div>
                 </div>
             </div>
-            
-            <div class="p-4 border-t border-gray-200">
-                <button onclick="app.closeModal()" 
-                        class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95">
+            <div class="modal-footer p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
                     Tutup
                 </button>
             </div>
         </div>
     </div>
+
+    <!-- Notification System -->
+    <div id="notificationContainer" class="fixed top-4 right-4 left-4 z-50 space-y-2"></div>
 
     <script>
         // Firebase Configuration
@@ -432,16 +562,32 @@
 
         // Main Application
         const app = {
-            currentTab: 'beranda',
+            currentTab: 'dashboard',
+            invoices: [],
             transactions: [],
             accounts: [],
-            invoices: [],
-            currentEditingTransaction: null,
-            currentTransactionType: 'income',
+            currentEditingInvoice: null,
+            currentEditingAccount: null,
+            expenseCategories: {
+                'operasional': { name: 'Operasional', color: '#ef4444' },
+                'bahan_baku': { name: 'Bahan Baku', color: '#f97316' },
+                'transportasi': { name: 'Transportasi', color: '#eab308' },
+                'gaji': { name: 'Gaji Karyawan', color: '#84cc16' },
+                'listrik': { name: 'Listrik & Air', color: '#06b6d4' },
+                'internet': { name: 'Internet', color: '#3b82f6' },
+                'pemeliharaan': { name: 'Pemeliharaan', color: '#8b5cf6' },
+                'penyesuaian': { name: 'Penyesuaian', color: '#a855f7' },
+                'lainnya': { name: 'Lainnya', color: '#64748b' }
+            },
+            
+            // Pagination variables
+            currentPage: 1,
+            itemsPerPage: 10,
+            totalPages: 1,
 
             // Initialize App
             async init() {
-                console.log("VLCrave Express - Monitor Keuangan Initialized");
+                console.log("VLCrave Express Mobile App Initialized");
                 
                 // Set up real-time listeners
                 this.setupRealtimeListeners();
@@ -449,38 +595,61 @@
                 // Initialize default accounts if not exists
                 await this.initializeDefaultAccounts();
                 
-                // Setup navigation
-                this.setupNavigation();
-
-                // Setup modal close on overlay click
-                this.setupModalClose();
+                // Setup invoice calculation listeners
+                this.setupInvoiceCalculations();
+                
+                // Setup pagination event listeners
+                this.setupPaginationListeners();
             },
 
-            // Setup navigation active states
-            setupNavigation() {
-                const navBtns = document.querySelectorAll('.nav-btn');
-                navBtns.forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const tab = this.getAttribute('data-tab');
-                        navBtns.forEach(b => {
-                            b.classList.remove('text-primary', 'scale-110');
-                            b.classList.add('text-gray-500');
-                        });
-                        this.classList.remove('text-gray-500');
-                        this.classList.add('text-primary', 'scale-110');
-                    });
+            // Setup pagination event listeners
+            setupPaginationListeners() {
+                document.getElementById('firstPage').addEventListener('click', () => {
+                    this.goToPage(1);
+                });
+                
+                document.getElementById('prevPage').addEventListener('click', () => {
+                    this.goToPage(this.currentPage - 1);
+                });
+                
+                document.getElementById('nextPage').addEventListener('click', () => {
+                    this.goToPage(this.currentPage + 1);
+                });
+                
+                document.getElementById('lastPage').addEventListener('click', () => {
+                    this.goToPage(this.totalPages);
                 });
             },
 
-            // Setup modal close when clicking overlay
-            setupModalClose() {
-                document.querySelectorAll('.modal-overlay').forEach(overlay => {
-                    overlay.addEventListener('click', (e) => {
-                        if (e.target === overlay) {
-                            this.closeModal();
-                        }
-                    });
+            // Setup invoice calculation listeners
+            setupInvoiceCalculations() {
+                document.addEventListener('input', (e) => {
+                    if (e.target.classList.contains('product-name') || 
+                        e.target.classList.contains('product-qty') || 
+                        e.target.classList.contains('product-price') ||
+                        e.target.id === 'shippingCost') {
+                        this.calculateInvoiceTotal();
+                    }
                 });
+            },
+
+            // Calculate invoice total
+            calculateInvoiceTotal() {
+                let subtotal = 0;
+                
+                const productRows = document.querySelectorAll('.product-row');
+                productRows.forEach(row => {
+                    const qty = parseInt(row.querySelector('.product-qty').value) || 0;
+                    const price = parseFloat(row.querySelector('.product-price').value) || 0;
+                    subtotal += qty * price;
+                });
+                
+                const shippingCost = parseFloat(document.getElementById('shippingCost').value) || 0;
+                const total = subtotal + shippingCost;
+                
+                document.getElementById('subtotalDisplay').textContent = this.formatCurrency(subtotal);
+                document.getElementById('shippingDisplay').textContent = this.formatCurrency(shippingCost);
+                document.getElementById('totalDisplay').textContent = this.formatCurrency(total);
             },
 
             // Initialize default accounts
@@ -505,9 +674,10 @@
 
             // Setup real-time Firestore listeners
             setupRealtimeListeners() {
-                // Invoices listener for delivery tracking
+                // Invoices listener
                 db.collection("invoices")
                     .orderBy("createdAt", "desc")
+                    .limit(100)
                     .onSnapshot((snapshot) => {
                         this.invoices = [];
                         snapshot.forEach(doc => {
@@ -516,12 +686,14 @@
                             this.invoices.push(data);
                         });
                         this.updateDashboard();
+                        this.renderRecentInvoices();
+                        this.renderInvoiceList();
                     });
 
                 // Transactions listener
                 db.collection("finance_transactions")
                     .orderBy("createdAt", "desc")
-                    .limit(100)
+                    .limit(50)
                     .onSnapshot((snapshot) => {
                         this.transactions = [];
                         snapshot.forEach(doc => {
@@ -531,7 +703,6 @@
                         });
                         this.updateDashboard();
                         this.renderRecentTransactions();
-                        this.renderAllTransactions();
                     });
 
                 // Accounts listener
@@ -552,37 +723,23 @@
 
             // Tab Navigation
             showTab(tabName) {
-                // Hide all tabs
                 document.querySelectorAll('.tab-content').forEach(tab => {
                     tab.classList.remove('active');
                 });
                 
-                // Show selected tab
                 document.getElementById(tabName + 'Tab').classList.add('active');
-                
-                // Update navigation buttons
-                document.querySelectorAll('.nav-btn').forEach(btn => {
-                    if (btn.getAttribute('data-tab') === tabName) {
-                        btn.classList.remove('text-gray-500');
-                        btn.classList.add('text-primary', 'scale-110');
-                    } else {
-                        btn.classList.remove('text-primary', 'scale-110');
-                        btn.classList.add('text-gray-500');
-                    }
-                });
-                
                 this.currentTab = tabName;
             },
 
-            // Modal Management - PERBAIKAN DI SINI
-            showTransactionModal(type) {
-                this.currentTransactionType = type;
-                document.getElementById('transactionType').value = type;
-                document.getElementById('modalTitle').textContent = 
-                    type === 'income' ? '💰 Tambah Pendapatan' : '💸 Tambah Pengeluaran';
+            // Modal Management
+            showInvoiceGeneratorModal() {
+                document.getElementById('invoiceModal').classList.remove('hidden');
+                this.resetInvoiceForm();
+                this.calculateInvoiceTotal();
+            },
+
+            showAddTransactionModal() {
                 document.getElementById('transactionModal').classList.remove('hidden');
-                
-                // Reset form
                 document.getElementById('transactionAmount').value = '';
                 document.getElementById('transactionDescription').value = '';
             },
@@ -592,16 +749,76 @@
             },
 
             closeModal() {
-                // PERBAIKAN: Tutup semua modal dengan class modal-overlay
-                const modals = document.querySelectorAll('.modal-overlay');
-                console.log('Menutup modal, ditemukan:', modals.length, 'modal');
-                
-                modals.forEach(modal => {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
                     modal.classList.add('hidden');
-                    console.log('Modal ditutup:', modal.id);
                 });
-                
-                this.currentEditingTransaction = null;
+                this.currentEditingInvoice = null;
+                this.currentEditingAccount = null;
+            },
+
+            // Invoice Form Management
+            resetInvoiceForm() {
+                const container = document.getElementById('productsContainer');
+                container.innerHTML = `
+                    <div class="product-row grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-gray-50">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Nama Produk</label>
+                            <input type="text" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama produk" value="Teh Tarik">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Qty</label>
+                            <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Qty" value="1" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Harga</label>
+                            <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Harga" value="10000">
+                        </div>
+                        <div class="col-span-2 flex justify-end">
+                            <button onclick="app.removeProduct(this)" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                <i class="fas fa-times"></i> Hapus
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('shippingCost').value = '5000';
+                document.getElementById('paymentMethod').value = 'tunai';
+            },
+
+            addProduct() {
+                const container = document.getElementById('productsContainer');
+                const newRow = document.createElement('div');
+                newRow.className = 'product-row grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-gray-50';
+                newRow.innerHTML = `
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Nama Produk</label>
+                        <input type="text" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama produk">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Qty</label>
+                        <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Qty" value="1" min="1">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Harga</label>
+                        <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Harga" value="0">
+                    </div>
+                    <div class="col-span-2 flex justify-end">
+                        <button onclick="app.removeProduct(this)" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                            <i class="fas fa-times"></i> Hapus
+                        </button>
+                    </div>
+                `;
+                container.appendChild(newRow);
+                this.calculateInvoiceTotal();
+            },
+
+            removeProduct(button) {
+                const row = button.closest('.product-row');
+                if (document.querySelectorAll('.product-row').length > 1) {
+                    row.remove();
+                    this.calculateInvoiceTotal();
+                } else {
+                    this.showNotification('Minimal harus ada 1 produk', 'error');
+                }
             },
 
             // Account Management
@@ -612,7 +829,6 @@
                 const accountName = type === 'tunai' ? 'Tunai' : 
                                   type === 'bca' ? 'BCA' : 'Dana';
 
-                // Check if account already exists
                 const existingAccount = this.accounts.find(acc => acc.type === type);
                 if (existingAccount) {
                     this.showNotification('Rekening sudah ada', 'error');
@@ -629,23 +845,11 @@
 
                 try {
                     await db.collection("finance_accounts").add(accountData);
-                    this.showNotification('✅ Rekening berhasil ditambahkan', 'success');
+                    this.showNotification('Rekening berhasil ditambahkan', 'success');
                     document.getElementById('newAccountBalance').value = '0';
                 } catch (error) {
                     console.error("Error adding account:", error);
-                    this.showNotification('❌ Error menambah rekening', 'error');
-                }
-            },
-
-            async deleteAccount(accountId) {
-                if (!confirm('Hapus rekening ini?')) return;
-                
-                try {
-                    await db.collection("finance_accounts").doc(accountId).delete();
-                    this.showNotification('🗑️ Rekening dihapus', 'success');
-                } catch (error) {
-                    console.error("Error deleting account:", error);
-                    this.showNotification('❌ Error menghapus rekening', 'error');
+                    this.showNotification('Error menambah rekening', 'error');
                 }
             },
 
@@ -654,11 +858,10 @@
                 
                 if (this.accounts.length === 0) {
                     container.innerHTML = `
-                        <div class="text-center py-8 text-gray-500">
+                        <div class="text-center py-6 text-gray-500">
                             <i class="fas fa-wallet text-4xl mb-3 opacity-50"></i>
-                            <p class="text-sm font-medium mb-2">Belum ada rekening</p>
-                            <button onclick="app.showManageAccountsModal()" 
-                                    class="text-primary text-xs font-bold">
+                            <p class="text-sm font-medium">Belum ada rekening</p>
+                            <button onclick="app.showManageAccountsModal()" class="text-orange-600 text-xs font-bold mt-2">
                                 Tambah Rekening
                             </button>
                         </div>
@@ -667,26 +870,16 @@
                 }
 
                 container.innerHTML = this.accounts.map(account => `
-                    <div class="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl p-4 hover-lift">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 rounded-xl flex items-center justify-center ${
-                                    account.type === 'tunai' ? 'bg-orange-500' : 
-                                    account.type === 'bca' ? 'bg-blue-500' : 'bg-green-500'
-                                }">
-                                    <i class="fas fa-${
-                                        account.type === 'tunai' ? 'money-bill-wave' : 
-                                        account.type === 'bca' ? 'university' : 'mobile-alt'
-                                    } text-white text-sm"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-800 text-sm">${account.name}</div>
-                                    <div class="text-xs text-gray-500 capitalize">${account.type}</div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-bold text-gray-800 text-lg">${this.formatCurrency(account.balance)}</div>
-                            </div>
+                    <div class="flex justify-between items-center p-3 mb-3 rounded-xl bg-gray-50 border-l-4 ${account.type === 'tunai' ? 'border-orange-500' : account.type === 'bca' ? 'border-blue-500' : 'border-green-500'}">
+                        <div>
+                            <div class="font-semibold text-gray-800">${account.name}</div>
+                            <div class="text-xs text-gray-500 capitalize">${account.type}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-gray-800">${this.formatCurrency(account.balance)}</div>
+                            <button onclick="app.editAccountBalance('${account.id}')" class="text-xs text-blue-600 font-medium mt-1">
+                                Edit Saldo
+                            </button>
                         </div>
                     </div>
                 `).join('');
@@ -696,31 +889,24 @@
                 const container = document.getElementById('accountsList');
                 
                 if (this.accounts.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm text-center">Belum ada rekening</p>';
+                    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Belum ada rekening</p>';
                     return;
                 }
 
                 container.innerHTML = this.accounts.map(account => `
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-8 h-8 rounded-lg ${
-                                account.type === 'tunai' ? 'bg-orange-500' : 
-                                account.type === 'bca' ? 'bg-blue-500' : 'bg-green-500'
-                            } flex items-center justify-center">
-                                <i class="fas fa-${
-                                    account.type === 'tunai' ? 'money-bill-wave' : 
-                                    account.type === 'bca' ? 'university' : 'mobile-alt'
-                                } text-white text-xs"></i>
-                            </div>
-                            <div>
-                                <div class="font-medium text-gray-800 text-sm">${account.name}</div>
-                                <div class="text-xs text-gray-500">${this.formatCurrency(account.balance)}</div>
-                            </div>
+                    <div class="flex justify-between items-center p-3 border border-gray-200 rounded-lg">
+                        <div>
+                            <div class="font-medium text-gray-800">${account.name}</div>
+                            <div class="text-sm text-gray-500">${this.formatCurrency(account.balance)}</div>
                         </div>
-                        <button onclick="app.deleteAccount('${account.id}')" 
-                                class="text-danger hover:text-red-700 transition-colors">
-                            <i class="fas fa-trash text-sm"></i>
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="app.editAccountBalance('${account.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="app.deleteAccount('${account.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `).join('');
             },
@@ -732,7 +918,379 @@
                 `).join('');
             },
 
-            // Transaction Management - CRUD Operations
+            // Invoice Management with Pagination
+            renderRecentInvoices() {
+                const container = document.getElementById('recentInvoices');
+                const recent = this.invoices.slice(0, 3);
+                
+                if (recent.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-gray-500">
+                            <i class="fas fa-receipt text-4xl mb-3 opacity-50"></i>
+                            <p class="text-sm font-medium">Belum ada invoice</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = recent.map(invoice => `
+                    <div class="flex justify-between items-center p-3 mb-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800 text-sm">${invoice.invoiceNumber}</div>
+                            <div class="text-xs text-gray-500">${this.formatDate(invoice.createdAt)}</div>
+                        </div>
+                        <div class="font-semibold text-orange-600 text-sm">
+                            ${this.formatCurrency(invoice.total || 0)}
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            renderInvoiceList() {
+                const container = document.getElementById('invoiceList');
+                const paginationControls = document.getElementById('paginationControls');
+                
+                if (this.invoices.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-receipt text-3xl mb-3"></i>
+                            <p>Belum ada invoice</p>
+                            <p class="text-sm">Buat invoice pertama Anda</p>
+                        </div>
+                    `;
+                    paginationControls.classList.add('hidden');
+                    return;
+                }
+
+                this.totalPages = Math.ceil(this.invoices.length / this.itemsPerPage);
+                
+                if (this.currentPage > this.totalPages) {
+                    this.currentPage = this.totalPages;
+                }
+                if (this.currentPage < 1) {
+                    this.currentPage = 1;
+                }
+
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const currentInvoices = this.invoices.slice(startIndex, endIndex);
+
+                container.innerHTML = currentInvoices.map(invoice => `
+                    <div class="flex justify-between items-start p-3 mb-3 rounded-xl bg-white hover:bg-gray-50 transition-colors border border-gray-200">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800 text-sm">${invoice.invoiceNumber}</div>
+                            <div class="text-xs text-gray-500">${this.formatDate(invoice.createdAt)} • ${invoice.paymentMethod}</div>
+                            <div class="text-xs text-gray-500">Ongkir: ${this.formatCurrency(invoice.shippingCost || 0)}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-semibold text-orange-600 text-sm mb-2">${this.formatCurrency(invoice.total || 0)}</div>
+                            <div class="flex gap-1">
+                                <button onclick="app.editInvoice('${invoice.id}')" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                                    <i class="fas fa-edit text-xs"></i>
+                                </button>
+                                <button onclick="app.deleteInvoice('${invoice.id}')" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
+                                    <i class="fas fa-trash text-xs"></i>
+                                </button>
+                                <button onclick="app.shareInvoice('${invoice.id}')" class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
+                                    <i class="fas fa-share text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                this.updatePaginationControls();
+                paginationControls.classList.remove('hidden');
+            },
+
+            // Pagination Methods
+            updatePaginationControls() {
+                const pageInfo = document.getElementById('pageInfo');
+                const firstPageBtn = document.getElementById('firstPage');
+                const prevPageBtn = document.getElementById('prevPage');
+                const nextPageBtn = document.getElementById('nextPage');
+                const lastPageBtn = document.getElementById('lastPage');
+
+                pageInfo.textContent = `Halaman ${this.currentPage} dari ${this.totalPages}`;
+
+                firstPageBtn.disabled = this.currentPage === 1;
+                prevPageBtn.disabled = this.currentPage === 1;
+                nextPageBtn.disabled = this.currentPage === this.totalPages;
+                lastPageBtn.disabled = this.currentPage === this.totalPages;
+
+                this.generatePageNumbers();
+            },
+
+            generatePageNumbers() {
+                const pageNumbers = document.getElementById('pageNumbers');
+                pageNumbers.innerHTML = '';
+
+                let startPage = Math.max(1, this.currentPage - 2);
+                let endPage = Math.min(this.totalPages, startPage + 4);
+
+                if (endPage - startPage < 4) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `w-8 h-8 rounded-lg border font-medium text-sm transition-colors ${i === this.currentPage ? 'bg-orange-500 text-white border-orange-500' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`;
+                    pageBtn.textContent = i;
+                    pageBtn.addEventListener('click', () => {
+                        this.goToPage(i);
+                    });
+                    pageNumbers.appendChild(pageBtn);
+                }
+            },
+
+            goToPage(page) {
+                if (page < 1 || page > this.totalPages || page === this.currentPage) {
+                    return;
+                }
+                
+                this.currentPage = page;
+                this.renderInvoiceList();
+                
+                document.getElementById('invoiceList').scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            },
+
+            // Generate Invoice
+            async generateInvoice() {
+                const productRows = document.querySelectorAll('.product-row');
+                const products = [];
+                let subtotal = 0;
+
+                productRows.forEach(row => {
+                    const name = row.querySelector('.product-name').value.trim();
+                    const quantity = parseInt(row.querySelector('.product-qty').value) || 1;
+                    const price = parseFloat(row.querySelector('.product-price').value) || 0;
+                    
+                    if (name && price > 0) {
+                        const productTotal = quantity * price;
+                        products.push({
+                            name: name,
+                            quantity: quantity,
+                            price: price,
+                            total: productTotal
+                        });
+                        subtotal += productTotal;
+                    }
+                });
+
+                if (products.length === 0) {
+                    this.showNotification('Tambahkan minimal 1 produk', 'error');
+                    return;
+                }
+
+                const shippingCost = parseFloat(document.getElementById('shippingCost').value) || 0;
+                const paymentMethod = document.getElementById('paymentMethod').value;
+                const total = subtotal + shippingCost;
+
+                const invoiceCount = await this.getInvoiceCount();
+                const invoiceNumber = `VLC-${(invoiceCount + 1).toString().padStart(4, '0')}`;
+
+                const invoiceData = {
+                    invoiceNumber: invoiceNumber,
+                    products: products,
+                    shippingCost: shippingCost,
+                    subtotal: subtotal,
+                    total: total,
+                    paymentMethod: paymentMethod,
+                    date: new Date().toLocaleDateString('id-ID'),
+                    time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                    createdAt: new Date(),
+                    status: 'completed'
+                };
+
+                try {
+                    await db.collection("invoices").add(invoiceData);
+                    
+                    const account = this.accounts.find(acc => acc.type === paymentMethod);
+                    if (account) {
+                        const newBalance = account.balance + total;
+                        await this.updateAccountBalanceDirect(account.id, newBalance);
+                    }
+                    
+                    this.showNotification('Invoice berhasil dibuat!', 'success');
+                    this.closeModal();
+                    
+                    this.currentPage = 1;
+                } catch (error) {
+                    console.error("Error creating invoice:", error);
+                    this.showNotification('Error membuat invoice', 'error');
+                }
+            },
+
+            async updateAccountBalanceDirect(accountId, newBalance) {
+                try {
+                    await db.collection("finance_accounts").doc(accountId).update({
+                        balance: newBalance,
+                        updatedAt: new Date()
+                    });
+                } catch (error) {
+                    console.error("Error updating account:", error);
+                    throw error;
+                }
+            },
+
+            async getInvoiceCount() {
+                try {
+                    const snapshot = await db.collection("invoices").get();
+                    return snapshot.size;
+                } catch (error) {
+                    console.error("Error getting invoice count:", error);
+                    return 0;
+                }
+            },
+
+            async deleteInvoice(invoiceId) {
+                if (!confirm('Hapus invoice ini?')) return;
+                
+                try {
+                    const invoice = this.invoices.find(inv => inv.id === invoiceId);
+                    if (invoice) {
+                        const account = this.accounts.find(acc => 
+                            acc.type === invoice.paymentMethod
+                        );
+                        
+                        if (account) {
+                            const newBalance = Math.max(0, account.balance - invoice.total);
+                            await this.updateAccountBalanceDirect(account.id, newBalance);
+                        }
+                    }
+                    
+                    await db.collection("invoices").doc(invoiceId).delete();
+                    this.showNotification('Invoice dihapus', 'success');
+                    
+                    const currentPageCount = this.invoices.length - 1;
+                    const maxPageForItems = Math.ceil(currentPageCount / this.itemsPerPage);
+                    if (this.currentPage > maxPageForItems) {
+                        this.currentPage = maxPageForItems;
+                    }
+                } catch (error) {
+                    console.error("Error deleting invoice:", error);
+                    this.showNotification('Error menghapus invoice', 'error');
+                }
+            },
+
+            async shareInvoice(invoiceId) {
+                const invoice = this.invoices.find(inv => inv.id === invoiceId);
+                if (!invoice) return;
+
+                let shareText = '';
+                
+                if (invoice.paymentMethod === 'bca') {
+                    shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
+
+Untuk pembayaran Transfer silahkan ke nomor rekening dibawah
+
+BCA 
+6455106421
+a/n VICKY SATRIA LINDY
+Nominal : ${this.formatCurrency(invoice.total)}
+
+Terima kasih telah mempercayai VLCrave Express!`;
+                } else {
+                    shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
+
+Silahkan bayar sesuai nominal dibawah secara Tunai/Cash
+Nominal : ${this.formatCurrency(invoice.total)}
+
+Terima kasih telah mempercayai VLCrave Express!`;
+                }
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: `Invoice ${invoice.invoiceNumber} - VLCrave Express`,
+                            text: shareText
+                        });
+                    } catch (error) {
+                        await this.copyToClipboard(shareText);
+                        this.showNotification('Pesan disalin ke clipboard', 'success');
+                    }
+                } else {
+                    await this.copyToClipboard(shareText);
+                    this.showNotification('Pesan disalin ke clipboard', 'success');
+                }
+            },
+
+            async copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (err) {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        return true;
+                    } catch (err) {
+                        document.body.removeChild(textArea);
+                        return false;
+                    }
+                }
+            },
+
+            // Transaction Management
+            renderRecentTransactions() {
+                const container = document.getElementById('recentTransactions');
+                const recent = this.transactions.slice(0, 5);
+                
+                if (recent.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-gray-500">
+                            <i class="fas fa-exchange-alt text-4xl mb-3 opacity-50"></i>
+                            <p class="text-sm font-medium">Belum ada transaksi</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = recent.map(transaction => {
+                    const isAdjustment = transaction.adjustment;
+                    const icon = isAdjustment ? 'fa-adjust' : 
+                                transaction.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up';
+                    const bgColor = isAdjustment ? 'bg-purple-100' : 
+                                   transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100';
+                    const textColor = isAdjustment ? 'text-purple-600' : 
+                                     transaction.type === 'income' ? 'text-green-600' : 'text-red-600';
+                    
+                    return `
+                        <div class="flex items-start p-3 mb-2 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                            <div class="w-8 h-8 rounded-full ${bgColor} flex items-center justify-center mr-3 mt-1">
+                                <i class="fas ${icon} ${textColor} text-xs"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800 text-sm">${transaction.description}</div>
+                                <div class="text-xs text-gray-500">
+                                    ${this.formatDate(transaction.createdAt)} • ${transaction.category}
+                                    ${isAdjustment ? '• <span class="text-purple-600">Penyesuaian</span>' : ''}
+                                </div>
+                                ${isAdjustment ? `
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        <span class="font-medium">Sebelum:</span> ${this.formatCurrency(transaction.balanceBefore)} 
+                                        <span class="font-medium ml-2">Sesudah:</span> ${this.formatCurrency(transaction.balanceAfter)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'} text-sm">
+                                    ${transaction.type === 'income' ? '+' : '-'} ${this.formatCurrency(transaction.amount)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
             async saveTransaction() {
                 const type = document.getElementById('transactionType').value;
                 const category = document.getElementById('transactionCategory').value;
@@ -741,19 +1299,18 @@
                 const description = document.getElementById('transactionDescription').value.trim();
 
                 if (!description || amount <= 0 || !accountId) {
-                    this.showNotification('❌ Isi semua field dengan benar', 'error');
+                    this.showNotification('Isi semua field dengan benar', 'error');
                     return;
                 }
 
                 const account = this.accounts.find(acc => acc.id === accountId);
                 if (!account) {
-                    this.showNotification('❌ Rekening tidak ditemukan', 'error');
+                    this.showNotification('Rekening tidak ditemukan', 'error');
                     return;
                 }
 
-                // Check if balance will go negative for expense
                 if (type === 'expense' && account.balance < amount) {
-                    this.showNotification('❌ Saldo tidak mencukupi', 'error');
+                    this.showNotification('Saldo tidak mencukupi', 'error');
                     return;
                 }
 
@@ -771,258 +1328,150 @@
                 try {
                     await db.collection("finance_transactions").add(transactionData);
                     
-                    // Update account balance
                     const newBalance = type === 'income' ? 
                         account.balance + amount : 
                         account.balance - amount;
                     
                     await this.updateAccountBalanceDirect(accountId, newBalance);
                     
-                    this.showNotification('✅ Transaksi berhasil disimpan!', 'success');
+                    this.showNotification('Transaksi berhasil disimpan!', 'success');
                     this.closeModal();
                 } catch (error) {
                     console.error("Error saving transaction:", error);
-                    this.showNotification('❌ Error menyimpan transaksi', 'error');
+                    this.showNotification('Error menyimpan transaksi', 'error');
                 }
             },
 
-            async updateAccountBalanceDirect(accountId, newBalance) {
-                try {
-                    await db.collection("finance_accounts").doc(accountId).update({
-                        balance: newBalance,
-                        updatedAt: new Date()
-                    });
-                } catch (error) {
-                    console.error("Error updating account:", error);
-                    throw error;
+            // Expense Analysis
+            async analyzeExpenses() {
+                const expenseTransactions = this.transactions.filter(t => 
+                    t.type === 'expense' && !t.adjustment
+                );
+                
+                if (expenseTransactions.length === 0) {
+                    this.showNotification('Belum ada data pengeluaran', 'info');
+                    return;
                 }
+
+                document.getElementById('aiInsights').innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-spinner fa-spin text-blue-600"></i>
+                        <span class="text-blue-700 text-xs">AI sedang menganalisis pengeluaran...</span>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    this.generateExpenseAnalysis(expenseTransactions);
+                }, 2000);
             },
 
-            // Edit Transaction
-            editTransaction(transactionId) {
-                const transaction = this.transactions.find(t => t.id === transactionId);
-                if (!transaction) return;
+            generateExpenseAnalysis(expenses) {
+                const categoryTotals = {};
+                let totalExpenses = 0;
 
-                this.currentEditingTransaction = transaction;
+                expenses.forEach(expense => {
+                    const category = expense.category || 'lainnya';
+                    categoryTotals[category] = (categoryTotals[category] || 0) + expense.amount;
+                    totalExpenses += expense.amount;
+                });
+
+                const categories = Object.keys(categoryTotals).map(category => ({
+                    category,
+                    name: this.expenseCategories[category]?.name || 'Lainnya',
+                    amount: categoryTotals[category],
+                    percentage: (categoryTotals[category] / totalExpenses) * 100,
+                    color: this.expenseCategories[category]?.color || '#64748b'
+                })).sort((a, b) => b.amount - a.amount);
+
+                this.generateBubbleChart(categories);
+                this.generateCategoryDetails(categories);
+                this.generateAIInsights(categories, totalExpenses);
+            },
+
+            generateBubbleChart(categories) {
+                const container = document.getElementById('bubbleChart');
+                container.innerHTML = '';
+
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+                const maxBubbleSize = 80;
+                const minBubbleSize = 40;
+
+                const maxAmount = Math.max(...categories.map(c => c.amount));
+
+                categories.forEach((category, index) => {
+                    const size = minBubbleSize + ((category.amount / maxAmount) * (maxBubbleSize - minBubbleSize));
+                    const angle = (index / categories.length) * 2 * Math.PI;
+                    const radius = Math.min(containerWidth, containerHeight) * 0.3;
+                    const x = (containerWidth / 2) + Math.cos(angle) * radius - size / 2;
+                    const y = (containerHeight / 2) + Math.sin(angle) * radius - size / 2;
+
+                    const bubble = document.createElement('div');
+                    bubble.className = 'bubble absolute rounded-full flex items-center justify-center text-white font-bold text-center shadow-lg';
+                    bubble.style.width = `${size}px`;
+                    bubble.style.height = `${size}px`;
+                    bubble.style.left = `${x}px`;
+                    bubble.style.top = `${y}px`;
+                    bubble.style.backgroundColor = category.color;
+                    bubble.style.fontSize = `${Math.max(10, size / 8)}px`;
+
+                    bubble.innerHTML = `
+                        <div>
+                            <div class="font-bold">${category.name.split(' ')[0]}</div>
+                            <div class="text-xs opacity-90">${category.percentage.toFixed(0)}%</div>
+                        </div>
+                    `;
+
+                    container.appendChild(bubble);
+                });
+            },
+
+            generateCategoryDetails(categories) {
+                const container = document.getElementById('categoryDetails');
+                container.innerHTML = '';
+
+                categories.forEach(category => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-3 rounded-xl bg-gray-50';
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded mr-2" style="background-color: ${category.color}"></div>
+                            <div>
+                                <div class="font-medium text-gray-800 text-sm">${category.name}</div>
+                                <div class="text-xs text-gray-500">${category.percentage.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                        <div class="font-semibold text-gray-800 text-sm">${this.formatCurrency(category.amount)}</div>
+                    `;
+                    container.appendChild(item);
+                });
+            },
+
+            generateAIInsights(categories, totalExpenses) {
+                const largest = categories[0];
+                const second = categories[1];
+                let insights = `Pengeluaran terbesar: <strong>${largest.name}</strong> (${largest.percentage.toFixed(1)}% - ${this.formatCurrency(largest.amount)})`;
                 
-                document.getElementById('editTransactionModal').classList.remove('hidden');
-                
-                const form = document.getElementById('editTransactionForm');
-                form.innerHTML = `
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-2">Jenis Transaksi</label>
-                        <select id="editTransactionType" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm">
-                            <option value="income" ${transaction.type === 'income' ? 'selected' : ''}>💰 Pendapatan</option>
-                            <option value="expense" ${transaction.type === 'expense' ? 'selected' : ''}>💸 Pengeluaran</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-2">Kategori</label>
-                        <select id="editTransactionCategory" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm">
-                            <option value="penjualan" ${transaction.category === 'penjualan' ? 'selected' : ''}>🛍️ Penjualan</option>
-                            <option value="servis" ${transaction.category === 'servis' ? 'selected' : ''}>🔧 Servis</option>
-                            <option value="bahan_baku" ${transaction.category === 'bahan_baku' ? 'selected' : ''}>📦 Bahan Baku</option>
-                            <option value="operasional" ${transaction.category === 'operasional' ? 'selected' : ''}>⚡ Operasional</option>
-                            <option value="transportasi" ${transaction.category === 'transportasi' ? 'selected' : ''}>🚚 Transportasi</option>
-                            <option value="lainnya" ${transaction.category === 'lainnya' ? 'selected' : ''}>📋 Lainnya</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-2">Jumlah</label>
-                        <input type="number" id="editTransactionAmount" 
-                               class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" 
-                               value="${transaction.amount}">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-2">Keterangan</label>
-                        <input type="text" id="editTransactionDescription" 
-                               class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm" 
-                               value="${transaction.description}">
+                if (largest.percentage > 50) {
+                    insights += `. Fokus utama pada ${largest.name.toLowerCase()}.`;
+                } else if (second) {
+                    insights += `, diikuti oleh <strong>${second.name}</strong> (${second.percentage.toFixed(1)}%).`;
+                }
+
+                insights += ` Total pengeluaran: <strong>${this.formatCurrency(totalExpenses)}</strong>.`;
+
+                document.getElementById('aiInsights').innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-robot text-blue-500 text-xl mt-0.5"></i>
+                        <div>
+                            <h5 class="font-bold text-blue-800 mb-2 text-sm">AI Insights</h5>
+                            <p class="text-blue-700 text-xs font-medium">${insights}</p>
+                        </div>
                     </div>
                 `;
             },
 
-            async updateTransaction() {
-                if (!this.currentEditingTransaction) return;
-
-                const type = document.getElementById('editTransactionType').value;
-                const category = document.getElementById('editTransactionCategory').value;
-                const amount = parseFloat(document.getElementById('editTransactionAmount').value) || 0;
-                const description = document.getElementById('editTransactionDescription').value.trim();
-
-                if (!description || amount <= 0) {
-                    this.showNotification('❌ Isi semua field dengan benar', 'error');
-                    return;
-                }
-
-                const updateData = {
-                    type,
-                    category,
-                    amount,
-                    description,
-                    updatedAt: new Date()
-                };
-
-                try {
-                    await db.collection("finance_transactions").doc(this.currentEditingTransaction.id).update(updateData);
-                    this.showNotification('✅ Transaksi berhasil diupdate', 'success');
-                    this.closeModal();
-                } catch (error) {
-                    console.error("Error updating transaction:", error);
-                    this.showNotification('❌ Error mengupdate transaksi', 'error');
-                }
-            },
-
-            // Delete Transaction
-            async deleteTransaction(transactionId) {
-                if (!confirm('Hapus transaksi ini?')) return;
-                
-                try {
-                    const transaction = this.transactions.find(t => t.id === transactionId);
-                    if (transaction) {
-                        const account = this.accounts.find(acc => acc.id === transaction.accountId);
-                        if (account) {
-                            // Reverse the transaction effect
-                            const newBalance = transaction.type === 'income' ? 
-                                Math.max(0, account.balance - transaction.amount) :
-                                account.balance + transaction.amount;
-                            
-                            await this.updateAccountBalanceDirect(account.id, newBalance);
-                        }
-                    }
-                    
-                    await db.collection("finance_transactions").doc(transactionId).delete();
-                    this.showNotification('🗑️ Transaksi dihapus', 'success');
-                } catch (error) {
-                    console.error("Error deleting transaction:", error);
-                    this.showNotification('❌ Error menghapus transaksi', 'error');
-                }
-            },
-
-            renderRecentTransactions() {
-                const container = document.getElementById('recentTransactions');
-                const recent = this.transactions.slice(0, 5);
-                
-                if (recent.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-exchange-alt text-4xl mb-3 opacity-50"></i>
-                            <p class="text-sm font-medium">Belum ada transaksi</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = recent.map(transaction => `
-                    <div class="bg-white border border-gray-200 rounded-2xl p-4 hover-lift">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3 flex-1">
-                                <div class="w-10 h-10 rounded-xl flex items-center justify-center ${
-                                    transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                                }">
-                                    <i class="fas fa-${transaction.type === 'income' ? 'arrow-down' : 'arrow-up'} text-white text-sm"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-semibold text-gray-800 text-sm truncate">${transaction.description}</div>
-                                    <div class="text-xs text-gray-500 flex items-center space-x-2 mt-1">
-                                        <span>${this.formatDate(transaction.createdAt)}</span>
-                                        <span>•</span>
-                                        <span>${transaction.accountName}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-bold text-sm ${
-                                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                }">
-                                    ${transaction.type === 'income' ? '+' : '-'} ${this.formatCurrency(transaction.amount)}
-                                </div>
-                                <div class="flex space-x-1 mt-2">
-                                    <button onclick="app.editTransaction('${transaction.id}')" 
-                                            class="text-info hover:text-blue-700 transition-colors">
-                                        <i class="fas fa-edit text-xs"></i>
-                                    </button>
-                                    <button onclick="app.deleteTransaction('${transaction.id}')" 
-                                            class="text-danger hover:text-red-700 transition-colors">
-                                        <i class="fas fa-trash text-xs"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            },
-
-            renderAllTransactions() {
-                const container = document.getElementById('allTransactions');
-                const filterType = document.getElementById('filterType').value;
-                
-                let filteredTransactions = this.transactions;
-                if (filterType !== 'all') {
-                    filteredTransactions = this.transactions.filter(t => t.type === filterType);
-                }
-                
-                if (filteredTransactions.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center py-12 text-gray-500">
-                            <i class="fas fa-receipt text-4xl mb-3 opacity-50"></i>
-                            <p class="text-sm font-medium mb-1">Belum ada transaksi</p>
-                            <p class="text-xs">Mulai dengan mencatat transaksi pertama Anda</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = filteredTransactions.map(transaction => `
-                    <div class="bg-white border border-gray-200 rounded-2xl p-4 hover-lift animate-fade-in">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-3 flex-1">
-                                <div class="w-10 h-10 rounded-xl flex items-center justify-center ${
-                                    transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-                                }">
-                                    <i class="fas fa-${transaction.type === 'income' ? 'arrow-down' : 'arrow-up'} text-white text-sm"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-semibold text-gray-800 text-sm truncate">${transaction.description}</div>
-                                    <div class="text-xs text-gray-500 flex items-center space-x-2 mt-1">
-                                        <span>${this.formatDate(transaction.createdAt)}</span>
-                                        <span>•</span>
-                                        <span>${transaction.accountName}</span>
-                                        <span>•</span>
-                                        <span class="capitalize">${transaction.category}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-bold text-sm ${
-                                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                }">
-                                    ${transaction.type === 'income' ? '+' : '-'} ${this.formatCurrency(transaction.amount)}
-                                </div>
-                                <div class="flex space-x-1 mt-2">
-                                    <button onclick="app.editTransaction('${transaction.id}')" 
-                                            class="text-info hover:text-blue-700 transition-colors">
-                                        <i class="fas fa-edit text-xs"></i>
-                                    </button>
-                                    <button onclick="app.deleteTransaction('${transaction.id}')" 
-                                            class="text-danger hover:text-red-700 transition-colors">
-                                        <i class="fas fa-trash text-xs"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            },
-
-            filterTransactions() {
-                this.renderAllTransactions();
-            },
-
-            // Dashboard Updates with Invoice Data
+            // Dashboard Updates
             updateDashboard() {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -1030,44 +1479,46 @@
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
 
-                // Calculate income from invoices shipping costs (today)
-                const todayIncomeFromInvoices = this.invoices
+                const todayIncome = this.invoices
                     .filter(invoice => {
                         const invoiceDate = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
                         return invoiceDate >= today;
                     })
                     .reduce((sum, invoice) => sum + (invoice.shippingCost || 0), 0);
 
-                // Calculate income from transactions (today)
-                const todayIncomeFromTransactions = this.transactions
-                    .filter(transaction => {
-                        const transactionDate = new Date(transaction.createdAt?.toDate?.() || transaction.createdAt);
-                        return transactionDate >= today && transaction.type === 'income';
+                const monthlyIncome = this.invoices
+                    .filter(invoice => {
+                        const invoiceDate = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
+                        return invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear;
                     })
-                    .reduce((sum, transaction) => sum + transaction.amount, 0);
+                    .reduce((sum, invoice) => sum + (invoice.shippingCost || 0), 0);
 
-                const totalTodayIncome = todayIncomeFromInvoices + todayIncomeFromTransactions;
-
-                // Calculate total balance from accounts
-                const totalBalance = this.accounts.reduce((sum, account) => sum + account.balance, 0);
-
-                // Count today's deliveries (invoices)
-                const todayDeliveries = this.invoices.filter(invoice => {
+                const todayInvoices = this.invoices.filter(invoice => {
                     const invoiceDate = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
                     return invoiceDate >= today;
-                }).length;
+                });
+                
+                const totalBalance = this.accounts.reduce((sum, account) => sum + account.balance, 0);
 
-                // Count this month's invoices
                 const monthInvoices = this.invoices.filter(invoice => {
                     const invoiceDate = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
                     return invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear;
-                }).length;
+                });
 
-                // Update UI
-                document.getElementById('incomeToday').textContent = this.formatCurrency(totalTodayIncome);
-                document.getElementById('totalBalance').textContent = this.formatCurrency(totalBalance);
-                document.getElementById('deliveryToday').textContent = todayDeliveries;
-                document.getElementById('invoiceCount').textContent = monthInvoices;
+                document.getElementById('incomeToday').textContent = this.formatCurrency(todayIncome);
+                document.getElementById('deliveryToday').textContent = todayInvoices.length;
+                document.getElementById('totalBalance').textContent = this.formatCurrency(totalBalance > 0 ? totalBalance : 0);
+                document.getElementById('invoiceCount').textContent = monthInvoices.length;
+
+                const monthlyExpense = this.transactions
+                    .filter(t => t.type === 'expense' && 
+                        new Date(t.createdAt?.toDate?.() || t.createdAt).getMonth() === currentMonth &&
+                        new Date(t.createdAt?.toDate?.() || t.createdAt).getFullYear() === currentYear
+                    )
+                    .reduce((sum, t) => sum + t.amount, 0);
+
+                document.getElementById('financeIncome').textContent = this.formatCurrency(monthlyIncome);
+                document.getElementById('financeExpense').textContent = this.formatCurrency(monthlyExpense);
             },
 
             // Utility Functions
@@ -1085,9 +1536,8 @@
                     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
                     return date.toLocaleDateString('id-ID', { 
                         day: '2-digit', 
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                        month: '2-digit', 
+                        year: 'numeric' 
                     });
                 } catch (error) {
                     return '';
@@ -1095,31 +1545,35 @@
             },
 
             showNotification(message, type = 'info') {
-                // Create notification element
+                const container = document.getElementById('notificationContainer');
                 const notification = document.createElement('div');
-                const bgColor = type === 'success' ? 'bg-green-500' : 
-                              type === 'error' ? 'bg-red-500' : 'bg-blue-500';
                 
-                notification.className = `fixed top-4 left-1/2 transform -translate-x-1/2 -translate-y-20 ${bgColor} text-white px-6 py-3 rounded-2xl font-semibold text-sm shadow-2xl z-50 transition-all duration-500`;
+                const typeClasses = {
+                    success: 'bg-green-500 text-white',
+                    error: 'bg-red-500 text-white',
+                    info: 'bg-blue-500 text-white',
+                    warning: 'bg-yellow-500 text-white'
+                };
+                
+                notification.className = `p-4 rounded-xl shadow-lg font-bold text-sm transform -translate-y-2 opacity-0 transition-all duration-300 ${typeClasses[type]}`;
                 notification.textContent = message;
                 
-                document.body.appendChild(notification);
+                container.appendChild(notification);
                 
-                // Animate in
                 setTimeout(() => {
-                    notification.classList.remove('-translate-y-20');
-                    notification.classList.add('translate-y-0');
+                    notification.classList.remove('-translate-y-2', 'opacity-0');
+                    notification.classList.add('translate-y-0', 'opacity-100');
                 }, 100);
                 
-                // Remove after 3 seconds
                 setTimeout(() => {
-                    notification.classList.remove('translate-y-0');
-                    notification.classList.add('-translate-y-20');
+                    notification.classList.remove('translate-y-0', 'opacity-100');
+                    notification.classList.add('-translate-y-2', 'opacity-0');
+                    
                     setTimeout(() => {
                         if (notification.parentNode) {
                             notification.parentNode.removeChild(notification);
                         }
-                    }, 500);
+                    }, 300);
                 }, 3000);
             }
         };
