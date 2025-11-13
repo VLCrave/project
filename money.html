@@ -819,6 +819,32 @@
         </div>
     </div>
 
+    <!-- Edit Account Balance Modal -->
+    <div id="editAccountModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="text-xl font-bold">Edit Saldo Rekening</h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="editAccountForm">
+                    <!-- Edit form will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="app.closeModal()" class="btn btn-secondary flex-1">
+                    Batal
+                </button>
+                <button onclick="app.updateAccountBalance()" class="btn btn-primary flex-1">
+                    <i class="fas fa-save mr-2"></i>
+                    Update Saldo
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Firebase Configuration
         const firebaseConfig = {
@@ -842,6 +868,7 @@
             transactions: [],
             accounts: [],
             currentEditingInvoice: null,
+            currentEditingAccount: null,
             expenseCategories: {
                 'operasional': { name: 'Operasional', color: '#ef4444' },
                 'bahan_baku': { name: 'Bahan Baku', color: '#f97316' },
@@ -1025,6 +1052,7 @@
                     modal.classList.add('hidden');
                 });
                 this.currentEditingInvoice = null;
+                this.currentEditingAccount = null;
             },
 
             // Invoice Form Management
@@ -1125,18 +1153,22 @@
                 }
             },
 
-            async updateAccountBalance(accountId, newBalance) {
+            async updateAccountBalance() {
+                if (!this.currentEditingAccount) return;
+
+                const newBalance = parseFloat(document.getElementById('editAccountBalance').value) || 0;
+
                 try {
-                    // Ensure balance doesn't go negative
-                    const safeBalance = Math.max(0, newBalance);
-                    
-                    await db.collection("finance_accounts").doc(accountId).update({
-                        balance: safeBalance,
+                    await db.collection("finance_accounts").doc(this.currentEditingAccount.id).update({
+                        balance: newBalance,
                         updatedAt: new Date()
                     });
+                    
+                    this.showNotification('Saldo berhasil diupdate', 'success');
+                    this.closeModal();
                 } catch (error) {
-                    console.error("Error updating account:", error);
-                    throw error;
+                    console.error("Error updating account balance:", error);
+                    this.showNotification('Error mengupdate saldo', 'error');
                 }
             },
 
@@ -1150,6 +1182,45 @@
                     console.error("Error deleting account:", error);
                     this.showNotification('Error menghapus rekening', 'error');
                 }
+            },
+
+            // Edit Account Balance
+            editAccountBalance(accountId) {
+                const account = this.accounts.find(acc => acc.id === accountId);
+                if (!account) return;
+
+                this.currentEditingAccount = account;
+                
+                document.getElementById('editAccountModal').classList.remove('hidden');
+                
+                const form = document.getElementById('editAccountForm');
+                form.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">Nama Rekening</label>
+                        <input type="text" class="form-input" value="${account.name}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipe Rekening</label>
+                        <input type="text" class="form-input" value="${account.type}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Saldo Saat Ini</label>
+                        <input type="text" class="form-input" value="${this.formatCurrency(account.balance)}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Saldo Baru</label>
+                        <input type="number" id="editAccountBalance" class="form-input" placeholder="Masukkan saldo baru" value="${account.balance}">
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 text-lg mt-0.5"></i>
+                            <div>
+                                <h5 class="font-bold text-yellow-800 text-sm mb-1">Perhatian</h5>
+                                <p class="text-yellow-700 text-xs">Pastikan saldo yang dimasukkan sudah sesuai dengan saldo aktual di rekening Anda.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
             },
 
             renderAccountBalances() {
@@ -1175,7 +1246,14 @@
                                 <div class="font-semibold text-gray-800">${account.name}</div>
                                 <div class="text-xs text-gray-500 capitalize">${account.type}</div>
                             </div>
-                            <div class="font-bold text-gray-800">${this.formatCurrency(account.balance)}</div>
+                            <div class="text-right">
+                                <div class="font-bold text-gray-800">${this.formatCurrency(account.balance)}</div>
+                                <div class="action-buttons">
+                                    <button onclick="app.editAccountBalance('${account.id}')" class="btn btn-sm btn-secondary mt-1">
+                                        <i class="fas fa-edit"></i> Edit Saldo
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `).join('');
@@ -1195,9 +1273,14 @@
                             <div class="font-medium text-gray-800">${account.name}</div>
                             <div class="text-sm text-gray-500">${this.formatCurrency(account.balance)}</div>
                         </div>
-                        <button onclick="app.deleteAccount('${account.id}')" class="text-red-600">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="app.editAccountBalance('${account.id}')" class="text-blue-600">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="app.deleteAccount('${account.id}')" class="text-red-600">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `).join('');
             },
@@ -1334,7 +1417,7 @@
                     const account = this.accounts.find(acc => acc.type === paymentMethod);
                     if (account) {
                         const newBalance = account.balance + total;
-                        await this.updateAccountBalance(account.id, newBalance);
+                        await this.updateAccountBalanceDirect(account.id, newBalance);
                     }
                     
                     this.showNotification('Invoice berhasil dibuat!', 'success');
@@ -1342,6 +1425,18 @@
                 } catch (error) {
                     console.error("Error creating invoice:", error);
                     this.showNotification('Error membuat invoice', 'error');
+                }
+            },
+
+            async updateAccountBalanceDirect(accountId, newBalance) {
+                try {
+                    await db.collection("finance_accounts").doc(accountId).update({
+                        balance: newBalance,
+                        updatedAt: new Date()
+                    });
+                } catch (error) {
+                    console.error("Error updating account:", error);
+                    throw error;
                 }
             },
 
@@ -1481,7 +1576,7 @@
                         if (account) {
                             // Subtract the invoice total from account balance
                             const newBalance = Math.max(0, account.balance - invoice.total);
-                            await this.updateAccountBalance(account.id, newBalance);
+                            await this.updateAccountBalanceDirect(account.id, newBalance);
                         }
                     }
                     
@@ -1642,7 +1737,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                         account.balance + amount : 
                         account.balance - amount;
                     
-                    await this.updateAccountBalance(accountId, newBalance);
+                    await this.updateAccountBalanceDirect(accountId, newBalance);
                     
                     this.showNotification('Transaksi berhasil disimpan!', 'success');
                     this.closeModal();
@@ -1666,7 +1761,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                                 Math.max(0, account.balance - transaction.amount) :
                                 account.balance + transaction.amount;
                             
-                            await this.updateAccountBalance(account.id, newBalance);
+                            await this.updateAccountBalanceDirect(account.id, newBalance);
                         }
                     }
                     
@@ -1806,7 +1901,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 `;
             },
 
-            // Dashboard Updates - FIXED VERSION (Only shipping as income)
+            // Dashboard Updates
             updateDashboard() {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -1814,7 +1909,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
 
-                // Calculate income from SHIPPING COSTS only (today) - FIXED
+                // Calculate income from SHIPPING COSTS only (today)
                 const todayIncome = this.invoices
                     .filter(invoice => {
                         const invoiceDate = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
@@ -1822,7 +1917,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                     })
                     .reduce((sum, invoice) => sum + (invoice.shippingCost || 0), 0);
 
-                // Calculate monthly income from SHIPPING COSTS only - FIXED
+                // Calculate monthly income from SHIPPING COSTS only
                 const monthlyIncome = this.invoices
                     .filter(invoice => {
                         const invoiceDate = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
@@ -1851,7 +1946,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 document.getElementById('totalBalance').textContent = this.formatCurrency(totalBalance > 0 ? totalBalance : 0);
                 document.getElementById('invoiceCount').textContent = monthInvoices.length;
 
-                // Update finance section (monthly) - FIXED (only shipping as income)
+                // Update finance section (monthly)
                 const monthlyExpense = this.transactions
                     .filter(t => t.type === 'expense' && 
                         new Date(t.createdAt?.toDate?.() || t.createdAt).getMonth() === currentMonth &&
