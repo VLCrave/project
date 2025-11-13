@@ -219,6 +219,20 @@
             <p class="text-gray-600">Layanan Pengiriman Premium & Invoice Generator</p>
         </header>
 
+        <!-- Account Balances Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6 max-w-md mx-auto">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-piggy-bank text-orange-500"></i>
+                Saldo Rekening
+            </h2>
+            <div id="accountBalances">
+                <div class="text-center py-4 text-gray-500">
+                    <i class="fas fa-wallet text-3xl mb-2 opacity-50"></i>
+                    <p class="text-sm font-medium">Memuat saldo...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Stats Grid -->
         <div class="grid grid-cols-2 gap-4 max-w-md mx-auto mb-6">
             <div class="bg-white rounded-xl p-4 shadow border-l-4 border-orange-500">
@@ -378,6 +392,7 @@
             currentShippingCost: 0,
             currentInvoiceData: null,
             invoices: [],
+            accounts: [], // Tambahkan properti accounts
             filteredInvoices: [],
             currentPage: 1,
             invoicesPerPage: 10,
@@ -388,6 +403,7 @@
             unsubscribeIncome: null,
             unsubscribeStats: null,
             unsubscribeInvoices: null,
+            unsubscribeAccounts: null, // Tambahkan unsubscribe untuk accounts
             isRefreshing: false,
 
             // Initialize the app
@@ -400,11 +416,75 @@
                 // Load existing invoices dengan snapshot real-time
                 this.loadInvoicesFromFirestore();
                 
+                // Load accounts data
+                this.loadAccountsData();
+                
                 // Load total income
                 this.loadTotalIncome();
                 
                 // Load stats
                 this.loadStats();
+            },
+
+            // Load accounts data dari Firestore
+            loadAccountsData() {
+                try {
+                    this.unsubscribeAccounts = db.collection("finance_accounts")
+                        .onSnapshot((snapshot) => {
+                            this.accounts = [];
+                            snapshot.forEach(doc => {
+                                const data = doc.data();
+                                data.id = doc.id;
+                                this.accounts.push(data);
+                            });
+                            this.renderAccountBalances();
+                        }, (error) => {
+                            console.error("Error loading accounts:", error);
+                        });
+                } catch (error) {
+                    console.error("Error setting up accounts listener:", error);
+                }
+            },
+
+            // Render account balances
+            renderAccountBalances() {
+                const container = document.getElementById('accountBalances');
+                
+                if (this.accounts.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-gray-500">
+                            <i class="fas fa-wallet text-3xl mb-2 opacity-50"></i>
+                            <p class="text-sm font-medium">Belum ada rekening</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.accounts.map(account => `
+                    <div class="flex justify-between items-center p-3 mb-3 rounded-xl bg-gray-50 border-l-4 ${account.type === 'tunai' ? 'border-orange-500' : account.type === 'bca' ? 'border-blue-500' : 'border-green-500'}">
+                        <div>
+                            <div class="font-semibold text-gray-800">${account.name}</div>
+                            <div class="text-xs text-gray-500 capitalize">${account.type}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-gray-800">${this.formatCurrency(account.balance)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            // Update account balance di Firestore
+            async updateAccountBalanceDirect(accountId, newBalance) {
+                try {
+                    await db.collection("finance_accounts").doc(accountId).update({
+                        balance: newBalance,
+                        updatedAt: new Date()
+                    });
+                    return true;
+                } catch (error) {
+                    console.error("Error updating account:", error);
+                    throw error;
+                }
             },
 
             // Refresh all data
@@ -424,9 +504,11 @@
                     if (this.unsubscribeIncome) this.unsubscribeIncome();
                     if (this.unsubscribeStats) this.unsubscribeStats();
                     if (this.unsubscribeInvoices) this.unsubscribeInvoices();
+                    if (this.unsubscribeAccounts) this.unsubscribeAccounts();
                     
                     // Reload all data
                     this.loadInvoicesFromFirestore();
+                    this.loadAccountsData();
                     this.loadTotalIncome();
                     this.loadStats();
                     
@@ -602,10 +684,10 @@
                                         </div>
                                     </label>
                                     <label class="relative">
-                                        <input type="radio" name="paymentMethod" value="transfer" class="hidden peer">
+                                        <input type="radio" name="paymentMethod" value="bca" class="hidden peer">
                                         <div class="p-4 border-2 border-gray-300 rounded-xl text-center cursor-pointer transition-all peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-300">
-                                            <i class="fas fa-mobile-alt text-lg mb-2"></i>
-                                            <div class="font-medium">Transfer</div>
+                                            <i class="fas fa-university text-lg mb-2"></i>
+                                            <div class="font-medium">BCA</div>
                                         </div>
                                     </label>
                                 </div>
@@ -756,7 +838,7 @@
                 this.currentShippingCost = shippingCost;
             },
 
-            // Generate invoice from manual input
+            // Generate invoice from manual input dengan update saldo rekening
             async generateManualInvoice() {
                 try {
                     // Validate products
@@ -793,14 +875,67 @@
                         time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     };
 
-                    // Save to Firestore
-                    await this.saveToFirestore(invoiceData);
+                    // Save to Firestore dan update saldo rekening
+                    await this.saveToFirestoreWithBalanceUpdate(invoiceData);
                     
                     this.showSimpleInvoice(invoiceData);
 
                 } catch (error) {
                     console.error('Error generating invoice:', error);
                     alert('Error membuat invoice: ' + error.message);
+                }
+            },
+
+            // Save to Firestore dengan update saldo rekening
+            async saveToFirestoreWithBalanceUpdate(invoiceData) {
+                try {
+                    const firestoreData = {
+                        ...invoiceData,
+                        userId: "guest-user",
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        status: 'completed',
+                        type: 'delivery'
+                    };
+
+                    // Simpan ke Firestore - invoices
+                    const invoiceRef = await db.collection("invoices").add(firestoreData);
+                    
+                    // UPDATE SALDO REKENING - HANYA ONGKIR YANG DITAMBAHKAN
+                    const account = this.accounts.find(acc => acc.type === invoiceData.paymentMethod);
+                    if (account && invoiceData.shippingCost > 0) {
+                        const newBalance = account.balance + invoiceData.shippingCost;
+                        await this.updateAccountBalanceDirect(account.id, newBalance);
+                        console.log(`Saldo ${account.name} diperbarui: +${this.formatCurrency(invoiceData.shippingCost)}`);
+                    }
+                    
+                    // SIMPAN JUGA KE FINANCE_TRANSACTIONS SEBAGAI PEMASUKAN (ONGKIR SAJA)
+                    if (invoiceData.shippingCost > 0) {
+                        const financeTransaction = {
+                            type: 'income',
+                            amount: invoiceData.shippingCost,
+                            category: 'delivery_fee',
+                            description: `Ongkir dari invoice ${invoiceData.invoiceNumber}`,
+                            invoiceNumber: invoiceData.invoiceNumber,
+                            invoiceRef: invoiceRef.id,
+                            userId: "guest-user",
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                            date: new Date().toISOString().split('T')[0],
+                            paymentMethod: invoiceData.paymentMethod,
+                            status: 'completed'
+                        };
+                        
+                        await db.collection("finance_transactions").add(financeTransaction);
+                        console.log("Data pendapatan berhasil disimpan ke finance_transactions");
+                    }
+                    
+                    this.showNotification(`✅ Invoice ${invoiceData.invoiceNumber} berhasil dibuat! Saldo diperbarui.`, 'success');
+                    
+                } catch (error) {
+                    console.error("Error saving invoice to Firestore: ", error);
+                    // Tetap tampilkan invoice meskipun gagal save ke Firestore
+                    this.showNotification('⚠️ Invoice dibuat tapi gagal disimpan ke database', 'info');
                 }
             },
 
@@ -838,51 +973,6 @@
                     console.error('Error generating invoice number:', error);
                     // Fallback ke timestamp
                     return `VLC-${Date.now().toString().slice(-4)}`;
-                }
-            },
-
-            // Save to Firestore tanpa login - DENGAN PENYIMPANAN KE FINANCE_TRANSACTIONS
-            async saveToFirestore(invoiceData) {
-                try {
-                    const firestoreData = {
-                        ...invoiceData,
-                        userId: "guest-user",
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                        status: 'completed',
-                        type: 'delivery'
-                    };
-
-                    // Simpan ke Firestore - invoices
-                    const invoiceRef = await db.collection("invoices").add(firestoreData);
-                    
-                    // SIMPAN JUGA KE FINANCE_TRANSACTIONS SEBAGAI PEMASUKAN (ONGKIR SAJA)
-                    if (invoiceData.shippingCost > 0) {
-                        const financeTransaction = {
-                            type: 'income',
-                            amount: invoiceData.shippingCost,
-                            category: 'delivery_fee',
-                            description: `Ongkir dari invoice ${invoiceData.invoiceNumber}`,
-                            invoiceNumber: invoiceData.invoiceNumber,
-                            invoiceRef: invoiceRef.id,
-                            userId: "guest-user",
-                            createdAt: new Date(),
-                            updatedAt: new Date(),
-                            date: new Date().toISOString().split('T')[0],
-                            paymentMethod: invoiceData.paymentMethod,
-                            status: 'completed'
-                        };
-                        
-                        await db.collection("finance_transactions").add(financeTransaction);
-                        console.log("Data pendapatan berhasil disimpan ke finance_transactions");
-                    }
-                    
-                    this.showNotification(`✅ Invoice ${invoiceData.invoiceNumber} berhasil dibuat!`, 'success');
-                    
-                } catch (error) {
-                    console.error("Error saving invoice to Firestore: ", error);
-                    // Tetap tampilkan invoice meskipun gagal save ke Firestore
-                    this.showNotification('⚠️ Invoice dibuat tapi gagal disimpan ke database', 'info');
                 }
             },
 
@@ -991,11 +1081,11 @@
                                             <div class="text-sm text-orange-600">Mohon siapkan uang pas</div>
                                         </div>
                                     </div>` :
-                                    `<div class="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                        <i class="fas fa-mobile-alt text-green-500 text-xl"></i>
+                                    `<div class="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <i class="fas fa-university text-blue-500 text-xl"></i>
                                         <div>
-                                            <div class="font-semibold text-green-800">Transfer</div>
-                                            <div class="text-sm text-green-600">Anda tidak perlu membayar uang tunai kepada kurir</div>
+                                            <div class="font-semibold text-blue-800">Transfer BCA</div>
+                                            <div class="text-sm text-blue-600">6455106421 a/n VICKY SATRIA LINDY</div>
                                         </div>
                                     </div>`
                                 }
@@ -1114,11 +1204,11 @@
                     let paymentText = '';
                     
                     // Gunakan paymentMethod dari data invoice yang sebenarnya
-                    if (data.paymentMethod === 'transfer') {
+                    if (data.paymentMethod === 'bca') {
                         paymentText = 
                             `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
-                            `💳 Metode: Transfer\n` +
-                            `🏦 Tujuan: BCA 6455106431 a/n VICKY SATRIA LINDY\n` +
+                            `💳 Metode: Transfer BCA\n` +
+                            `🏦 Tujuan: BCA 6455106421 a/n VICKY SATRIA LINDY\n` +
                             `💰 Nominal: ${this.formatCurrency(data.total)}\n\n` +
                             `Silakan transfer terlebih dahulu sebelum pengiriman.\n\n` +
                             `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
@@ -1345,14 +1435,14 @@
                             </div>
                         </div>` :
                         `<div style="margin-bottom: 20px; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; box-sizing: border-box;">
-                                <i class="fas fa-mobile-alt" style="color: #16a34a; font-size: 20px; box-sizing: border-box;"></i>
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #dbeafe; border: 1px solid #93c5fd; border-radius: 8px; box-sizing: border-box;">
+                                <i class="fas fa-university" style="color: #1d4ed8; font-size: 20px; box-sizing: border-box;"></i>
                                 <div style="box-sizing: border-box;">
-                                    <div style="font-weight: 600; font-size: 14px; color: #166534; box-sizing: border-box;">
-                                        Transfer
+                                    <div style="font-weight: 600; font-size: 14px; color: #1e40af; box-sizing: border-box;">
+                                        Transfer BCA
                                     </div>
-                                    <div style="font-size: 11px; color: #16a34a; font-weight: 500; box-sizing: border-box;">
-                                        Anda tidak perlu membayar uang tunai kepada kurir
+                                    <div style="font-size: 11px; color: #1d4ed8; font-weight: 500; box-sizing: border-box;">
+                                        6455106421 a/n VICKY SATRIA LINDY
                                     </div>
                                 </div>
                             </div>
@@ -1550,7 +1640,7 @@
                 try {
                     let shareText = '';
                     
-                    if (paymentMethod === 'transfer') {
+                    if (paymentMethod === 'bca') {
                         shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
 
 Untuk pembayaran Transfer silahkan ke nomor rekening dibawah
@@ -1619,15 +1709,28 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 }
             },
 
-            // Delete invoice
+            // Delete invoice dengan update saldo rekening
             async deleteInvoice(id, invoiceNumber) {
                 if (!confirm(`Apakah Anda yakin ingin menghapus invoice ${invoiceNumber}?`)) {
                     return;
                 }
 
                 try {
+                    const invoice = this.invoices.find(inv => inv.id === id);
+                    if (!invoice) {
+                        throw new Error('Invoice tidak ditemukan');
+                    }
+
+                    // KURANGI SALDO REKENING - HANYA ONGKIR YANG DIKURANGI
+                    const account = this.accounts.find(acc => acc.type === invoice.paymentMethod);
+                    if (account && invoice.shippingCost > 0) {
+                        const newBalance = Math.max(0, account.balance - invoice.shippingCost);
+                        await this.updateAccountBalanceDirect(account.id, newBalance);
+                        console.log(`Saldo ${account.name} diperbarui: -${this.formatCurrency(invoice.shippingCost)}`);
+                    }
+
                     await db.collection("invoices").doc(id).delete();
-                    this.showNotification(`✅ Invoice ${invoiceNumber} berhasil dihapus!`, 'success');
+                    this.showNotification(`✅ Invoice ${invoiceNumber} berhasil dihapus! Saldo diperbarui.`, 'success');
                     
                 } catch (error) {
                     console.error('Error deleting invoice:', error);
