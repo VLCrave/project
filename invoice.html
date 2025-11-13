@@ -9,598 +9,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles for better mobile experience */
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #f97316 0%, #eab308 100%);
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1.5rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-        }
-        
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #ea580c 0%, #ca8a04 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
-        }
-        
-        /* Invoice modal styles */
-        .invoice-modal-container {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-            padding: 1rem;
-        }
-        
-        .invoice-modal-content {
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            width: 100%;
-            max-width: 28rem;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .invoice-modal-scroll {
-            overflow-y: auto;
-            overflow-x: hidden;
-            flex: 1;
-            padding: 1.5rem;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .invoice-modal-actions {
-            display: flex;
-            gap: 0.5rem;
-            padding: 1rem;
-            border-top: 1px solid #e5e7eb;
-            background: #f9fafb;
-        }
-
-        .invoice-header-orange {
-            background: linear-gradient(135deg, #f97316 0%, #eab308 100%) !important;
-            padding: 1.5rem;
-            color: white;
-        }
-
-        .invoice-header-orange .logo-container {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 4rem;
-            height: 4rem;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            margin-bottom: 1rem;
-        }
-
-        .invoice-header-orange .logo-container img {
-            width: 2rem;
-            height: 2rem;
-        }
-
-        .invoice-header-orange h1 {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 0.25rem;
-        }
-
-        .invoice-header-orange .subtitle {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 0.875rem;
-            font-weight: 300;
-        }
-
-        .btn-orange-gradient {
-            background: linear-gradient(135deg, #f97316 0%, #eab308 100%) !important;
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-        }
-
-        .btn-orange-gradient:hover {
-            background: linear-gradient(135deg, #ea580c 0%, #ca8a04 100%) !important;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
-        }
-
-        /* Invoice Generator Modal Styles */
-        .invoice-gen-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-            padding: 1rem;
-        }
-        
-        .invoice-gen-content {
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            width: 100%;
-            max-width: 28rem;
-            max-height: 90vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .invoice-gen-scroll {
-            overflow-y: auto;
-            overflow-x: hidden;
-            flex: 1;
-            padding: 1.5rem;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        .invoice-gen-footer {
-            display: flex;
-            gap: 0.5rem;
-            padding: 1rem;
-            border-top: 1px solid #e5e7eb;
-            background: #f9fafb;
-        }
-
-        /* Custom scrollbar styling */
-        .invoice-modal-scroll::-webkit-scrollbar,
-        .invoice-gen-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .invoice-modal-scroll::-webkit-scrollbar-track,
-        .invoice-gen-scroll::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 3px;
-        }
-        
-        .invoice-modal-scroll::-webkit-scrollbar-thumb,
-        .invoice-gen-scroll::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        
-        .invoice-modal-scroll::-webkit-scrollbar-thumb:hover,
-        .invoice-gen-scroll::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 640px) {
-            .invoice-modal-container,
-            .invoice-gen-modal {
-                padding: 0.5rem;
-            }
-            
-            .invoice-modal-content,
-            .invoice-gen-content {
-                max-height: 95vh;
-                max-width: 100%;
-                border-radius: 0.75rem;
-            }
-            
-            .invoice-modal-scroll,
-            .invoice-gen-scroll {
-                padding: 1rem;
-            }
-            
-            .invoice-modal-actions,
-            .invoice-gen-footer {
-                flex-direction: column;
-                padding: 0.75rem;
-            }
-            
-            .invoice-modal-actions button,
-            .invoice-gen-footer button {
-                flex: 1;
-                min-height: 44px;
-            }
-            
-            .invoice-header-orange {
-                padding: 1.25rem;
-            }
-
-            .invoice-header-orange .logo-container {
-                width: 3.5rem;
-                height: 3.5rem;
-                margin-bottom: 0.75rem;
-            }
-
-            .invoice-header-orange h1 {
-                font-size: 1.25rem;
-            }
-            
-            button {
-                -webkit-tap-highlight-color: transparent;
-                touch-action: manipulation;
-            }
-        }
-        
-        /* Very small screens */
-        @media (max-width: 375px) {
-            .invoice-modal-scroll,
-            .invoice-gen-scroll {
-                padding: 0.75rem;
-            }
-            
-            .invoice-modal-actions,
-            .invoice-gen-footer {
-                gap: 0.25rem;
-                padding: 0.5rem;
-            }
-
-            .invoice-header-orange {
-                padding: 1rem;
-            }
-        }
-        
-        /* Prevent body scroll when modal is open */
-        body.modal-open {
-            overflow: hidden;
-        }
-        
-        /* Notification styles */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10001;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-        }
-        
-        .notification.success {
-            background: #10b981;
-            color: white;
-        }
-        
-        .notification.error {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .notification.info {
-            background: #3b82f6;
-            color: white;
-        }
-
-        /* Hidden utility */
-        .hidden {
-            display: none !important;
-        }
-
-        /* Income Stats */
-        .income-stats {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
-        }
-
-        /* Payment Method Styles - Simplified */
-        .payment-method-simple {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-        }
-
-        .payment-method-tunai {
-            background: #fef7ed;
-            border: 1px solid #fed7aa;
-        }
-
-        .payment-method-transfer {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-        }
-
-        .payment-icon {
-            font-size: 20px;
-        }
-
-        .payment-icon-tunai {
-            color: #ea580c;
-        }
-
-        .payment-icon-transfer {
-            color: #16a34a;
-        }
-
-        .payment-text {
-            flex: 1;
-        }
-
-        .payment-title {
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-
-        .payment-title-tunai {
-            color: #9a3412;
-        }
-
-        .payment-title-transfer {
-            color: #166534;
-        }
-
-        .payment-subtitle {
-            font-size: 12px;
-        }
-
-        .payment-subtitle-tunai {
-            color: #ea580c;
-        }
-
-        .payment-subtitle-transfer {
-            color: #16a34a;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.25rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e5e7eb;
-        }
-
-        .stat-card-today {
-            border-left: 4px solid #f97316;
-        }
-
-        .stat-card-total {
-            border-left: 4px solid #3b82f6;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .stat-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 0.75rem;
-        }
-
-        .stat-icon-today {
-            background: #fed7aa;
-            color: #ea580c;
-        }
-
-        .stat-icon-total {
-            background: #bfdbfe;
-            color: #1d4ed8;
-        }
-
-        /* Pagination Styles */
-        .pagination {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .pagination-btn {
-            width: 2.5rem;
-            height: 2.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 0.5rem;
-            border: 1px solid #d1d5db;
-            background: white;
-            color: #374151;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .pagination-btn:hover:not(:disabled) {
-            background: #f3f4f6;
-            border-color: #9ca3af;
-        }
-
-        .pagination-btn.active {
-            background: #f97316;
-            color: white;
-            border-color: #f97316;
-        }
-
-        .pagination-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* History Actions */
-        .history-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .history-action-btn {
-            flex: 1;
-            padding: 0.75rem;
-            border-radius: 0.75rem;
-            border: 1px solid #e5e7eb;
-            background: white;
-            color: #374151;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .history-action-btn:hover {
-            background: #f9fafb;
-            border-color: #d1d5db;
-        }
-
-        .history-action-btn.active {
-            background: #fef7ed;
-            border-color: #fdba74;
-            color: #ea580c;
-        }
-
-        /* Refresh Button */
-        .btn-refresh {
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1.5rem;
-            font-weight: 500;
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-refresh:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-        }
-
-        .btn-refresh:active {
-            transform: translateY(0);
-        }
-
-        .btn-refresh.loading {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .btn-refresh.loading i {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        /* Product Input Styles */
-        .product-item {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
-            align-items: end;
-        }
-
-        .product-input {
-            flex: 1;
-        }
-
-        .quantity-input {
-            width: 80px;
-        }
-
-        .price-input {
-            width: 120px;
-        }
-
-        .btn-remove {
-            background: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-remove:hover {
-            background: #dc2626;
-        }
-
-        .btn-add {
-            background: #10b981;
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .btn-add:hover {
-            background: #059669;
-        }
-    </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
@@ -610,156 +18,112 @@
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg">
                     <img src="https://vlcrave.github.io/project/img/icon.png" alt="VLCrave Express" class="w-8 h-8">
                 </div>
-                <button onclick="app.refreshAllData()" class="btn-refresh flex items-center gap-2">
+                <button onclick="app.refreshAllData()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
                     <i class="fas fa-sync-alt"></i>
-                    Refresh Data
+                    Refresh
                 </button>
             </div>
             <h1 class="text-3xl font-bold text-gray-800 mb-2">VLCrave Express</h1>
-            <p class="text-gray-600">Layanan Pengiriman Premium & Invoice Generator</p>
+            <p class="text-gray-600">Invoice Generator & Delivery Service</p>
         </header>
 
         <!-- Stats Grid -->
-        <div class="stats-grid max-w-md mx-auto">
-            <div class="stat-card stat-card-today">
-                <div class="stat-icon stat-icon-today">
-                    <i class="fas fa-truck"></i>
+        <div class="grid grid-cols-2 gap-4 max-w-md mx-auto mb-6">
+            <div class="bg-white rounded-xl p-4 shadow border">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-truck text-orange-500"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-800" id="deliveryToday">0</div>
+                        <div class="text-xs text-gray-500">Hari Ini</div>
+                    </div>
                 </div>
-                <div class="stat-value" id="deliveryToday">0</div>
-                <div class="stat-label">Pengantaran Hari Ini</div>
             </div>
-            <div class="stat-card stat-card-total">
-                <div class="stat-icon stat-icon-total">
-                    <i class="fas fa-chart-line"></i>
+            <div class="bg-white rounded-xl p-4 shadow border">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-blue-500"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold text-gray-800" id="deliveryTotal">0</div>
+                        <div class="text-xs text-gray-500">Total</div>
+                    </div>
                 </div>
-                <div class="stat-value" id="deliveryTotal">0</div>
-                <div class="stat-label">Total Pengantaran</div>
             </div>
-            <div class="stat-card stat-card-today">
-                <div class="stat-icon stat-icon-today">
-                    <i class="fas fa-money-bill-wave"></i>
+            <div class="bg-white rounded-xl p-4 shadow border">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-money-bill-wave text-green-500"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-gray-800" id="incomeToday">Rp 0</div>
+                        <div class="text-xs text-gray-500">Hari Ini</div>
+                    </div>
                 </div>
-                <div class="stat-value" id="incomeToday">Rp 0</div>
-                <div class="stat-label">Penghasilan Hari Ini</div>
             </div>
-            <div class="stat-card stat-card-total">
-                <div class="stat-icon stat-icon-total">
-                    <i class="fas fa-wallet"></i>
+            <div class="bg-white rounded-xl p-4 shadow border">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-wallet text-purple-500"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-bold text-gray-800" id="incomeTotal">Rp 0</div>
+                        <div class="text-xs text-gray-500">Total</div>
+                    </div>
                 </div>
-                <div class="stat-value" id="incomeTotal">Rp 0</div>
-                <div class="stat-label">Total Penghasilan</div>
             </div>
         </div>
 
-        <!-- Total Income Section -->
-        <div class="income-stats max-w-md mx-auto">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h2 class="text-lg font-bold">Total Pendapatan</h2>
-                    <p class="text-green-100 text-sm">Dari ongkir saja</p>
-                </div>
-                <i class="fas fa-money-bill-wave text-2xl"></i>
-            </div>
-            <div class="text-center">
-                <div id="totalIncome" class="text-3xl font-bold">Rp 0</div>
-                <p class="text-green-100 text-sm mt-2">Real-time update</p>
+        <!-- Debug Info -->
+        <div class="max-w-md mx-auto mb-4 text-center">
+            <div class="text-xs text-gray-500 bg-yellow-50 p-2 rounded-lg">
+                <span id="debugInfo">Memuat data...</span>
             </div>
         </div>
 
-        <!-- Main Content -->
-        <main class="max-w-md mx-auto">
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <!-- Main Actions -->
+        <div class="max-w-md mx-auto mb-8">
+            <div class="bg-white rounded-xl shadow border p-6">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Invoice Generator</h2>
-                <p class="text-gray-600 mb-6">Buat invoice dengan mudah menggunakan form input manual.</p>
-                
-                <button onclick="app.showInvoiceGeneratorModal()" class="btn-primary w-full flex items-center justify-center gap-2 mb-3">
+                <button onclick="app.showInvoiceGeneratorModal()" class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 mb-3 transition-colors">
                     <i class="fas fa-receipt"></i>
-                    Buat Invoice Manual
+                    Buat Invoice Baru
                 </button>
-                
-                <button onclick="app.cleanupOldData()" class="w-full flex items-center justify-center gap-2 px-4 py-3 border border-red-300 text-red-600 rounded-xl hover:bg-red-50 transition-colors">
+                <button onclick="app.cleanupOldData()" class="w-full border border-red-300 text-red-600 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-red-50 transition-colors">
                     <i class="fas fa-trash"></i>
-                    Reset Semua Data
+                    Reset Data
                 </button>
             </div>
+        </div>
 
-            <!-- Features -->
-            <div class="grid grid-cols-2 gap-4 mb-8">
-                <div class="bg-white rounded-xl p-4 text-center shadow">
-                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-edit text-orange-500 text-xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-800 text-sm">Input Manual</h3>
-                    <p class="text-xs text-gray-600 mt-1">Input produk satu per satu</p>
-                </div>
-                
-                <div class="bg-white rounded-xl p-4 text-center shadow">
-                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-download text-green-500 text-xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-800 text-sm">Download PNG</h3>
-                    <p class="text-xs text-gray-600 mt-1">Simpan invoice sebagai gambar</p>
-                </div>
-                
-                <div class="bg-white rounded-xl p-4 text-center shadow">
-                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-share-alt text-blue-500 text-xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-800 text-sm">Share</h3>
-                    <p class="text-xs text-gray-600 mt-1">Bagikan invoice dengan mudah</p>
-                </div>
-                
-                <div class="bg-white rounded-xl p-4 text-center shadow">
-                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-print text-purple-500 text-xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-800 text-sm">Print</h3>
-                    <p class="text-xs text-gray-600 mt-1">Cetak invoice langsung</p>
-                </div>
-            </div>
-
-            <!-- History Section -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
+        <!-- History Section -->
+        <div class="max-w-md mx-auto">
+            <div class="bg-white rounded-xl shadow border p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">History Invoice</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Riwayat Invoice</h2>
                     <div class="text-sm text-gray-500" id="invoiceCount">0 invoices</div>
                 </div>
 
-                <!-- History Actions -->
-                <div class="history-actions">
-                    <button id="filterAll" class="history-action-btn active" onclick="app.filterInvoices('all')">
-                        <i class="fas fa-list"></i> Semua
-                    </button>
-                    <button id="filterToday" class="history-action-btn" onclick="app.filterInvoices('today')">
-                        <i class="fas fa-calendar-day"></i> Hari Ini
-                    </button>
-                    <button id="filterWeek" class="history-action-btn" onclick="app.filterInvoices('week')">
-                        <i class="fas fa-calendar-week"></i> Minggu Ini
-                    </button>
+                <!-- Filter Buttons -->
+                <div class="flex gap-2 mb-4">
+                    <button onclick="app.filterInvoices('all')" class="filter-btn active">Semua</button>
+                    <button onclick="app.filterInvoices('today')" class="filter-btn">Hari Ini</button>
+                    <button onclick="app.filterInvoices('week')" class="filter-btn">Minggu Ini</button>
                 </div>
 
                 <!-- Invoice List -->
-                <div id="invoiceList" class="space-y-4">
-                    <!-- Invoices will be loaded here -->
+                <div id="invoiceList" class="space-y-3">
                     <div class="text-center py-8 text-gray-500">
                         <i class="fas fa-receipt text-3xl mb-3"></i>
                         <p>Belum ada invoice</p>
-                        <p class="text-sm">Buat invoice pertama Anda</p>
                     </div>
                 </div>
 
                 <!-- Pagination -->
-                <div id="pagination" class="pagination hidden">
-                    <!-- Pagination buttons will be generated here -->
-                </div>
+                <div id="pagination" class="pagination hidden"></div>
             </div>
-        </main>
-
-        <!-- Footer -->
-        <footer class="text-center mt-12 text-gray-500 text-sm">
-            <p>© 2023 VLCrave Express. All rights reserved.</p>
-        </footer>
+        </div>
     </div>
 
     <script>
@@ -773,279 +137,205 @@
             measurementId: "G-XLWNDN39ZD"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // App object to hold all methods
         const app = {
             currentProducts: [],
             currentShippingCost: 0,
             currentInvoiceData: null,
-            lastInvoiceNumber: 0,
             invoices: [],
             filteredInvoices: [],
             currentPage: 1,
-            invoicesPerPage: 10,
+            invoicesPerPage: 8,
             currentFilter: 'all',
-            user: null,
-            db: db,
-            modalEscapeListener: null,
-            unsubscribeIncome: null,
-            unsubscribeStats: null,
-            isRefreshing: false,
+            unsubscribeFunctions: [],
+            isInitialized: false,
 
-            // Initialize the app
             init() {
-                console.log("VLCrave Express Invoice Generator initialized");
+                if (this.isInitialized) {
+                    console.log('⚠️ App sudah diinisialisasi sebelumnya');
+                    return;
+                }
                 
-                // Tidak perlu login untuk membuat invoice
+                console.log('🚀 Inisialisasi aplikasi...');
+                this.isInitialized = true;
                 this.user = { uid: "guest-user" };
-                
-                // Load existing invoices
                 this.loadInvoicesFromFirestore();
-                
-                // Load total income
-                this.loadTotalIncome();
-                
-                // Load stats
                 this.loadStats();
             },
 
-            // Refresh all data
             async refreshAllData() {
-                if (this.isRefreshing) return;
-                
-                this.isRefreshing = true;
-                const refreshBtn = document.querySelector('.btn-refresh');
-                if (refreshBtn) {
-                    refreshBtn.classList.add('loading');
-                }
-                
-                try {
-                    this.showNotification('🔄 Memuat ulang semua data...', 'info');
-                    
-                    // Unsubscribe existing listeners
-                    if (this.unsubscribeIncome) this.unsubscribeIncome();
-                    if (this.unsubscribeStats) this.unsubscribeStats();
-                    
-                    // Reload all data
-                    await this.loadInvoicesFromFirestore();
-                    this.loadTotalIncome();
-                    this.loadStats();
-                    
-                    this.showNotification('✅ Data berhasil dimuat ulang!', 'success');
-                } catch (error) {
-                    console.error('Error refreshing data:', error);
-                    this.showNotification('❌ Gagal memuat ulang data', 'error');
-                } finally {
-                    this.isRefreshing = false;
-                    if (refreshBtn) {
-                        refreshBtn.classList.remove('loading');
+                console.log('🔄 Refresh semua data...');
+                this.unsubscribeAllListeners();
+                await this.loadInvoicesFromFirestore();
+                this.loadStats();
+                this.showNotification('Data diperbarui', 'success');
+            },
+
+            unsubscribeAllListeners() {
+                console.log('🗑️ Unsubscribe semua listener...');
+                this.unsubscribeFunctions.forEach(unsub => {
+                    if (unsub && typeof unsub === 'function') {
+                        unsub();
                     }
-                }
+                });
+                this.unsubscribeFunctions = [];
             },
 
-            // Load total income from ongkir only
-            loadTotalIncome() {
-                try {
-                    // Use onSnapshot for real-time updates
-                    this.unsubscribeIncome = db.collection("invoices")
-                        .onSnapshot((snapshot) => {
-                            let totalIncome = 0;
-                            snapshot.forEach((doc) => {
-                                const data = doc.data();
-                                if (data.shippingCost) {
-                                    totalIncome += data.shippingCost;
-                                }
-                            });
-                            
-                            // Update the UI
-                            const totalIncomeElement = document.getElementById('totalIncome');
-                            if (totalIncomeElement) {
-                                totalIncomeElement.textContent = this.formatCurrency(totalIncome);
-                            }
-                            
-                        }, (error) => {
-                            console.error("Error loading total income:", error);
-                        });
-                } catch (error) {
-                    console.error("Error setting up income listener:", error);
-                }
-            },
-
-            // Load stats for dashboard - FIXED VERSION
             loadStats() {
-                try {
-                    this.unsubscribeStats = db.collection("invoices")
-                        .onSnapshot((snapshot) => {
-                            let deliveryToday = 0;
-                            let deliveryTotal = 0;
-                            let incomeToday = 0;
-                            let incomeTotal = 0;
-                            
-                            // Get today's date properly
-                            const now = new Date();
-                            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-                            const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-                            
-                            snapshot.forEach((doc) => {
-                                const data = doc.data();
-                                
-                                // Handle date properly
-                                let invoiceDate;
-                                if (data.createdAt) {
-                                    invoiceDate = data.createdAt.toDate();
-                                } else {
-                                    invoiceDate = new Date();
-                                }
-                                
-                                // Count deliveries
-                                deliveryTotal++;
-                                
-                                // Check if invoice is from today
-                                if (invoiceDate >= todayStart && invoiceDate <= todayEnd) {
-                                    deliveryToday++;
-                                }
-                                
-                                // Calculate income
-                                const shippingCost = data.shippingCost || 0;
-                                incomeTotal += shippingCost;
-                                if (invoiceDate >= todayStart && invoiceDate <= todayEnd) {
-                                    incomeToday += shippingCost;
-                                }
-                            });
-                            
-                            // Update the UI
-                            document.getElementById('deliveryToday').textContent = deliveryToday;
-                            document.getElementById('deliveryTotal').textContent = deliveryTotal;
-                            document.getElementById('incomeToday').textContent = this.formatCurrency(incomeToday);
-                            document.getElementById('incomeTotal').textContent = this.formatCurrency(incomeTotal);
-                            
-                        }, (error) => {
-                            console.error("Error loading stats:", error);
-                        });
-                } catch (error) {
-                    console.error("Error setting up stats listener:", error);
+                console.log('📊 Memuat stats...');
+                
+                // Unsubscribe listener stats sebelumnya
+                const existingStatsIndex = this.unsubscribeFunctions.findIndex(fn => 
+                    fn && fn.name === 'statsListener'
+                );
+                if (existingStatsIndex > -1) {
+                    this.unsubscribeFunctions[existingStatsIndex]();
+                    this.unsubscribeFunctions.splice(existingStatsIndex, 1);
                 }
+
+                const statsListener = db.collection("invoices").onSnapshot((snapshot) => {
+                    const today = new Date();
+                    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+                    
+                    let deliveryToday = 0;
+                    let deliveryTotal = 0;
+                    let incomeToday = 0;
+                    let incomeTotal = 0;
+
+                    const processedIds = new Set(); // Hindari duplikat
+
+                    snapshot.forEach((doc) => {
+                        if (processedIds.has(doc.id)) {
+                            console.warn('⚠️ Duplikat dokumen:', doc.id);
+                            return;
+                        }
+                        processedIds.add(doc.id);
+
+                        const data = doc.data();
+                        const invoiceDate = data.createdAt ? data.createdAt.toDate() : new Date();
+                        
+                        deliveryTotal++;
+                        
+                        // Cek apakah invoice hari ini
+                        if (invoiceDate >= todayStart && invoiceDate < todayEnd) {
+                            deliveryToday++;
+                        }
+                        
+                        const shippingCost = data.shippingCost || 0;
+                        incomeTotal += shippingCost;
+                        
+                        if (invoiceDate >= todayStart && invoiceDate < todayEnd) {
+                            incomeToday += shippingCost;
+                        }
+                    });
+
+                    console.log(`📊 Stats - Total: ${deliveryTotal}, Hari Ini: ${deliveryToday}`);
+                    
+                    // Update UI
+                    document.getElementById('deliveryToday').textContent = deliveryToday;
+                    document.getElementById('deliveryTotal').textContent = deliveryTotal;
+                    document.getElementById('incomeToday').textContent = this.formatCurrency(incomeToday);
+                    document.getElementById('incomeTotal').textContent = this.formatCurrency(incomeTotal);
+                    
+                    // Debug info
+                    document.getElementById('debugInfo').textContent = 
+                        `Ditemukan: ${deliveryTotal} invoice total, ${deliveryToday} hari ini`;
+
+                }, (error) => {
+                    console.error('❌ Error load stats:', error);
+                });
+
+                // Simpan listener untuk nanti di-unsubscribe
+                statsListener.name = 'statsListener';
+                this.unsubscribeFunctions.push(statsListener);
             },
 
-            // Show invoice generator modal
             showInvoiceGeneratorModal() {
-                console.log("Opening invoice generator modal");
-                
-                // Close any existing modals first
                 this.closeInvoiceModal();
-
                 const modal = document.createElement('div');
-                
-                modal.className = 'invoice-gen-modal';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
                 modal.innerHTML = `
-                    <div class="invoice-gen-content">
-                        <!-- Header -->
-                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">
+                    <div class="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+                        <div class="bg-blue-500 p-4 text-white">
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center gap-3">
-                                    <i class="fas fa-receipt text-2xl"></i>
+                                    <i class="fas fa-receipt text-xl"></i>
                                     <div>
-                                        <h2 class="text-lg font-bold">Manual Invoice Generator</h2>
-                                        <p class="text-indigo-200 text-xs">Input produk dan harga manual</p>
+                                        <h2 class="font-bold">Buat Invoice</h2>
+                                        <p class="text-blue-100 text-sm">Input manual produk</p>
                                     </div>
                                 </div>
-                                <button onclick="app.closeInvoiceModal()" 
-                                        class="text-white hover:text-indigo-200 transition-colors">
-                                    <i class="fas fa-times text-xl"></i>
+                                <button onclick="app.closeInvoiceModal()" class="text-white hover:text-blue-200">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
                         
-                        <!-- Scrollable Content -->
-                        <div class="invoice-gen-scroll">
-                            <!-- Products Section -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-semibold text-gray-800 mb-3">
-                                    <i class="fas fa-boxes text-indigo-500 mr-2"></i>
-                                    Daftar Produk:
-                                </label>
-                                
-                                <div id="productsContainer">
-                                    <!-- Products will be added here -->
-                                </div>
-                                
-                                <button onclick="app.addProduct()" class="btn-add">
-                                    <i class="fas fa-plus"></i>
-                                    Tambah Produk
+                        <div class="flex-1 overflow-y-auto p-4">
+                            <div class="mb-4">
+                                <label class="block text-sm font-semibold text-gray-800 mb-2">Produk:</label>
+                                <div id="productsContainer"></div>
+                                <button onclick="app.addProduct()" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 mt-2">
+                                    <i class="fas fa-plus"></i>Tambah Produk
                                 </button>
                             </div>
 
-                            <!-- Shipping Cost -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-semibold text-gray-800 mb-3">
-                                    <i class="fas fa-shipping-fast text-indigo-500 mr-2"></i>
-                                    Ongkos Kirim:
-                                </label>
-                                <input type="number" 
-                                       id="shippingCost" 
-                                       placeholder="0"
-                                       class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            <div class="mb-4">
+                                <label class="block text-sm font-semibold text-gray-800 mb-2">Ongkos Kirim:</label>
+                                <input type="number" id="shippingCost" placeholder="0" 
+                                       class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                        oninput="app.calculateTotalManual()">
                             </div>
 
-                            <!-- Payment Method -->
-                            <div class="mb-6">
-                                <label class="block text-sm font-semibold text-gray-800 mb-3">
-                                    <i class="fas fa-credit-card text-indigo-500 mr-2"></i>
-                                    Metode Pembayaran:
-                                </label>
-                                <div class="grid grid-cols-2 gap-3">
+                            <div class="mb-4">
+                                <label class="block text-sm font-semibold text-gray-800 mb-2">Metode Bayar:</label>
+                                <div class="grid grid-cols-2 gap-2">
                                     <label class="relative">
                                         <input type="radio" name="paymentMethod" value="tunai" class="hidden peer" checked>
-                                        <div class="p-4 border-2 border-gray-300 rounded-xl text-center cursor-pointer transition-all peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-300">
-                                            <i class="fas fa-money-bill-wave text-lg mb-2"></i>
-                                            <div class="font-medium">Tunai</div>
+                                        <div class="p-3 border-2 border-gray-300 rounded-lg text-center cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                                            <i class="fas fa-money-bill-wave text-gray-600 mb-1"></i>
+                                            <div class="font-medium text-sm">Tunai</div>
                                         </div>
                                     </label>
                                     <label class="relative">
                                         <input type="radio" name="paymentMethod" value="transfer" class="hidden peer">
-                                        <div class="p-4 border-2 border-gray-300 rounded-xl text-center cursor-pointer transition-all peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700 hover:border-indigo-300">
-                                            <i class="fas fa-mobile-alt text-lg mb-2"></i>
-                                            <div class="font-medium">Transfer</div>
+                                        <div class="p-3 border-2 border-gray-300 rounded-lg text-center cursor-pointer peer-checked:border-blue-500 peer-checked:bg-blue-50">
+                                            <i class="fas fa-mobile-alt text-gray-600 mb-1"></i>
+                                            <div class="font-medium text-sm">Transfer</div>
                                         </div>
                                     </label>
                                 </div>
                             </div>
 
-                            <!-- Summary -->
-                            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
-                                <h3 class="font-semibold text-indigo-800 mb-3 text-sm uppercase tracking-wide">Ringkasan</h3>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm text-indigo-700">Subtotal Produk:</span>
-                                        <span id="subtotalAmount" class="font-semibold text-indigo-900">Rp 0</span>
+                            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                <h3 class="font-semibold text-blue-800 mb-3">Ringkasan</h3>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-blue-700">Subtotal:</span>
+                                        <span id="subtotalAmount" class="font-semibold">Rp 0</span>
                                     </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm text-indigo-700">Ongkos Kirim:</span>
-                                        <span id="shippingAmount" class="font-semibold text-indigo-900">Rp 0</span>
+                                    <div class="flex justify-between">
+                                        <span class="text-blue-700">Ongkir:</span>
+                                        <span id="shippingAmount" class="font-semibold">Rp 0</span>
                                     </div>
-                                    <div class="border-t border-indigo-200 pt-2 mt-2">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-bold text-indigo-900">Total:</span>
-                                            <span id="totalAmount" class="font-bold text-lg text-indigo-600">Rp 0</span>
+                                    <div class="border-t border-blue-300 pt-2">
+                                        <div class="flex justify-between font-bold">
+                                            <span>Total:</span>
+                                            <span id="totalAmount" class="text-blue-600">Rp 0</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Footer -->
-                        <div class="invoice-gen-footer">
-                            <button onclick="app.closeInvoiceModal()" 
-                                    class="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium">
-                                <i class="fas fa-times mr-2"></i>Batal
+                        <div class="flex gap-2 p-4 border-t">
+                            <button onclick="app.closeInvoiceModal()" class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50">
+                                Batal
                             </button>
-                            <button onclick="app.generateManualInvoice()" 
-                                    class="flex-1 px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl flex items-center justify-center gap-2 transition-colors font-medium">
-                                <i class="fas fa-receipt"></i>
+                            <button onclick="app.generateManualInvoice()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg">
                                 Buat Invoice
                             </button>
                         </div>
@@ -1053,343 +343,223 @@
                 `;
 
                 document.body.appendChild(modal);
-                document.body.classList.add('modal-open');
-
-                // Initialize products
-                this.currentProducts = [];
                 this.addProduct();
-
-                // Handle click outside to close
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        this.closeInvoiceModal();
-                    }
-                });
-
-                // Handle escape key to close
-                this.modalEscapeListener = (e) => {
-                    if (e.key === 'Escape') {
-                        this.closeInvoiceModal();
-                    }
-                };
-                document.addEventListener('keydown', this.modalEscapeListener);
                 
-                console.log("Modal successfully opened");
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.closeInvoiceModal();
+                });
             },
 
-            // Add product input
             addProduct() {
-                const productsContainer = document.getElementById('productsContainer');
-                const productId = Date.now();
-                
-                const productHtml = `
-                    <div class="product-item" id="product-${productId}">
-                        <div class="product-input">
-                            <label class="block text-xs text-gray-600 mb-1">Nama Produk</label>
-                            <input type="text" 
-                                   placeholder="Nama produk"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                const container = document.getElementById('productsContainer');
+                const id = Date.now();
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="product-item flex gap-2 mb-2" id="product-${id}">
+                        <div class="flex-1">
+                            <input type="text" placeholder="Nama produk" 
+                                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm"
                                    oninput="app.calculateTotalManual()">
                         </div>
-                        <div class="quantity-input">
-                            <label class="block text-xs text-gray-600 mb-1">Qty</label>
-                            <input type="number" 
-                                   value="1" 
-                                   min="1"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        <div class="w-16">
+                            <input type="number" value="1" min="1" 
+                                   class="w-full border border-gray-300 rounded px-2 py-2 text-sm"
                                    oninput="app.calculateTotalManual()">
                         </div>
-                        <div class="price-input">
-                            <label class="block text-xs text-gray-600 mb-1">Harga</label>
-                            <input type="number" 
-                                   placeholder="0"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        <div class="w-24">
+                            <input type="number" placeholder="Harga" 
+                                   class="w-full border border-gray-300 rounded px-2 py-2 text-sm"
                                    oninput="app.calculateTotalManual()">
                         </div>
-                        <button type="button" onclick="app.removeProduct(${productId})" class="btn-remove">
+                        <button onclick="app.removeProduct(${id})" class="w-10 bg-red-500 text-white rounded flex items-center justify-center">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                `;
-                
-                productsContainer.insertAdjacentHTML('beforeend', productHtml);
+                `);
             },
 
-            // Remove product input
-            removeProduct(productId) {
-                const productElement = document.getElementById(`product-${productId}`);
-                if (productElement) {
-                    productElement.remove();
-                    this.calculateTotalManual();
-                }
+            removeProduct(id) {
+                const element = document.getElementById(`product-${id}`);
+                if (element) element.remove();
+                this.calculateTotalManual();
             },
 
-            // Calculate total for manual input
             calculateTotalManual() {
                 let subtotal = 0;
-                const productElements = document.querySelectorAll('.product-item');
-                
-                productElements.forEach(element => {
-                    const quantity = parseInt(element.querySelector('.quantity-input input').value) || 0;
-                    const price = parseInt(element.querySelector('.price-input input').value) || 0;
-                    subtotal += quantity * price;
+                document.querySelectorAll('.product-item').forEach(element => {
+                    const qty = parseInt(element.querySelector('input[type="number"]:nth-child(2)').value) || 0;
+                    const price = parseInt(element.querySelector('input[type="number"]:nth-child(3)').value) || 0;
+                    subtotal += qty * price;
                 });
                 
-                const shippingCost = parseInt(document.getElementById('shippingCost').value) || 0;
-                const total = subtotal + shippingCost;
+                const shipping = parseInt(document.getElementById('shippingCost').value) || 0;
+                const total = subtotal + shipping;
                 
-                // Update display
                 document.getElementById('subtotalAmount').textContent = this.formatCurrency(subtotal);
-                document.getElementById('shippingAmount').textContent = this.formatCurrency(shippingCost);
+                document.getElementById('shippingAmount').textContent = this.formatCurrency(shipping);
                 document.getElementById('totalAmount').textContent = this.formatCurrency(total);
                 
-                // Store current data
-                this.currentProducts = Array.from(productElements).map(element => {
-                    const name = element.querySelector('.product-input input').value || 'Produk';
-                    const quantity = parseInt(element.querySelector('.quantity-input input').value) || 1;
-                    const price = parseInt(element.querySelector('.price-input input').value) || 0;
-                    
-                    return {
-                        name: name,
-                        quantity: quantity,
-                        price: price,
-                        total: quantity * price
-                    };
-                });
+                this.currentProducts = Array.from(document.querySelectorAll('.product-item')).map(el => ({
+                    name: el.querySelector('input[type="text"]').value || 'Produk',
+                    quantity: parseInt(el.querySelector('input[type="number"]:nth-child(2)').value) || 1,
+                    price: parseInt(el.querySelector('input[type="number"]:nth-child(3)').value) || 0,
+                    total: (parseInt(el.querySelector('input[type="number"]:nth-child(2)').value) || 1) * 
+                           (parseInt(el.querySelector('input[type="number"]:nth-child(3)').value) || 0)
+                }));
                 
-                this.currentShippingCost = shippingCost;
+                this.currentShippingCost = shipping;
             },
 
-            // Generate invoice from manual input
             async generateManualInvoice() {
-                try {
-                    // Validate products
-                    const validProducts = this.currentProducts.filter(product => 
-                        product.name && product.name !== 'Produk' && product.price > 0
-                    );
-                    
-                    if (validProducts.length === 0) {
-                        alert('Silakan tambahkan minimal satu produk dengan harga yang valid!');
-                        return;
-                    }
-
-                    // Get payment method
-                    const paymentMethodRadio = document.querySelector('input[name="paymentMethod"]:checked');
-                    const paymentMethod = paymentMethodRadio ? paymentMethodRadio.value : 'tunai';
-
-                    // Generate invoice number
-                    const invoiceNumber = await this.generateInvoiceNumber();
-
-                    // Calculate totals
-                    const subtotal = validProducts.reduce((sum, product) => sum + product.total, 0);
-                    const shippingCost = this.currentShippingCost || 0;
-                    const total = subtotal + shippingCost;
-
-                    // Generate invoice data
-                    const invoiceData = {
-                        products: validProducts,
-                        subtotal: subtotal,
-                        shippingCost: shippingCost,
-                        total: total,
-                        paymentMethod: paymentMethod,
-                        invoiceNumber: invoiceNumber,
-                        date: new Date().toLocaleDateString('id-ID'),
-                        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-                    };
-
-                    // Save to Firestore
-                    await this.saveToFirestore(invoiceData);
-                    
-                    this.showSimpleInvoice(invoiceData);
-
-                } catch (error) {
-                    console.error('Error generating invoice:', error);
-                    alert('Error membuat invoice: ' + error.message);
+                const validProducts = this.currentProducts.filter(p => p.name && p.name !== 'Produk' && p.price > 0);
+                if (validProducts.length === 0) {
+                    alert('Tambah minimal 1 produk dengan harga valid!');
+                    return;
                 }
+
+                const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+                const invoiceNumber = await this.generateInvoiceNumber();
+                const subtotal = validProducts.reduce((sum, p) => sum + p.total, 0);
+                const shippingCost = this.currentShippingCost;
+                const total = subtotal + shippingCost;
+
+                const invoiceData = {
+                    products: validProducts,
+                    subtotal: subtotal,
+                    shippingCost: shippingCost,
+                    total: total,
+                    paymentMethod: paymentMethod,
+                    invoiceNumber: invoiceNumber,
+                    date: new Date().toLocaleDateString('id-ID'),
+                    time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                };
+
+                await this.saveToFirestore(invoiceData);
+                this.showSimpleInvoice(invoiceData);
             },
 
-            // Method untuk generate nomor invoice auto-increment
             async generateInvoiceNumber() {
-                try {
-                    // Generate invoice number tanpa perlu login
-                    let lastNumber = localStorage.getItem('lastInvoiceNumber') || 0;
-                    lastNumber = parseInt(lastNumber) + 1;
-                    localStorage.setItem('lastInvoiceNumber', lastNumber);
-                    
-                    // Format: VLC-0001, VLC-0002, dst
-                    const nextNumber = lastNumber.toString().padStart(4, '0');
-                    return `VLC-${nextNumber}`;
-                    
-                } catch (error) {
-                    console.error('Error generating invoice number:', error);
-                    // Fallback ke timestamp
-                    return `VLC-${Date.now().toString().slice(-4)}`;
-                }
+                let lastNumber = localStorage.getItem('lastInvoiceNumber') || 0;
+                lastNumber = parseInt(lastNumber) + 1;
+                localStorage.setItem('lastInvoiceNumber', lastNumber);
+                return `VLC-${lastNumber.toString().padStart(4, '0')}`;
             },
 
-            // Save to Firestore tanpa login
             async saveToFirestore(invoiceData) {
                 try {
-                    const firestoreData = {
+                    await db.collection("invoices").add({
                         ...invoiceData,
                         userId: "guest-user",
                         createdAt: new Date(),
-                        updatedAt: new Date(),
-                        status: 'completed',
-                        type: 'delivery'
-                    };
-
-                    // Simpan ke Firestore
-                    await db.collection("invoices").add(firestoreData);
-                    
-                    this.showNotification(`✅ Invoice ${invoiceData.invoiceNumber} berhasil dibuat!`, 'success');
-                    
+                        status: 'completed'
+                    });
+                    this.showNotification(`Invoice ${invoiceData.invoiceNumber} dibuat`, 'success');
                 } catch (error) {
-                    console.error("Error saving invoice to Firestore: ", error);
-                    // Tetap tampilkan invoice meskipun gagal save ke Firestore
-                    this.showNotification('⚠️ Invoice dibuat tapi gagal disimpan ke database', 'info');
+                    console.error("Error saving invoice:", error);
+                    this.showNotification('Invoice dibuat tapi gagal disimpan', 'info');
                 }
             },
 
-            // Close invoice modal
             closeInvoiceModal() {
-                const modals = document.querySelectorAll('.invoice-gen-modal, .invoice-modal-container');
-                modals.forEach(modal => {
-                    modal.remove();
-                });
-                document.body.classList.remove('modal-open');
-                
-                if (this.modalEscapeListener) {
-                    document.removeEventListener('keydown', this.modalEscapeListener);
-                    this.modalEscapeListener = null;
-                }
+                document.querySelectorAll('.fixed.inset-0').forEach(modal => modal.remove());
             },
 
-            // Show simple invoice dengan tampilan pembayaran yang disederhanakan
             showSimpleInvoice(invoiceData) {
                 const modal = document.createElement('div');
-
-                modal.className = 'invoice-modal-container';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
                 modal.innerHTML = `
-                    <div class="invoice-modal-content">
-                        <!-- Header dengan Gradient Oranye-Kuning -->
-                        <div class="invoice-header-orange">
-                            <div class="text-center">
-                                <div class="logo-container">
-                                    <img src="https://vlcrave.github.io/project/img/icon.png" 
-                                         alt="VLCrave Express" class="w-8 h-8">
-                                </div>
-                                <h1>VLCrave Express</h1>
-                                <p class="subtitle">Layanan Pengiriman Premium</p>
-                            </div>
+                    <div class="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+                        <div class="bg-orange-500 p-4 text-white text-center">
+                            <h1 class="font-bold text-lg">VLCrave Express</h1>
+                            <p class="text-orange-100 text-sm">Delivery Service</p>
                         </div>
                         
-                        <!-- Scrollable Content Area -->
-                        <div class="invoice-modal-scroll">
-                            <!-- Invoice Info Card -->
-                            <div class="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
+                        <div class="flex-1 overflow-y-auto p-4">
+                            <div class="bg-gray-50 rounded-lg p-3 mb-4">
                                 <div class="flex justify-between items-center">
                                     <div>
-                                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">No Invoice</div>
-                                        <div class="font-mono font-bold text-slate-800 text-lg tracking-wide">${invoiceData.invoiceNumber}</div>
+                                        <div class="text-xs text-gray-500">No Invoice</div>
+                                        <div class="font-mono font-bold">${invoiceData.invoiceNumber}</div>
                                     </div>
                                     <div class="text-right">
-                                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanggal</div>
-                                        <div class="font-semibold text-slate-700">${invoiceData.date}</div>
+                                        <div class="text-xs text-gray-500">Tanggal</div>
+                                        <div class="font-semibold">${invoiceData.date}</div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Products Section -->
-                            <div class="mb-6">
-                                <div class="flex justify-between items-center mb-4 px-2">
-                                    <h3 class="font-semibold text-slate-800 text-sm uppercase tracking-wide">Detail Pesanan</h3>
-                                    <div class="flex gap-8 text-xs text-slate-500 font-medium">
+                            <div class="mb-4">
+                                <div class="flex justify-between items-center mb-2 px-1">
+                                    <h3 class="font-semibold text-sm">Detail Pesanan</h3>
+                                    <div class="flex gap-6 text-xs text-gray-500">
                                         <span class="w-8 text-center">Qty</span>
-                                        <span class="w-20 text-right">Harga</span>
+                                        <span class="w-16 text-right">Harga</span>
                                     </div>
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-2">
                                     ${invoiceData.products.map(product => `
-                                        <div class="flex justify-between items-center bg-slate-50 rounded-lg p-3 border border-slate-100 hover:border-slate-200 transition-colors">
-                                            <div class="flex-1 min-w-0">
-                                                <div class="font-medium text-slate-800 text-sm leading-tight truncate">${product.name}</div>
+                                        <div class="flex justify-between items-center bg-gray-50 rounded p-2">
+                                            <div class="flex-1">
+                                                <div class="font-medium text-sm">${product.name}</div>
                                             </div>
-                                            <div class="flex gap-8 items-center shrink-0">
-                                                <span class="w-8 text-center font-semibold text-slate-700 text-sm">${product.quantity}</span>
-                                                <span class="w-20 text-right font-semibold text-slate-800 text-sm">${this.formatCurrency(product.price)}</span>
+                                            <div class="flex gap-6 items-center">
+                                                <span class="w-8 text-center font-semibold text-sm">${product.quantity}</span>
+                                                <span class="w-16 text-right font-semibold text-sm">${this.formatCurrency(product.price)}</span>
                                             </div>
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
                             
-                            <!-- Summary Card -->
-                            <div class="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-5 mb-6 border border-orange-200">
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm text-orange-800 font-medium">Subtotal</span>
-                                        <span class="font-semibold text-orange-800">${this.formatCurrency(invoiceData.subtotal)}</span>
+                            <div class="bg-orange-50 rounded-lg p-4 mb-4 border border-orange-200">
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-800">Subtotal</span>
+                                        <span class="font-semibold">${this.formatCurrency(invoiceData.subtotal)}</span>
                                     </div>
                                     ${invoiceData.shippingCost > 0 ? `
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm text-orange-800 font-medium">Biaya Pengiriman</span>
-                                        <span class="font-semibold text-orange-800">${this.formatCurrency(invoiceData.shippingCost)}</span>
+                                    <div class="flex justify-between">
+                                        <span class="text-orange-800">Ongkos Kirim</span>
+                                        <span class="font-semibold">${this.formatCurrency(invoiceData.shippingCost)}</span>
                                     </div>
                                     ` : ''}
-                                    <div class="border-t border-orange-300 pt-3 mt-2">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-bold text-orange-900 text-lg">Total Pembayaran</span>
-                                            <span class="font-bold text-xl text-orange-900">${this.formatCurrency(invoiceData.total)}</span>
+                                    <div class="border-t border-orange-300 pt-2">
+                                        <div class="flex justify-between font-bold">
+                                            <span class="text-orange-900">Total</span>
+                                            <span class="text-orange-900 text-lg">${this.formatCurrency(invoiceData.total)}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Payment Method - Simplified -->
-                            <div class="mb-6">
+                            <div class="mb-4">
                                 ${invoiceData.paymentMethod === 'tunai' ? 
-                                    `<div class="payment-method-simple payment-method-tunai">
-                                        <i class="fas fa-money-bill-wave payment-icon payment-icon-tunai"></i>
-                                        <div class="payment-text">
-                                            <div class="payment-title payment-title-tunai">Pembayaran Tunai</div>
-                                            <div class="payment-subtitle payment-subtitle-tunai">Mohon siapkan uang pas</div>
+                                    `<div class="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                                        <i class="fas fa-money-bill-wave text-orange-500"></i>
+                                        <div>
+                                            <div class="font-semibold text-orange-800">Tunai</div>
+                                            <div class="text-xs text-orange-600">Siapkan uang pas</div>
                                         </div>
                                     </div>` :
-                                    `<div class="payment-method-simple payment-method-transfer">
-                                        <i class="fas fa-mobile-alt payment-icon payment-icon-transfer"></i>
-                                        <div class="payment-text">
-                                            <div class="payment-title payment-title-transfer">Transfer</div>
-                                            <div class="payment-subtitle payment-subtitle-transfer">Anda tidak perlu membayar uang tunai kepada kurir</div>
+                                    `<div class="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                        <i class="fas fa-mobile-alt text-green-500"></i>
+                                        <div>
+                                            <div class="font-semibold text-green-800">Transfer</div>
+                                            <div class="text-xs text-green-600">Bayar via transfer</div>
                                         </div>
                                     </div>`
                                 }
                             </div>
-
-                            <!-- Footer Message -->
-                            <div class="text-center pt-4 border-t border-slate-200">
-                                <div class="text-xs text-slate-500 font-light">
-                                    Terima kasih telah memilih<br>
-                                    <span class="font-semibold text-orange-600">VLCrave Express Delivery Service</span>
-                                </div>
-                            </div>
                         </div>
-                        
-                        <!-- Action Buttons -->
-                        <div class="invoice-modal-actions">
-                            <button onclick="app.closeInvoiceModal()" 
-                                    class="flex-1 px-4 py-3 border border-slate-300 rounded-xl text-slate-700 hover:bg-white transition-all duration-200 font-medium text-sm shadow-sm">
-                                <i class="fas fa-times mr-2"></i>Tutup
+
+                        <div class="flex gap-2 p-4 border-t">
+                            <button onclick="app.closeInvoiceModal()" class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50">
+                                Tutup
                             </button>
-                            <button onclick="app.shareInvoiceIOS()" 
-                                    class="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-medium text-sm shadow-lg">
-                                <i class="fab fa-apple mr-1"></i>
-                                Bagikan iOS
+                            <button onclick="app.shareInvoiceIOS()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg">
+                                Share
                             </button>
-                            <button onclick="app.downloadAsPNG()" 
-                                    class="btn-orange-gradient flex-1 px-4 py-3 flex items-center justify-center gap-2">
-                                <i class="fas fa-download"></i>
-                                Download PNG
+                            <button onclick="app.downloadAsPNG()" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg">
+                                Download
                             </button>
                         </div>
                     </div>
@@ -1397,426 +567,82 @@
 
                 document.body.appendChild(modal);
                 this.currentInvoiceData = invoiceData;
-
-                // Handle click outside to close
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        this.closeInvoiceModal();
-                    }
-                });
-
-                // Handle escape key to close
-                this.modalEscapeListener = (e) => {
-                    if (e.key === 'Escape') {
-                        this.closeInvoiceModal();
-                    }
-                };
-                document.addEventListener('keydown', this.modalEscapeListener);
-            },
-
-            // Method untuk share di iOS - dengan gambar invoice
-            async shareInvoiceIOS() {
-                try {
-                    if (!this.currentInvoiceData) {
-                        this.showNotification('❌ Tidak ada data invoice untuk dibagikan', 'error');
-                        return;
-                    }
-
-                    const data = this.currentInvoiceData;
-
-                    // Buat container struk dengan styling lengkap
-                    const receiptContainer = document.createElement('div');
-                    receiptContainer.id = 'invoice-receipt-container';
-                    receiptContainer.style.cssText = `
-                        width: 380px;
-                        min-height: 600px;
-                        background: white;
-                        padding: 25px;
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        font-size: 13px;
-                        line-height: 1.4;
-                        color: #000000;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 16px;
-                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-                        position: fixed;
-                        top: -10000px;
-                        left: -10000px;
-                        z-index: 10000;
-                        opacity: 1;
-                        box-sizing: border-box;
-                        overflow: hidden;
-                    `;
-
-                    // HTML content untuk receipt
-                    receiptContainer.innerHTML = this.generateReceiptHTML(data);
-                    document.body.appendChild(receiptContainer);
-
-                    await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Konversi struk ke canvas
-                    const canvas = await html2canvas(receiptContainer, {
-                        scale: 3,
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: '#ffffff',
-                        width: receiptContainer.offsetWidth,
-                        height: receiptContainer.scrollHeight,
-                        scrollX: 0,
-                        scrollY: 0,
-                        allowTaint: false,
-                        removeContainer: true,
-                        foreignObjectRendering: false,
-                        imageTimeout: 10000
-                    });
-
-                    const pngData = canvas.toDataURL('image/png', 1.0);
-                    const response = await fetch(pngData);
-                    const blob = await response.blob();
-                    const file = new File([blob], `invoice-${data.invoiceNumber}.png`, { type: 'image/png' });
-
-                    // 🧾 Buat pesan berdasarkan metode pembayaran yang SESUAI
-                    let paymentText = '';
-                    
-                    // Gunakan paymentMethod dari data invoice yang sebenarnya
-                    if (data.paymentMethod === 'transfer') {
-                        paymentText = 
-                            `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
-                            `💳 Metode: Transfer\n` +
-                            `🏦 Tujuan: BCA 6455106431 a/n VICKY SATRIA LINDY\n` +
-                            `💰 Nominal: ${this.formatCurrency(data.total)}\n\n` +
-                            `Silakan transfer terlebih dahulu sebelum pengiriman.\n\n` +
-                            `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
-                    } else {
-                        // Default untuk tunai
-                        paymentText = 
-                            `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
-                            `💵 Metode: Tunai\n` +
-                            `Silakan siapkan uang sebesar ${this.formatCurrency(data.total)} untuk pembayaran saat barang diterima.\n\n` +
-                            `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
-                    }
-
-                    // Cek apakah Web Share API dengan files tersedia
-                    if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
-                        throw new Error('Fitur share dengan gambar tidak didukung di browser ini');
-                    }
-
-                    // Kirim via Web Share API (iOS) dengan GAMBAR + TEKS
-                    await navigator.share({
-                        files: [file],
-                        title: `Invoice ${data.invoiceNumber} - VLCrave Express`,
-                        text: paymentText
-                    });
-
-                    this.showNotification('✅ Invoice berhasil dibagikan dengan gambar!', 'success');
-
-                    // Cleanup
-                    this.cleanupReceiptContainer();
-
-                } catch (error) {
-                    console.error('Error in shareInvoiceIOS:', error);
-                    
-                    // Cleanup jika error
-                    this.cleanupReceiptContainer();
-                    
-                    // Tampilkan pesan error saja
-                    if (error.name === 'AbortError') {
-                        this.showNotification('❌ Share dibatalkan oleh user', 'error');
-                    } else if (error.message.includes('tidak didukung')) {
-                        this.showNotification('❌ Browser tidak mendukung share dengan gambar', 'error');
-                    } else {
-                        this.showNotification('❌ Gagal membagikan invoice: ' + error.message, 'error');
-                    }
-                }
-            },
-
-            // Method downloadAsPNG
-            async downloadAsPNG() {
-                try {
-                    if (!this.currentInvoiceData) {
-                        this.showNotification('❌ Tidak ada data invoice untuk didownload', 'error');
-                        return;
-                    }
-
-                    const data = this.currentInvoiceData;
-
-                    // Buat container struk dengan styling lengkap
-                    const receiptContainer = document.createElement('div');
-                    receiptContainer.id = 'invoice-receipt-container';
-                    receiptContainer.style.cssText = `
-                        width: 380px;
-                        min-height: 600px;
-                        background: white;
-                        padding: 25px;
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        font-size: 13px;
-                        line-height: 1.4;
-                        color: #000000;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 16px;
-                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-                        position: fixed;
-                        top: -10000px;
-                        left: -10000px;
-                        z-index: 10000;
-                        opacity: 1;
-                        box-sizing: border-box;
-                        overflow: hidden;
-                    `;
-
-                    // HTML content untuk receipt
-                    receiptContainer.innerHTML = this.generateReceiptHTML(data);
-
-                    // Tambahkan ke DOM
-                    document.body.appendChild(receiptContainer);
-
-                    // Tunggu untuk memastikan DOM terrender
-                    await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Konfigurasi html2canvas
-                    const canvas = await html2canvas(receiptContainer, {
-                        scale: 3,
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: '#ffffff',
-                        width: receiptContainer.offsetWidth,
-                        height: receiptContainer.scrollHeight,
-                        scrollX: 0,
-                        scrollY: 0,
-                        allowTaint: false,
-                        removeContainer: true,
-                        foreignObjectRendering: false,
-                        imageTimeout: 10000
-                    });
-
-                    // Convert to PNG dan download
-                    const pngData = canvas.toDataURL('image/png', 1.0);
-                    
-                    this.downloadDataURL(pngData, `invoice-${data.invoiceNumber}-${new Date().getTime()}.png`);
-                    
-                    // Cleanup
-                    this.cleanupReceiptContainer();
-                    
-                    this.showNotification(`✅ Invoice ${data.invoiceNumber} berhasil didownload!`, 'success');
-                    
-                } catch (error) {
-                    console.error('Error in downloadAsPNG:', error);
-                    this.showNotification('❌ Gagal download invoice: ' + error.message, 'error');
-                    
-                    // Cleanup jika error
-                    this.cleanupReceiptContainer();
-                }
-            },
-
-            // Helper function untuk cleanup
-            cleanupReceiptContainer() {
-                const container = document.getElementById('invoice-receipt-container');
-                if (container) {
-                    container.remove();
-                }
-            },
-
-            // Helper function untuk download data URL
-            downloadDataURL(dataURL, filename) {
-                const link = document.createElement('a');
-                link.href = dataURL;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            },
-
-            // Helper function untuk generate HTML receipt
-            generateReceiptHTML(data) {
-                return `
-                    <!-- Header dengan Logo Asli -->
-                    <div style="text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #f1f5f9; box-sizing: border-box;">
-                        <div style="font-weight: 800; font-size: 18px; color: #1e293b; letter-spacing: -0.5px; margin-bottom: 4px;">
-                            VLCrave Express
-                        </div>
-                        <div style="font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">
-                            Delivery Service
-                        </div>
-                    </div>
-
-                    <!-- Invoice Info Card -->
-                    <div style="background: linear-gradient(135deg, #fef7ed 0%, #fefce8 100%); border: 1px solid #fed7aa; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-sizing: border-box;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
-                            <div style="box-sizing: border-box;">
-                                <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
-                                    Invoice No
-                                </div>
-                                <div style="font-family: 'Courier New', monospace; font-weight: 800; font-size: 14px; color: #1e293b; box-sizing: border-box;">
-                                    ${data.invoiceNumber}
-                                </div>
-                            </div>
-                            <div style="text-align: right; box-sizing: border-box;">
-                                <div style="font-size: 10px; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; box-sizing: border-box;">
-                                    Tanggal
-                                </div>
-                                <div style="font-weight: 600; font-size: 12px; color: #475569; box-sizing: border-box;">
-                                    ${data.date}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Products Section -->
-                    <div style="margin-bottom: 20px; box-sizing: border-box;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; box-sizing: border-box;">
-                            <div style="font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
-                                Detail Pesanan
-                            </div>
-                            <div style="display: flex; gap: 25px; font-weight: 700; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; box-sizing: border-box;">
-                                <span style="width: 30px; text-align: center; box-sizing: border-box;">Qty</span>
-                                <span style="width: 70px; text-align: right; box-sizing: border-box;">Harga</span>
-                            </div>
-                        </div>
-
-                        <div style="box-sizing: border-box;">
-                            ${data.products.map(product => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 12px; margin-bottom: 6px; box-sizing: border-box;">
-                                    <div style="flex: 1; min-width: 0; box-sizing: border-box;">
-                                        <div style="font-weight: 600; font-size: 12px; color: #1e293b; margin-bottom: 2px; line-height: 1.3; box-sizing: border-box;">
-                                            ${product.name}
-                                        </div>
-                                    </div>
-                                    <div style="display: flex; gap: 25px; align-items: center; flex-shrink: 0; box-sizing: border-box;">
-                                        <span style="width: 30px; text-align: center; font-weight: 700; color: #475569; font-size: 11px; box-sizing: border-box;">
-                                            ${product.quantity}
-                                        </span>
-                                        <span style="width: 70px; text-align: right; font-weight: 700; color: #1e293b; font-size: 11px; box-sizing: border-box;">
-                                            ${this.formatCurrencyNoSymbol(product.price)}
-                                        </span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <!-- Payment Method - Simplified -->
-                    ${data.paymentMethod === 'tunai' ? 
-                        `<div style="margin-bottom: 20px; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #fef7ed; border: 1px solid #fed7aa; border-radius: 8px; box-sizing: border-box;">
-                                <i class="fas fa-money-bill-wave" style="color: #ea580c; font-size: 20px; box-sizing: border-box;"></i>
-                                <div style="box-sizing: border-box;">
-                                    <div style="font-weight: 600; font-size: 14px; color: #9a3412; box-sizing: border-box;">
-                                        Pembayaran Tunai
-                                    </div>
-                                    <div style="font-size: 11px; color: #ea580c; font-weight: 500; box-sizing: border-box;">
-                                        Mohon siapkan uang pas
-                                    </div>
-                                </div>
-                            </div>
-                        </div>` :
-                        `<div style="margin-bottom: 20px; box-sizing: border-box;">
-                            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; box-sizing: border-box;">
-                                <i class="fas fa-mobile-alt" style="color: #16a34a; font-size: 20px; box-sizing: border-box;"></i>
-                                <div style="box-sizing: border-box;">
-                                    <div style="font-weight: 600; font-size: 14px; color: #166534; box-sizing: border-box;">
-                                        Transfer
-                                    </div>
-                                    <div style="font-size: 11px; color: #16a34a; font-weight: 500; box-sizing: border-box;">
-                                        Anda tidak perlu membayar uang tunai kepada kurir
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`
-                    }
-
-                    <!-- Summary Card -->
-                    <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; box-sizing: border-box;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
-                            <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Subtotal</span>
-                            <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.subtotal)}</span>
-                        </div>
-                        ${data.shippingCost > 0 ? `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; box-sizing: border-box;">
-                            <span style="font-size: 11px; color: #cbd5e1; font-weight: 600; box-sizing: border-box;">Biaya Pengiriman</span>
-                            <span style="font-weight: 600; font-size: 12px; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.shippingCost)}</span>
-                        </div>
-                        ` : ''}
-                        <div style="border-top: 1px solid #475569; padding-top: 12px; margin-top: 8px; box-sizing: border-box;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
-                                <span style="font-weight: 800; font-size: 14px; color: white; box-sizing: border-box;">Total Pembayaran</span>
-                                <span style="font-weight: 800; font-size: 16px; color: white; box-sizing: border-box;">${this.formatCurrencyNoSymbol(data.total)}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div style="text-align: center; padding-top: 16px; border-top: 2px dashed #e2e8f0; box-sizing: border-box;">
-                        <div style="font-size: 10px; color: #64748b; line-height: 1.4; margin-bottom: 8px; box-sizing: border-box;">
-                            Terima kasih telah mempercayai VLCrave Express sebagai layanan pengiriman anda
-                        </div>
-                        <div style="font-weight: 800; font-size: 12px; color: #f97316; letter-spacing: -0.5px; box-sizing: border-box;">
-                            VLCrave Express
-                        </div>
-                        <div style="font-size: 9px; color: #94a3b8; margin-top: 4px; box-sizing: border-box;">
-                            WA : 0857-0945-8101
-                        </div>
-                    </div>
-                `;
-            },
-
-            // Method untuk load invoices dari Firestore
-            async loadInvoicesFromFirestore() {
-                try {
-                    // Load invoices tanpa perlu user login
-                    const querySnapshot = await db.collection("invoices")
-                        .orderBy("createdAt", "desc")
-                        .limit(100) // Load more for pagination
-                        .get();
-                    
-                    this.invoices = [];
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        data.id = doc.id; // Store document ID for CRUD operations
-                        this.invoices.push(data);
-                    });
-
-                    this.filteredInvoices = [...this.invoices];
-                    this.renderInvoiceList();
-                    
-                } catch (error) {
-                    console.error("Error loading invoices from Firestore: ", error);
-                }
-            },
-
-            // Render invoice list with pagination
-            renderInvoiceList() {
-                const invoiceList = document.getElementById('invoiceList');
-                const pagination = document.getElementById('pagination');
-                const invoiceCount = document.getElementById('invoiceCount');
                 
-                if (!invoiceList) return;
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.closeInvoiceModal();
+                });
+            },
 
-                // Update invoice count
-                if (invoiceCount) {
-                    invoiceCount.textContent = `${this.filteredInvoices.length} invoices`;
+            loadInvoicesFromFirestore() {
+                console.log('📋 Memuat invoices...');
+                
+                // Unsubscribe listener invoices sebelumnya
+                const existingInvoicesIndex = this.unsubscribeFunctions.findIndex(fn => 
+                    fn && fn.name === 'invoicesListener'
+                );
+                if (existingInvoicesIndex > -1) {
+                    this.unsubscribeFunctions[existingInvoicesIndex]();
+                    this.unsubscribeFunctions.splice(existingInvoicesIndex, 1);
                 }
 
+                const invoicesListener = db.collection("invoices")
+                    .orderBy("createdAt", "desc")
+                    .limit(100)
+                    .onSnapshot((snapshot) => {
+                        console.log(`📋 Snapshot invoices: ${snapshot.size} dokumen`);
+                        
+                        this.invoices = [];
+                        const processedIds = new Set();
+
+                        snapshot.forEach((doc) => {
+                            if (processedIds.has(doc.id)) {
+                                console.warn('⚠️ Duplikat invoice:', doc.id);
+                                return;
+                            }
+                            processedIds.add(doc.id);
+
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.invoices.push(data);
+                        });
+
+                        this.filteredInvoices = [...this.invoices];
+                        this.renderInvoiceList();
+                        
+                        console.log(`📋 Final invoices: ${this.invoices.length} invoice`);
+                    }, (error) => {
+                        console.error('❌ Error load invoices:', error);
+                    });
+
+                invoicesListener.name = 'invoicesListener';
+                this.unsubscribeFunctions.push(invoicesListener);
+            },
+
+            renderInvoiceList() {
+                const list = document.getElementById('invoiceList');
+                const count = document.getElementById('invoiceCount');
+                const pagination = document.getElementById('pagination');
+                
+                count.textContent = `${this.filteredInvoices.length} invoice`;
+                
                 if (this.filteredInvoices.length === 0) {
-                    invoiceList.innerHTML = `
+                    list.innerHTML = `
                         <div class="text-center py-8 text-gray-500">
                             <i class="fas fa-receipt text-3xl mb-3"></i>
                             <p>Belum ada invoice</p>
-                            <p class="text-sm">Buat invoice pertama Anda</p>
                         </div>
                     `;
                     pagination.classList.add('hidden');
                     return;
                 }
 
-                // Calculate pagination
                 const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
-                const startIndex = (this.currentPage - 1) * this.invoicesPerPage;
-                const endIndex = startIndex + this.invoicesPerPage;
-                const currentInvoices = this.filteredInvoices.slice(startIndex, endIndex);
+                const start = (this.currentPage - 1) * this.invoicesPerPage;
+                const end = start + this.invoicesPerPage;
+                const currentInvoices = this.filteredInvoices.slice(start, end);
 
-                // Render invoices
-                invoiceList.innerHTML = currentInvoices.map(invoice => `
-                    <div class="bg-white rounded-xl p-4 border border-gray-200 hover:border-orange-300 transition-colors">
+                list.innerHTML = currentInvoices.map(invoice => `
+                    <div class="bg-white border rounded-lg p-3 hover:border-orange-300 transition-colors">
                         <div class="flex justify-between items-start mb-2">
                             <div>
                                 <div class="font-bold text-gray-800">${invoice.invoiceNumber}</div>
@@ -1827,74 +653,67 @@
                                 <div class="text-xs text-gray-500 capitalize">${invoice.paymentMethod}</div>
                             </div>
                         </div>
-                        <div class="flex justify-between items-center mt-4">
+                        <div class="flex justify-between items-center mt-3">
                             <div class="text-xs text-gray-500">
-                                ${invoice.products.length} item • ${invoice.products.reduce((sum, p) => sum + p.quantity, 0)} pcs
+                                ${invoice.products.length} item
                             </div>
-                            <div class="flex gap-2">
-                                <button onclick="app.viewInvoice('${invoice.invoiceNumber}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-colors">
-                                    <i class="fas fa-eye mr-1"></i>Lihat
+                            <div class="flex gap-1">
+                                <button onclick="app.viewInvoice('${invoice.invoiceNumber}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded">
+                                    Lihat
                                 </button>
-                                <button onclick="app.shareInvoice('${invoice.id}', '${invoice.invoiceNumber}', '${invoice.paymentMethod}', ${invoice.total})" class="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1 rounded-lg transition-colors">
-                                    <i class="fas fa-share-alt mr-1"></i>Share
-                                </button>
-                                <button onclick="app.deleteInvoice('${invoice.id}', '${invoice.invoiceNumber}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition-colors">
-                                    <i class="fas fa-trash mr-1"></i>Hapus
+                                <button onclick="app.deleteInvoice('${invoice.id}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-2 py-1 rounded">
+                                    Hapus
                                 </button>
                             </div>
                         </div>
                     </div>
                 `).join('');
 
-                // Render pagination
                 if (totalPages > 1) {
                     pagination.classList.remove('hidden');
-                    let paginationHTML = '';
-                    
-                    // Previous button
-                    paginationHTML += `
-                        <button onclick="app.changePage(${this.currentPage - 1})" 
-                                class="pagination-btn" 
-                                ${this.currentPage === 1 ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                    `;
-                    
-                    // Page numbers
+                    let html = '';
                     for (let i = 1; i <= totalPages; i++) {
-                        paginationHTML += `
-                            <button onclick="app.changePage(${i})" 
-                                    class="pagination-btn ${i === this.currentPage ? 'active' : ''}">
-                                ${i}
-                            </button>
-                        `;
+                        html += `<button onclick="app.changePage(${i})" class="w-8 h-8 border rounded ${i === this.currentPage ? 'bg-blue-500 text-white' : 'bg-white'}">${i}</button>`;
                     }
-                    
-                    // Next button
-                    paginationHTML += `
-                        <button onclick="app.changePage(${this.currentPage + 1})" 
-                                class="pagination-btn" 
-                                ${this.currentPage === totalPages ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    `;
-                    
-                    pagination.innerHTML = paginationHTML;
+                    pagination.innerHTML = html;
                 } else {
                     pagination.classList.add('hidden');
                 }
             },
 
-            // Change page for pagination
-            changePage(page) {
-                const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
-                if (page < 1 || page > totalPages) return;
+            filterInvoices(type) {
+                this.currentFilter = type;
+                this.currentPage = 1;
                 
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                event.target.classList.add('active');
+                
+                if (type === 'all') {
+                    this.filteredInvoices = [...this.invoices];
+                } else {
+                    const now = new Date();
+                    let startDate;
+                    
+                    if (type === 'today') {
+                        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    } else if (type === 'week') {
+                        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                    }
+                    
+                    this.filteredInvoices = this.invoices.filter(invoice => {
+                        const invoiceDate = invoice.createdAt ? invoice.createdAt.toDate() : new Date();
+                        return invoiceDate >= startDate;
+                    });
+                }
+                
+                this.renderInvoiceList();
+            },
+
+            changePage(page) {
                 this.currentPage = page;
                 this.renderInvoiceList();
             },
 
-            // View invoice
             viewInvoice(invoiceNumber) {
                 const invoice = this.invoices.find(inv => inv.invoiceNumber === invoiceNumber);
                 if (invoice) {
@@ -1903,170 +722,110 @@
                 }
             },
 
-            // Share invoice dengan pesan khusus
-            async shareInvoice(id, invoiceNumber, paymentMethod, total) {
-                const invoice = this.invoices.find(inv => inv.id === id);
-                if (!invoice) {
-                    this.showNotification('❌ Invoice tidak ditemukan', 'error');
-                    return;
-                }
-
-                try {
-                    let shareText = '';
-                    
-                    if (paymentMethod === 'transfer') {
-                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
-
-Untuk pembayaran Transfer silahkan ke nomor rekening dibawah
-
-BCA 
-6455106421
-a/n VICKY SATRIA LINDY
-Nominal : ${this.formatCurrency(total)}
-
-Terima kasih telah mempercayai VLCrave Express!`;
-                    } else {
-                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
-
-Silahkan bayar sesuai nominal dibawah secara Tunai/Cash
-Nominal : ${this.formatCurrency(total)}
-
-Terima kasih telah mempercayai VLCrave Express!`;
-                    }
-
-                    // Check if Web Share API is available
-                    if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                title: `Invoice ${invoiceNumber} - VLCrave Express`,
-                                text: shareText
-                            });
-                            this.showNotification('✅ Pesan berhasil dibagikan!', 'success');
-                        } catch (shareError) {
-                            console.error('Error sharing:', shareError);
-                            // Fallback: copy to clipboard
-                            this.copyToClipboard(shareText);
-                            this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
-                        }
-                    } else {
-                        // Fallback: copy to clipboard
-                        this.copyToClipboard(shareText);
-                        this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
-                    }
-                    
-                } catch (error) {
-                    console.error('Error sharing invoice:', error);
-                    this.showNotification('❌ Gagal membagikan pesan: ' + error.message, 'error');
-                }
-            },
-
-            // Copy text to clipboard
-            async copyToClipboard(text) {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    return true;
-                } catch (err) {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        document.body.removeChild(textArea);
-                        return true;
-                    } catch (err) {
-                        document.body.removeChild(textArea);
-                        return false;
-                    }
-                }
-            },
-
-            // Delete invoice
-            async deleteInvoice(id, invoiceNumber) {
-                if (!confirm(`Apakah Anda yakin ingin menghapus invoice ${invoiceNumber}?`)) {
-                    return;
-                }
-
+            async deleteInvoice(id) {
+                if (!confirm('Hapus invoice ini?')) return;
+                
                 try {
                     await db.collection("invoices").doc(id).delete();
-                    this.showNotification(`✅ Invoice ${invoiceNumber} berhasil dihapus!`, 'success');
-                    
-                    // Reload invoices
-                    this.loadInvoicesFromFirestore();
-                    
+                    this.showNotification('Invoice dihapus', 'success');
                 } catch (error) {
-                    console.error('Error deleting invoice:', error);
-                    this.showNotification('❌ Gagal menghapus invoice: ' + error.message, 'error');
+                    this.showNotification('Gagal menghapus', 'error');
                 }
             },
 
-            // Cleanup old data
             async cleanupOldData() {
-                if (confirm('Hapus semua data invoice yang ada? Ini tidak bisa dibatalkan!')) {
-                    try {
-                        const snapshot = await db.collection("invoices").get();
-                        const batch = db.batch();
-                        
-                        snapshot.forEach((doc) => {
-                            batch.delete(doc.ref);
-                        });
-                        
-                        await batch.commit();
-                        this.showNotification('✅ Semua data berhasil dihapus!', 'success');
-                        this.loadInvoicesFromFirestore();
-                        this.loadStats();
-                    } catch (error) {
-                        console.error('Error cleaning up data:', error);
-                        this.showNotification('❌ Gagal menghapus data', 'error');
-                    }
+                if (!confirm('Hapus SEMUA data invoice?')) return;
+                
+                try {
+                    const snapshot = await db.collection("invoices").get();
+                    const batch = db.batch();
+                    snapshot.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                    this.showNotification('Semua data dihapus', 'success');
+                } catch (error) {
+                    this.showNotification('Gagal menghapus data', 'error');
                 }
             },
 
-            // Method untuk show notification
-            showNotification(message, type = 'info') {
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}`;
-                notification.textContent = message;
+            async shareInvoiceIOS() {
+                if (!this.currentInvoiceData) return;
                 
+                try {
+                    const data = this.currentInvoiceData;
+                    const shareText = data.paymentMethod === 'transfer' ?
+                        `Pesanan selesai - Transfer ke BCA 6455106431 a/n VICKY SATRIA LINDY - ${this.formatCurrency(data.total)}` :
+                        `Pesanan selesai - Bayar tunai ${this.formatCurrency(data.total)} saat terima barang`;
+                    
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: `Invoice ${data.invoiceNumber}`,
+                            text: shareText
+                        });
+                    } else {
+                        await navigator.clipboard.writeText(shareText);
+                        this.showNotification('Disalin ke clipboard', 'success');
+                    }
+                } catch (error) {
+                    this.showNotification('Gagal share', 'error');
+                }
+            },
+
+            async downloadAsPNG() {
+                this.showNotification('Fitur download PNG dalam pengembangan', 'info');
+            },
+
+            showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-white ${
+                    type === 'success' ? 'bg-green-500' : 
+                    type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+                }`;
+                notification.textContent = message;
                 document.body.appendChild(notification);
                 
-                // Animate in
                 setTimeout(() => {
-                    notification.style.transform = 'translateX(0)';
-                }, 100);
-                
-                // Auto remove setelah 3 detik
-                setTimeout(() => {
-                    notification.style.transform = 'translateX(100%)';
-                    setTimeout(() => {
-                        if (notification.parentNode) {
-                            notification.parentNode.removeChild(notification);
-                        }
-                    }, 300);
+                    notification.remove();
                 }, 3000);
             },
 
-            // Format currency dengan symbol
             formatCurrency(amount) {
-                return new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR',
-                    minimumFractionDigits: 0
-                }).format(amount);
-            },
-
-            // Format currency tanpa symbol
-            formatCurrencyNoSymbol(amount) {
-                return new Intl.NumberFormat('id-ID').format(amount);
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
             }
         };
 
-        // Initialize the app when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            app.init();
-        });
+        // Add CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            .filter-btn {
+                flex: 1;
+                padding: 8px 12px;
+                border: 1px solid #d1d5db;
+                background: white;
+                border-radius: 8px;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            .filter-btn.active {
+                background: #3b82f6;
+                color: white;
+                border-color: #3b82f6;
+            }
+            .filter-btn:hover:not(.active) {
+                background: #f3f4f6;
+            }
+            .pagination {
+                display: flex;
+                justify-content: center;
+                gap: 4px;
+                margin-top: 16px;
+                padding-top: 16px;
+                border-top: 1px solid #e5e7eb;
+            }
+        `;
+        document.head.appendChild(style);
+
+        document.addEventListener('DOMContentLoaded', () => app.init());
     </script>
 </body>
 </html>
