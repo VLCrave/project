@@ -23,17 +23,37 @@
             -webkit-font-smoothing: antialiased;
             color: #374151;
             min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .main-container {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
         }
 
-        /* Bottom Navigation */
+        /* Main Content */
+        .main-content {
+            padding: 1rem;
+            padding-bottom: 1rem; /* Reduced bottom padding since footer is sticky */
+            max-width: 100%;
+            margin: 0 auto;
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Bottom Navigation - Sticky Footer */
         .bottom-nav {
-            position: fixed;
+            position: sticky;
             bottom: 0;
             left: 0;
             right: 0;
@@ -44,6 +64,7 @@
             padding: 0.5rem;
             z-index: 40;
             padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+            margin-top: auto; /* Push to bottom in flex container */
         }
 
         .nav-item {
@@ -101,14 +122,6 @@
             position: relative;
             z-index: 1;
             font-weight: 600;
-        }
-
-        /* Main Content */
-        .main-content {
-            padding: 1rem;
-            padding-bottom: calc(5rem + env(safe-area-inset-bottom));
-            max-width: 100%;
-            margin: 0 auto;
         }
 
         /* Cards */
@@ -666,7 +679,7 @@
         /* Floating Action Button */
         .fab {
             position: fixed;
-            bottom: 5rem;
+            bottom: 6rem; /* Adjusted to be above the sticky footer */
             right: 1rem;
             width: 3.5rem;
             height: 3.5rem;
@@ -690,6 +703,149 @@
 
         .fab i {
             font-size: 1.25rem;
+        }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            background: white;
+            color: #374151;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .page-btn:hover {
+            background: #f3f4f6;
+            transform: translateY(-1px);
+        }
+
+        .page-btn.active {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            border-color: #f97316;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .page-info {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0 1rem;
+            font-weight: 500;
+        }
+
+        /* Mobile Responsive Improvements */
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 0.75rem;
+                padding-bottom: 0.75rem; /* Reduced bottom padding */
+            }
+            
+            .card {
+                padding: 1rem;
+                margin-bottom: 0.75rem;
+            }
+            
+            .stats-grid {
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
+            
+            .stat-card {
+                padding: 1rem;
+            }
+            
+            .stat-value {
+                font-size: 1.25rem;
+            }
+            
+            .transaction-item {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .action-buttons {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            
+            .product-row {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            .btn {
+                padding: 0.875rem 1rem;
+            }
+            
+            .modal-content {
+                margin: 0.5rem;
+            }
+            
+            .fab {
+                bottom: 5.5rem; /* Adjusted for smaller screens */
+            }
+
+            .pagination {
+                gap: 0.25rem;
+            }
+            
+            .page-btn {
+                width: 2.25rem;
+                height: 2.25rem;
+                font-size: 0.8rem;
+            }
+            
+            .page-info {
+                margin: 0 0.5rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-item span {
+                font-size: 0.7rem;
+            }
+            
+            .nav-item i {
+                font-size: 1rem;
+            }
+            
+            .pagination {
+                gap: 0.2rem;
+            }
+            
+            .page-btn {
+                width: 2rem;
+                height: 2rem;
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
@@ -765,7 +921,7 @@
                             <i class="fas fa-receipt"></i>
                             Buat Invoice
                         </button>
-                        <button onclick="app.showTab('finance')" class="btn btn-info">
+                        <button onclick="app.showTab('invoices')" class="btn btn-info">
                             <i class="fas fa-chart-line"></i>
                             Keuangan
                         </button>
@@ -805,8 +961,34 @@
                         </button>
                     </div>
 
+                    <!-- Invoice List with Pagination -->
                     <div id="invoiceList">
                         <!-- Invoices will be loaded here -->
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="paginationControls" class="pagination hidden">
+                        <button id="firstPage" class="page-btn">
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button id="prevPage" class="page-btn">
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        
+                        <div id="pageNumbers" class="flex gap-1">
+                            <!-- Page numbers will be generated here -->
+                        </div>
+                        
+                        <button id="nextPage" class="page-btn">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button id="lastPage" class="page-btn">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                        
+                        <div class="page-info" id="pageInfo">
+                            Halaman 1 dari 1
+                        </div>
                     </div>
                 </div>
             </div>
@@ -901,7 +1083,7 @@
             <i class="fas fa-plus"></i>
         </button>
 
-        <!-- Bottom Navigation -->
+        <!-- Bottom Navigation - Sticky Footer -->
         <nav class="bottom-nav">
             <button class="nav-item active" onclick="app.showTab('dashboard')">
                 <i class="fas fa-home"></i>
@@ -1186,6 +1368,11 @@
                 'penyesuaian': { name: 'Penyesuaian', color: '#a855f7' },
                 'lainnya': { name: 'Lainnya', color: '#64748b' }
             },
+            
+            // Pagination variables
+            currentPage: 1,
+            itemsPerPage: 10,
+            totalPages: 1,
 
             // Initialize App
             async init() {
@@ -1199,6 +1386,44 @@
                 
                 // Setup invoice calculation listeners
                 this.setupInvoiceCalculations();
+                
+                // Handle mobile viewport height
+                this.setViewportHeight();
+                
+                // Handle orientation changes
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => {
+                        this.setViewportHeight();
+                    }, 300);
+                });
+                
+                // Setup pagination event listeners
+                this.setupPaginationListeners();
+            },
+
+            // Setup pagination event listeners
+            setupPaginationListeners() {
+                document.getElementById('firstPage').addEventListener('click', () => {
+                    this.goToPage(1);
+                });
+                
+                document.getElementById('prevPage').addEventListener('click', () => {
+                    this.goToPage(this.currentPage - 1);
+                });
+                
+                document.getElementById('nextPage').addEventListener('click', () => {
+                    this.goToPage(this.currentPage + 1);
+                });
+                
+                document.getElementById('lastPage').addEventListener('click', () => {
+                    this.goToPage(this.totalPages);
+                });
+            },
+
+            // Set viewport height for mobile browsers
+            setViewportHeight() {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
             },
 
             // Setup invoice calculation listeners
@@ -1261,7 +1486,7 @@
                 // Invoices listener
                 db.collection("invoices")
                     .orderBy("createdAt", "desc")
-                    .limit(50)
+                    .limit(100) // Increased limit to handle pagination
                     .onSnapshot((snapshot) => {
                         this.invoices = [];
                         snapshot.forEach(doc => {
@@ -1626,7 +1851,7 @@
                 `).join('');
             },
 
-            // Invoice Management
+            // Invoice Management with Pagination
             renderRecentInvoices() {
                 const container = document.getElementById('recentInvoices');
                 const recent = this.invoices.slice(0, 3);
@@ -1656,6 +1881,7 @@
 
             renderInvoiceList() {
                 const container = document.getElementById('invoiceList');
+                const paginationControls = document.getElementById('paginationControls');
                 
                 if (this.invoices.length === 0) {
                     container.innerHTML = `
@@ -1665,10 +1891,28 @@
                             <p class="text-sm">Buat invoice pertama Anda</p>
                         </div>
                     `;
+                    paginationControls.classList.add('hidden');
                     return;
                 }
 
-                container.innerHTML = this.invoices.map(invoice => `
+                // Calculate pagination
+                this.totalPages = Math.ceil(this.invoices.length / this.itemsPerPage);
+                
+                // Ensure current page is within bounds
+                if (this.currentPage > this.totalPages) {
+                    this.currentPage = this.totalPages;
+                }
+                if (this.currentPage < 1) {
+                    this.currentPage = 1;
+                }
+
+                // Get invoices for current page
+                const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+                const endIndex = startIndex + this.itemsPerPage;
+                const currentInvoices = this.invoices.slice(startIndex, endIndex);
+
+                // Render invoices
+                container.innerHTML = currentInvoices.map(invoice => `
                     <div class="transaction-item">
                         <div class="flex-1">
                             <div class="font-medium text-gray-800 text-sm">${invoice.invoiceNumber}</div>
@@ -1691,6 +1935,71 @@
                         </div>
                     </div>
                 `).join('');
+
+                // Update pagination controls
+                this.updatePaginationControls();
+                paginationControls.classList.remove('hidden');
+            },
+
+            // Pagination Methods
+            updatePaginationControls() {
+                const pageInfo = document.getElementById('pageInfo');
+                const firstPageBtn = document.getElementById('firstPage');
+                const prevPageBtn = document.getElementById('prevPage');
+                const nextPageBtn = document.getElementById('nextPage');
+                const lastPageBtn = document.getElementById('lastPage');
+                const pageNumbers = document.getElementById('pageNumbers');
+
+                // Update page info
+                pageInfo.textContent = `Halaman ${this.currentPage} dari ${this.totalPages}`;
+
+                // Update button states
+                firstPageBtn.disabled = this.currentPage === 1;
+                prevPageBtn.disabled = this.currentPage === 1;
+                nextPageBtn.disabled = this.currentPage === this.totalPages;
+                lastPageBtn.disabled = this.currentPage === this.totalPages;
+
+                // Generate page numbers
+                this.generatePageNumbers();
+            },
+
+            generatePageNumbers() {
+                const pageNumbers = document.getElementById('pageNumbers');
+                pageNumbers.innerHTML = '';
+
+                // Show up to 5 page numbers
+                let startPage = Math.max(1, this.currentPage - 2);
+                let endPage = Math.min(this.totalPages, startPage + 4);
+
+                // Adjust if we're near the end
+                if (endPage - startPage < 4) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `page-btn ${i === this.currentPage ? 'active' : ''}`;
+                    pageBtn.textContent = i;
+                    pageBtn.addEventListener('click', () => {
+                        this.goToPage(i);
+                    });
+                    pageNumbers.appendChild(pageBtn);
+                }
+            },
+
+            goToPage(page) {
+                if (page < 1 || page > this.totalPages || page === this.currentPage) {
+                    return;
+                }
+                
+                this.currentPage = page;
+                this.renderInvoiceList();
+                
+                // Scroll to top of invoice list
+                document.getElementById('invoiceList').scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
             },
 
             // Generate Invoice
@@ -1756,6 +2065,9 @@
                     
                     this.showNotification('Invoice berhasil dibuat!', 'success');
                     this.closeModal();
+                    
+                    // Reset to first page to show the new invoice
+                    this.currentPage = 1;
                 } catch (error) {
                     console.error("Error creating invoice:", error);
                     this.showNotification('Error membuat invoice', 'error');
@@ -1916,6 +2228,13 @@
                     
                     await db.collection("invoices").doc(invoiceId).delete();
                     this.showNotification('Invoice dihapus', 'success');
+                    
+                    // Reset to first page if we deleted the last invoice on current page
+                    const currentPageCount = this.invoices.length - 1; // After deletion
+                    const maxPageForItems = Math.ceil(currentPageCount / this.itemsPerPage);
+                    if (this.currentPage > maxPageForItems) {
+                        this.currentPage = maxPageForItems;
+                    }
                 } catch (error) {
                     console.error("Error deleting invoice:", error);
                     this.showNotification('Error menghapus invoice', 'error');
