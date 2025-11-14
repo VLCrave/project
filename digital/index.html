@@ -59,6 +59,24 @@
         .modal-overlay {
             background: rgba(0, 0, 0, 0.6);
         }
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 1000;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+        }
+        .notification.show {
+            transform: translateX(0);
+        }
+        .demo-content {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body class="font-inter bg-gray-50">
@@ -213,9 +231,9 @@
                     <h3 class="font-bold mb-4">Bantuan</h3>
                     <ul class="space-y-2 text-gray-400">
                         <li><a href="#" class="hover:text-white transition-colors">Cara Beli</a></li>
-                        <li><a href="https://vlcrave.github.io/project/digital/kebijakan-privasi.html" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
-                        <li><a href="https://vlcrave.github.io/project/digital/syarat-ketentuan.html" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
-                        <li><a href="https://vlcrave.github.io/project/digital/hubungi-kami.html" class="hover:text-white transition-colors">Hubungi Kami</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Hubungi Kami</a></li>
                     </ul>
                 </div>
             </div>
@@ -243,6 +261,40 @@
         </div>
     </div>
 
+    <!-- Demo Modal -->
+    <div id="demoModal" class="fixed inset-0 z-50 hidden fade-in">
+        <div class="modal-overlay absolute inset-0" onclick="hideDemo()"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-lg font-bold" id="demoTitle">Demo Produk</h3>
+                <button onclick="hideDemo()" class="text-gray-500 hover:text-dark transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto demo-content" id="demoContent">
+                <!-- Demo content will be loaded here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Element -->
+    <div id="notification" class="notification bg-white border-l-4 border-secondary shadow-lg">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-circle text-secondary text-xl"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-dark" id="notificationText">Tidak ada demo untuk produk ini</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button onclick="hideNotification()" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Product data
         const products = {
@@ -264,7 +316,7 @@
                 ],
                 category: 'template',
                 purchaseLink: 'https://linktree.vldigital.com/template-portfolio',
-                demoLink: 'https://example-demo.com/portfolio-template'
+                hasDemo: true
             },
             p2: {
                 id: 'p2',
@@ -284,7 +336,7 @@
                 ],
                 category: 'asset',
                 purchaseLink: 'https://linktree.vldigital.com/vector-space',
-                demoLink: 'https://example-demo.com/vector-space'
+                hasDemo: false
             },
             p3: {
                 id: 'p3',
@@ -304,7 +356,7 @@
                 ],
                 category: 'course',
                 purchaseLink: 'https://linktree.vldigital.com/ui-ux-course',
-                demoLink: 'https://example-demo.com/ui-ux-course'
+                hasDemo: true
             },
             p4: {
                 id: 'p4',
@@ -324,7 +376,7 @@
                 ],
                 category: 'ebook',
                 purchaseLink: 'https://linktree.vldigital.com/coding-ebook',
-                demoLink: 'https://example-demo.com/coding-ebook'
+                hasDemo: false
             },
             p5: {
                 id: 'p5',
@@ -344,7 +396,7 @@
                 ],
                 category: 'plugin',
                 purchaseLink: 'https://linktree.vldigital.com/wp-plugin',
-                demoLink: 'https://example-demo.com/wp-plugin'
+                hasDemo: true
             },
             p6: {
                 id: 'p6',
@@ -364,7 +416,7 @@
                 ],
                 category: 'asset',
                 purchaseLink: 'https://linktree.vldigital.com/logo-pack',
-                demoLink: 'https://example-demo.com/logo-pack'
+                hasDemo: true
             },
             p7: {
                 id: 'p7',
@@ -384,7 +436,7 @@
                 ],
                 category: 'template',
                 purchaseLink: 'https://linktree.vldigital.com/ecommerce-template',
-                demoLink: 'https://example-demo.com/ecommerce-template'
+                hasDemo: true
             },
             p8: {
                 id: 'p8',
@@ -404,7 +456,7 @@
                 ],
                 category: 'course',
                 purchaseLink: 'https://linktree.vldigital.com/digital-marketing',
-                demoLink: 'https://example-demo.com/digital-marketing'
+                hasDemo: true
             }
         };
 
@@ -601,8 +653,154 @@
             const product = products[productId];
             if (!product) return;
             
-            // Open demo in new tab
-            window.open(product.demoLink, '_blank');
+            // Check if product has demo
+            if (!product.hasDemo) {
+                showNotification('Tidak ada demo untuk produk ini');
+                return;
+            }
+            
+            // Set demo title
+            document.getElementById('demoTitle').textContent = `Demo: ${product.name}`;
+            
+            // Build demo content based on product category
+            const demoContent = document.getElementById('demoContent');
+            let contentHtml = '';
+            
+            switch(product.category) {
+                case 'template':
+                    contentHtml = `
+                        <div class="text-center mb-6">
+                            <h3 class="text-xl font-bold mb-4">Preview Template</h3>
+                            <p class="text-gray-600 mb-4">Berikut adalah preview dari template ${product.name}</p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                            <img src="${product.image}" alt="Preview ${product.name}" class="w-full h-auto rounded-lg shadow-md">
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-bold mb-2">Fitur yang Ditampilkan:</h4>
+                            <ul class="list-disc pl-5 text-gray-700">
+                                ${product.features.slice(0, 3).map(feature => `<li>${feature}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'course':
+                    contentHtml = `
+                        <div class="text-center mb-6">
+                            <h3 class="text-xl font-bold mb-4">Preview Kursus</h3>
+                            <p class="text-gray-600 mb-4">Berikut adalah materi preview dari kursus ${product.name}</p>
+                        </div>
+                        <div class="bg-gray-800 text-white p-6 rounded-lg mb-6">
+                            <div class="flex items-center justify-center mb-4">
+                                <i class="fas fa-play-circle text-4xl text-accent mr-3"></i>
+                                <h4 class="text-xl font-bold">Video Preview</h4>
+                            </div>
+                            <p class="text-center mb-4">Video pengenalan materi kursus</p>
+                            <div class="bg-gray-700 p-4 rounded text-center">
+                                <p>Durasi: 15 menit</p>
+                                <p>Format: MP4 (1080p)</p>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-bold mb-2">Yang Akan Anda Pelajari:</h4>
+                            <ul class="list-disc pl-5 text-gray-700">
+                                ${product.features.slice(0, 4).map(feature => `<li>${feature}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'plugin':
+                    contentHtml = `
+                        <div class="text-center mb-6">
+                            <h3 class="text-xl font-bold mb-4">Demo Plugin</h3>
+                            <p class="text-gray-600 mb-4">Berikut adalah demonstrasi fitur plugin ${product.name}</p>
+                        </div>
+                        <div class="bg-gray-100 p-6 rounded-lg mb-6">
+                            <div class="flex justify-center mb-4">
+                                <div class="bg-white p-4 rounded shadow-md w-full max-w-md">
+                                    <h4 class="font-bold mb-2 text-center">Panel Admin Plugin</h4>
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between">
+                                            <span>Status:</span>
+                                            <span class="text-green-600 font-bold">Aktif</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Versi:</span>
+                                            <span>1.2.0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Pengaturan:</span>
+                                            <span class="text-blue-600">Konfigurasi</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h4 class="font-bold mb-2">Fitur Utama:</h4>
+                            <ul class="list-disc pl-5 text-gray-700">
+                                ${product.features.slice(0, 3).map(feature => `<li>${feature}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'asset':
+                    contentHtml = `
+                        <div class="text-center mb-6">
+                            <h3 class="text-xl font-bold mb-4">Preview Aset</h3>
+                            <p class="text-gray-600 mb-4">Berikut adalah contoh aset dari ${product.name}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <img src="${product.image}" alt="Sample 1" class="w-full h-32 object-cover rounded">
+                                <p class="text-center mt-2 text-sm">Sample 1</p>
+                            </div>
+                            <div class="bg-gray-100 p-4 rounded-lg">
+                                <div class="w-full h-32 bg-gradient-to-r from-blue-400 to-purple-500 rounded flex items-center justify-center">
+                                    <span class="text-white font-bold">Vector</span>
+                                </div>
+                                <p class="text-center mt-2 text-sm">Sample 2</p>
+                            </div>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h4 class="font-bold mb-2">Format Tersedia:</h4>
+                            <ul class="list-disc pl-5 text-gray-700">
+                                <li>AI (Adobe Illustrator)</li>
+                                <li>EPS</li>
+                                <li>SVG</li>
+                                <li>PNG (300 DPI)</li>
+                            </ul>
+                        </div>
+                    `;
+                    break;
+                    
+                default:
+                    contentHtml = `
+                        <div class="text-center mb-6">
+                            <h3 class="text-xl font-bold mb-4">Preview Produk</h3>
+                            <p class="text-gray-600 mb-4">Berikut adalah preview dari ${product.name}</p>
+                        </div>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                            <img src="${product.image}" alt="Preview ${product.name}" class="w-full h-auto rounded-lg shadow-md">
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-bold mb-2">Fitur Utama:</h4>
+                            <ul class="list-disc pl-5 text-gray-700">
+                                ${product.features.slice(0, 3).map(feature => `<li>${feature}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+            }
+            
+            demoContent.innerHTML = contentHtml;
+            
+            // Show demo modal
+            const modal = document.getElementById('demoModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
         }
 
         // Hide product detail modal
@@ -610,6 +808,33 @@
             const modal = document.getElementById('productDetailModal');
             modal.classList.add('hidden');
             document.body.style.overflow = 'auto';
+        }
+
+        // Hide demo modal
+        function hideDemo() {
+            const modal = document.getElementById('demoModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notificationText');
+            
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 3000);
+        }
+
+        // Hide notification
+        function hideNotification() {
+            const notification = document.getElementById('notification');
+            notification.classList.remove('show');
         }
 
         // Helper function to generate star rating
@@ -655,10 +880,17 @@
             }
         });
 
+        document.getElementById('demoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideDemo();
+            }
+        });
+
         // Close modal with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 hideProductDetail();
+                hideDemo();
             }
         });
     </script>
