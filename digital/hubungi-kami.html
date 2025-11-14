@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hubungi Kami - VLDigital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        'primary-dark': '#1d4ed8',
+                        secondary: '#ef4444',
+                        accent: '#10b981',
+                        dark: '#1f2937',
+                        light: '#f9fafb',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sticky-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .contact-card {
+            transition: all 0.3s ease;
+        }
+        .contact-card:hover {
+            transform: translateY(-5px);
+        }
+        .form-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50">
+    <!-- Header -->
+    <header class="sticky-header fixed top-0 w-full z-50 border-b border-gray-200">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                        <h1 class="text-xl font-bold text-dark">VLDigital</h1>
+                    </a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-600 hover:text-primary transition-colors">
+                        <i class="fas fa-home mr-1"></i> Beranda
+                    </a>
+                    <a href="syarat-ketentuan.html" class="text-gray-600 hover:text-primary transition-colors">
+                        <i class="fas fa-file-contract mr-1"></i> Syarat & Ketentuan
+                    </a>
+                    <a href="kebijakan-privasi.html" class="text-gray-600 hover:text-primary transition-colors">
+                        <i class="fas fa-shield-alt mr-1"></i> Kebijakan Privasi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Spacer untuk header fixed -->
+    <div class="h-20"></div>
+
+    <!-- Main Content -->
+    <main class="py-8">
+        <div class="container mx-auto px-4">
+            <!-- Page Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-3xl font-bold text-dark mb-4">Hubungi Kami</h1>
+                <p class="text-gray-600 max-w-2xl mx-auto">Tim support kami siap membantu menjawab pertanyaan dan menangani masalah Anda dengan cepat</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Contact Information -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                        <h2 class="text-xl font-bold text-dark mb-6">Informasi Kontak</h2>
+                        
+                        <div class="space-y-6">
+                            <div class="contact-card bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <div class="flex items-start">
+                                    <div class="bg-blue-500 p-3 rounded-lg mr-4">
+                                        <i class="fas fa-headset text-white text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-dark mb-1">Customer Service</h3>
+                                        <p class="text-gray-600 mb-2">Tim support siap membantu 7 hari seminggu</p>
+                                        <a href="https://wa.me/6285709458101" target="_blank" class="text-primary font-medium hover:text-primary-dark transition-colors">
+                                            <i class="fab fa-whatsapp mr-1"></i> +62 857-0945-8101
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="contact-card bg-green-50 p-4 rounded-lg border border-green-100">
+                                <div class="flex items-start">
+                                    <div class="bg-green-500 p-3 rounded-lg mr-4">
+                                        <i class="fas fa-envelope text-white text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-dark mb-1">Email</h3>
+                                        <p class="text-gray-600 mb-2">Kirim pertanyaan melalui email</p>
+                                        <a href="mailto:info@vldigital.com" class="text-primary font-medium hover:text-primary-dark transition-colors">
+                                            <i class="fas fa-envelope mr-1"></i> info@vldigital.com
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="contact-card bg-purple-50 p-4 rounded-lg border border-purple-100">
+                                <div class="flex items-start">
+                                    <div class="bg-purple-500 p-3 rounded-lg mr-4">
+                                        <i class="fab fa-telegram text-white text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-dark mb-1">Telegram</h3>
+                                        <p class="text-gray-600 mb-2">Chat dengan kami di Telegram</p>
+                                        <a href="https://t.me/vldigital" target="_blank" class="text-primary font-medium hover:text-primary-dark transition-colors">
+                                            <i class="fab fa-telegram mr-1"></i> @vldigital
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="contact-card bg-orange-50 p-4 rounded-lg border border-orange-100">
+                                <div class="flex items-start">
+                                    <div class="bg-orange-500 p-3 rounded-lg mr-4">
+                                        <i class="fas fa-clock text-white text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-dark mb-1">Jam Operasional</h3>
+                                        <p class="text-gray-600">Senin - Minggu: 08.00 - 22.00 WIB</p>
+                                        <p class="text-gray-600 text-sm mt-1">Termasuk hari libur nasional</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- FAQ Section -->
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-dark mb-4">Pertanyaan Umum</h2>
+                        
+                        <div class="space-y-4">
+                            <div class="border-b border-gray-200 pb-4">
+                                <h3 class="font-medium text-dark mb-1">Berapa lama respons tim support?</h3>
+                                <p class="text-gray-600 text-sm">Biasanya dalam 1-2 jam pada jam operasional. Untuk urgent, gunakan WhatsApp.</p>
+                            </div>
+                            
+                            <div class="border-b border-gray-200 pb-4">
+                                <h3 class="font-medium text-dark mb-1">Apakah tersedia dukungan teknis?</h3>
+                                <p class="text-gray-600 text-sm">Ya, untuk produk tertentu kami menyediakan dukungan teknis gratis.</p>
+                            </div>
+                            
+                            <div class="border-b border-gray-200 pb-4">
+                                <h3 class="font-medium text-dark mb-1">Bagaimana cara klaim garansi produk?</h3>
+                                <p class="text-gray-600 text-sm">Hubungi kami dengan menyertakan bukti pembelian dan detail masalah.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-medium text-dark mb-1">Apakah bisa request produk custom?</h3>
+                                <p class="text-gray-600 text-sm">Ya, silakan hubungi kami untuk diskusi kebutuhan custom Anda.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact Form -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h2 class="text-xl font-bold text-dark mb-6">Kirim Pesan ke WhatsApp</h2>
+                        <p class="text-gray-600 mb-6">Isi form di bawah ini dan pesan Anda akan langsung dikirim ke WhatsApp kami</p>
+                        
+                        <form id="contactForm">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label for="name" class="block text-gray-700 font-medium mb-2">Nama Lengkap <span class="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        id="name" 
+                                        name="name" 
+                                        required 
+                                        class="w-full form-input border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:border-primary"
+                                        placeholder="Masukkan nama lengkap"
+                                    >
+                                </div>
+                                
+                                <div>
+                                    <label for="email" class="block text-gray-700 font-medium mb-2">Email <span class="text-red-500">*</span></label>
+                                    <input 
+                                        type="email" 
+                                        id="email" 
+                                        name="email" 
+                                        required 
+                                        class="w-full form-input border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:border-primary"
+                                        placeholder="nama@email.com"
+                                    >
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="phone" class="block text-gray-700 font-medium mb-2">Nomor WhatsApp <span class="text-red-500">*</span></label>
+                                <input 
+                                    type="tel" 
+                                    id="phone" 
+                                    name="phone" 
+                                    required 
+                                    class="w-full form-input border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:border-primary"
+                                    placeholder="Contoh: 628123456789"
+                                >
+                                <p class="text-gray-500 text-sm mt-1">Gunakan format 62 (contoh: 628123456789)</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="subject" class="block text-gray-700 font-medium mb-2">Subjek <span class="text-red-500">*</span></label>
+                                <select 
+                                    id="subject" 
+                                    name="subject" 
+                                    required 
+                                    class="w-full form-input border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:border-primary"
+                                >
+                                    <option value="" disabled selected>Pilih subjek pesan</option>
+                                    <option value="Pertanyaan Produk">Pertanyaan Produk</option>
+                                    <option value="Bantuan Teknis">Bantuan Teknis</option>
+                                    <option value="Keluhan">Keluhan</option>
+                                    <option value="Kerjasama">Kerjasama</option>
+                                    <option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label for="message" class="block text-gray-700 font-medium mb-2">Pesan <span class="text-red-500">*</span></label>
+                                <textarea 
+                                    id="message" 
+                                    name="message" 
+                                    rows="5" 
+                                    required 
+                                    class="w-full form-input border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:border-primary"
+                                    placeholder="Tulis pesan detail Anda di sini..."
+                                ></textarea>
+                            </div>
+                            
+                            <div class="flex items-center mb-4">
+                                <input 
+                                    type="checkbox" 
+                                    id="consent" 
+                                    name="consent" 
+                                    required 
+                                    class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                >
+                                <label for="consent" class="ml-2 block text-sm text-gray-700">
+                                    Saya setuju dengan <a href="kebijakan-privasi.html" class="text-primary hover:text-primary-dark">Kebijakan Privasi</a> VLDigital
+                                </label>
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                class="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-dark transition-colors flex items-center justify-center"
+                            >
+                                <i class="fab fa-whatsapp mr-2 text-lg"></i> Kirim via WhatsApp
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Additional Contact Options -->
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gradient-to-r from-primary to-blue-600 text-white rounded-xl p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-white bg-opacity-20 p-3 rounded-lg mr-4">
+                                    <i class="fab fa-whatsapp text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-lg">Chat Langsung</h3>
+                                    <p class="text-blue-100">Tanpa mengisi form</p>
+                                </div>
+                            </div>
+                            <a href="https://wa.me/6285709458101" target="_blank" class="block w-full bg-white text-primary py-2 rounded-lg text-center font-medium hover:bg-gray-100 transition-colors mt-4">
+                                Buka WhatsApp
+                            </a>
+                        </div>
+                        
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="bg-white bg-opacity-20 p-3 rounded-lg mr-4">
+                                    <i class="fas fa-envelope text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-lg">Email Kami</h3>
+                                    <p class="text-green-100">Untuk pertanyaan formal</p>
+                                </div>
+                            </div>
+                            <a href="mailto:info@vldigital.com" class="block w-full bg-white text-green-600 py-2 rounded-lg text-center font-medium hover:bg-gray-100 transition-colors mt-4">
+                                Kirim Email
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">VLDigital</h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">Toko produk digital premium untuk kebutuhan kreatif dan profesional.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Kategori</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html" class="hover:text-white transition-colors">Template Website</a></li>
+                        <li><a href="index.html" class="hover:text-white transition-colors">Aset Kreatif</a></li>
+                        <li><a href="index.html" class="hover:text-white transition-colors">Plugin & Script</a></li>
+                        <li><a href="index.html" class="hover:text-white transition-colors">Kursus Online</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Bantuan</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html" class="hover:text-white transition-colors">Cara Beli</a></li>
+                        <li><a href="kebijakan-privasi.html" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                        <li><a href="syarat-ketentuan.html" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
+                        <li><a href="hubungi-kami.html" class="hover:text-white transition-colors">Hubungi Kami</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 pt-6 text-center text-gray-400">
+                <p>© 2023 VLDigital. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const contactForm = document.getElementById('contactForm');
+            
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const phone = document.getElementById('phone').value;
+                const subject = document.getElementById('subject').value;
+                const message = document.getElementById('message').value;
+                
+                // Validate phone number format
+                if (!phone.startsWith('62')) {
+                    alert('Format nomor WhatsApp harus dimulai dengan 62 (contoh: 628123456789)');
+                    return;
+                }
+                
+                // Format the message for WhatsApp
+                const whatsappMessage = `Halo VLDigital,
+
+Saya ${name} ingin menghubungi Anda.
+
+*Detail Kontak:*
+- Nama: ${name}
+- Email: ${email}
+- WhatsApp: ${phone}
+
+*Subjek:* ${subject}
+
+*Pesan:*
+${message}
+
+Terima kasih.`;
+                
+                // Encode the message for URL
+                const encodedMessage = encodeURIComponent(whatsappMessage);
+                
+                // Create WhatsApp URL
+                const whatsappURL = `https://wa.me/6285709458101?text=${encodedMessage}`;
+                
+                // Open WhatsApp in a new tab
+                window.open(whatsappURL, '_blank');
+                
+                // Optional: Reset form
+                // contactForm.reset();
+            });
+            
+            // Format phone number input
+            const phoneInput = document.getElementById('phone');
+            phoneInput.addEventListener('input', function() {
+                // Remove any non-digit characters
+                let value = this.value.replace(/\D/g, '');
+                
+                // Ensure it starts with 62
+                if (!value.startsWith('62')) {
+                    value = '62' + value.replace(/^62/, '');
+                }
+                
+                // Limit to 15 digits (62 + 13 digits)
+                if (value.length > 15) {
+                    value = value.substring(0, 15);
+                }
+                
+                this.value = value;
+            });
+        });
+    </script>
+</body>
+</html>
