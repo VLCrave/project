@@ -33,9 +33,6 @@
         .product-card:hover {
             transform: translateY(-5px);
         }
-        .detail-panel {
-            transition: transform 0.4s ease;
-        }
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
@@ -59,11 +56,8 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
         }
-        .search-container {
-            transition: all 0.3s ease;
-        }
-        .search-expanded {
-            width: 100%;
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.6);
         }
     </style>
 </head>
@@ -219,9 +213,9 @@
                     <h3 class="font-bold mb-4">Bantuan</h3>
                     <ul class="space-y-2 text-gray-400">
                         <li><a href="#" class="hover:text-white transition-colors">Cara Beli</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Hubungi Kami</a></li>
+                        <li><a href="https://vlcrave.github.io/project/digital/kebijakan-privasi.html" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                        <li><a href="https://vlcrave.github.io/project/digital/syarat-ketentuan.html" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
+                        <li><a href="https://vlcrave.github.io/project/digital/hubungi-kami.html" class="hover:text-white transition-colors">Hubungi Kami</a></li>
                     </ul>
                 </div>
             </div>
@@ -232,22 +226,19 @@
         </div>
     </footer>
 
-    <!-- Product Detail Panel -->
-    <div id="productDetail" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden fade-in">
-        <div class="absolute right-0 top-0 h-full w-full md:w-1/2 lg:w-1/3 bg-white detail-panel transform translate-x-full overflow-y-auto">
-            <div class="h-full">
-                <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
-                    <h3 class="text-lg font-bold">Detail Produk</h3>
-                    <button onclick="hideProductDetail()" class="text-gray-500 hover:text-dark transition-colors">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-                
-                <div class="p-4">
-                    <div id="detailContent">
-                        <!-- Content will be loaded here by JavaScript -->
-                    </div>
-                </div>
+    <!-- Product Detail Modal -->
+    <div id="productDetailModal" class="fixed inset-0 z-50 hidden fade-in">
+        <div class="modal-overlay absolute inset-0" onclick="hideProductDetail()"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-lg font-bold">Detail Produk</h3>
+                <button onclick="hideProductDetail()" class="text-gray-500 hover:text-dark transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto" id="detailContent">
+                <!-- Content will be loaded here by JavaScript -->
             </div>
         </div>
     </div>
@@ -262,7 +253,7 @@
                 originalPrice: 'Rp 499.000',
                 rating: 4.5,
                 reviewCount: 128,
-                image: 'https://cdn.pixabay.com/photo/2020/05/18/19/44/website-5186965_1280.jpg',
+                image: 'https://images.unsplash.com/photo-1559028012-481c04fa702d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Template website portfolio modern yang cocok untuk freelancer, desainer, atau developer. Dilengkapi dengan halaman tentang, portfolio, layanan, dan kontak.',
                 features: [
                     'Desain responsif untuk semua perangkat',
@@ -272,7 +263,8 @@
                     'Dokumentasi lengkap'
                 ],
                 category: 'template',
-                purchaseLink: 'https://linktree.vldigital.com/template-portfolio'
+                purchaseLink: 'https://linktree.vldigital.com/template-portfolio',
+                demoLink: 'https://example-demo.com/portfolio-template'
             },
             p2: {
                 id: 'p2',
@@ -281,7 +273,7 @@
                 originalPrice: null,
                 rating: 4,
                 reviewCount: 64,
-                image: 'https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg',
+                image: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Koleksi 50+ vector premium bertema luar angkasa dengan kualitas tinggi. Cocok untuk desain grafis, ilustrasi, dan proyek kreatif lainnya.',
                 features: [
                     '50+ vector berkualitas tinggi',
@@ -291,7 +283,8 @@
                     'Mudah dikustomisasi'
                 ],
                 category: 'asset',
-                purchaseLink: 'https://linktree.vldigital.com/vector-space'
+                purchaseLink: 'https://linktree.vldigital.com/vector-space',
+                demoLink: 'https://example-demo.com/vector-space'
             },
             p3: {
                 id: 'p3',
@@ -300,7 +293,7 @@
                 originalPrice: 'Rp 1.200.000',
                 rating: 5,
                 reviewCount: 89,
-                image: 'https://cdn.pixabay.com/photo/2020/05/31/09/40/online-course-5242018_1280.jpg',
+                image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Kursus lengkap untuk mempelajari desain UI/UX dari dasar hingga mahir. Dilengkapi dengan studi kasus nyata dan project akhir.',
                 features: [
                     '30+ jam video pembelajaran',
@@ -310,7 +303,8 @@
                     'Sertifikat penyelesaian'
                 ],
                 category: 'course',
-                purchaseLink: 'https://linktree.vldigital.com/ui-ux-course'
+                purchaseLink: 'https://linktree.vldigital.com/ui-ux-course',
+                demoLink: 'https://example-demo.com/ui-ux-course'
             },
             p4: {
                 id: 'p4',
@@ -319,7 +313,7 @@
                 originalPrice: null,
                 rating: 4.5,
                 reviewCount: 42,
-                image: 'https://cdn.pixabay.com/photo/2015/07/17/22/43/student-849825_1280.jpg',
+                image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Panduan lengkap untuk belajar coding dari nol. Cocok untuk pemula yang ingin memulai karir di bidang pemrograman.',
                 features: [
                     '300+ halaman konten',
@@ -329,7 +323,8 @@
                     'Update gratis untuk versi berikutnya'
                 ],
                 category: 'ebook',
-                purchaseLink: 'https://linktree.vldigital.com/coding-ebook'
+                purchaseLink: 'https://linktree.vldigital.com/coding-ebook',
+                demoLink: 'https://example-demo.com/coding-ebook'
             },
             p5: {
                 id: 'p5',
@@ -338,7 +333,7 @@
                 originalPrice: null,
                 rating: 4,
                 reviewCount: 56,
-                image: 'https://cdn.pixabay.com/photo/2016/11/19/14/00/code-1839406_1280.jpg',
+                image: 'https://images.unsplash.com/photo-1547658719-da2b51169166?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Plugin WordPress premium dengan fitur lengkap untuk mengoptimasi website Anda. Mendukung berbagai tipe konten dan memiliki antarmuka yang user-friendly.',
                 features: [
                     'Optimasi performa website',
@@ -348,7 +343,8 @@
                     'Dokumentasi lengkap'
                 ],
                 category: 'plugin',
-                purchaseLink: 'https://linktree.vldigital.com/wp-plugin'
+                purchaseLink: 'https://linktree.vldigital.com/wp-plugin',
+                demoLink: 'https://example-demo.com/wp-plugin'
             },
             p6: {
                 id: 'p6',
@@ -357,7 +353,7 @@
                 originalPrice: 'Rp 350.000',
                 rating: 5,
                 reviewCount: 73,
-                image: 'https://cdn.pixabay.com/photo/2017/08/05/11/16/logo-2582748_1280.png',
+                image: 'https://images.unsplash.com/photo-1634942537034-2531766767d1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Paket logo profesional dengan berbagai variasi dan format file. Cocok untuk bisnis, startup, atau brand pribadi.',
                 features: [
                     '3 konsep logo berbeda',
@@ -367,7 +363,8 @@
                     'Revisi hingga puas'
                 ],
                 category: 'asset',
-                purchaseLink: 'https://linktree.vldigital.com/logo-pack'
+                purchaseLink: 'https://linktree.vldigital.com/logo-pack',
+                demoLink: 'https://example-demo.com/logo-pack'
             },
             p7: {
                 id: 'p7',
@@ -376,7 +373,7 @@
                 originalPrice: 'Rp 599.000',
                 rating: 4.5,
                 reviewCount: 95,
-                image: 'https://cdn.pixabay.com/photo/2016/11/19/15/32/laptop-1839876_1280.jpg',
+                image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Template website e-commerce dengan desain modern dan fitur lengkap untuk toko online.',
                 features: [
                     'Halaman produk dan kategori',
@@ -386,7 +383,8 @@
                     'Dashboard admin'
                 ],
                 category: 'template',
-                purchaseLink: 'https://linktree.vldigital.com/ecommerce-template'
+                purchaseLink: 'https://linktree.vldigital.com/ecommerce-template',
+                demoLink: 'https://example-demo.com/ecommerce-template'
             },
             p8: {
                 id: 'p8',
@@ -395,7 +393,7 @@
                 originalPrice: 'Rp 999.000',
                 rating: 4.7,
                 reviewCount: 112,
-                image: 'https://cdn.pixabay.com/photo/2018/05/18/15/30/web-design-3411373_1280.jpg',
+                image: 'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
                 description: 'Kursus lengkap digital marketing dari dasar hingga strategi lanjutan untuk meningkatkan penjualan online.',
                 features: [
                     'SEO dan konten marketing',
@@ -405,7 +403,8 @@
                     'Sertifikat penyelesaian'
                 ],
                 category: 'course',
-                purchaseLink: 'https://linktree.vldigital.com/digital-marketing'
+                purchaseLink: 'https://linktree.vldigital.com/digital-marketing',
+                demoLink: 'https://example-demo.com/digital-marketing'
             }
         };
 
@@ -464,14 +463,17 @@
                             ${product.originalPrice ? `<span class="text-gray-500 text-sm line-through ml-1">${product.originalPrice}</span>` : ''}
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button onclick="showProductDetail('${product.id}')" class="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 py-2 rounded-lg text-xs font-medium transition-colors">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="showProductDetail('${product.id}')" class="bg-gray-100 text-gray-700 hover:bg-gray-200 py-2 rounded-lg text-xs font-medium transition-colors">
                             <i class="fas fa-eye mr-1"></i> Detail
                         </button>
-                        <a href="${product.purchaseLink}" target="_blank" class="flex-1 bg-primary text-white hover:bg-primary-dark py-2 rounded-lg text-xs font-medium text-center transition-colors">
-                            <i class="fas fa-shopping-cart mr-1"></i> Beli
-                        </a>
+                        <button onclick="showDemo('${product.id}')" class="bg-accent text-white hover:bg-green-600 py-2 rounded-lg text-xs font-medium transition-colors">
+                            <i class="fas fa-play-circle mr-1"></i> Demo
+                        </button>
                     </div>
+                    <a href="${product.purchaseLink}" target="_blank" class="block w-full bg-primary text-white hover:bg-primary-dark py-2 rounded-lg text-xs font-medium text-center mt-2 transition-colors">
+                        <i class="fas fa-shopping-cart mr-1"></i> Beli Sekarang
+                    </a>
                 </div>
             `;
             
@@ -538,73 +540,76 @@
             renderProducts(filteredProducts);
         }
 
-        // Show product detail
+        // Show product detail modal
         function showProductDetail(productId) {
             const product = products[productId];
             if (!product) return;
             
-            // Update URL without page reload
-            history.pushState({productId}, '', `/product?id=${productId}`);
-            
             // Build detail content
             const detailContent = document.getElementById('detailContent');
             detailContent.innerHTML = `
-                <div class="mb-6">
-                    <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4">
-                    <h2 class="text-xl font-bold mb-2">${product.name}</h2>
-                    <div class="flex items-center mb-4">
-                        <div class="flex text-yellow-400">
-                            ${getStarRating(product.rating)}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <img src="${product.image}" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4">
+                        <div class="flex space-x-2">
+                            <a href="${product.purchaseLink}" target="_blank" class="flex-1 bg-primary text-white py-3 rounded-lg font-medium text-center hover:bg-primary-dark transition-colors">
+                                <i class="fas fa-shopping-cart mr-2"></i> Beli Sekarang
+                            </a>
+                            <button onclick="showDemo('${product.id}')" class="flex-1 bg-accent text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors">
+                                <i class="fas fa-play-circle mr-2"></i> Lihat Demo
+                            </button>
                         </div>
-                        <span class="text-gray-500 text-sm ml-2">(${product.reviewCount} ulasan)</span>
                     </div>
-                    <div class="flex items-center mb-4">
-                        <span class="text-primary font-bold text-xl">${product.price}</span>
-                        ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2">${product.originalPrice}</span>` : ''}
+                    
+                    <div>
+                        <h2 class="text-2xl font-bold mb-2">${product.name}</h2>
+                        <div class="flex items-center mb-4">
+                            <div class="flex text-yellow-400">
+                                ${getStarRating(product.rating)}
+                            </div>
+                            <span class="text-gray-500 text-sm ml-2">(${product.reviewCount} ulasan)</span>
+                        </div>
+                        <div class="flex items-center mb-4">
+                            <span class="text-primary font-bold text-xl">${product.price}</span>
+                            ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2">${product.originalPrice}</span>` : ''}
+                        </div>
+                        <p class="text-gray-700 mb-4">${product.description}</p>
+                        
+                        <div class="mb-6">
+                            <h3 class="font-bold mb-2">Fitur Utama:</h3>
+                            <ul class="list-disc pl-5 text-gray-700">
+                                ${product.features.map(feature => `<li class="mb-1">${feature}</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <h3 class="font-bold mb-2">Kategori:</h3>
+                            <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${getCategoryName(product.category)}</span>
+                        </div>
                     </div>
-                    <p class="text-gray-700 mb-4">${product.description}</p>
-                </div>
-                
-                <div class="mb-6">
-                    <h3 class="font-bold mb-2">Fitur Utama:</h3>
-                    <ul class="list-disc pl-5 text-gray-700">
-                        ${product.features.map(feature => `<li class="mb-1">${feature}</li>`).join('')}
-                    </ul>
-                </div>
-                
-                <div class="mb-6">
-                    <h3 class="font-bold mb-2">Kategori:</h3>
-                    <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${getCategoryName(product.category)}</span>
-                </div>
-                
-                <div class="space-y-3">
-                    <a href="${product.purchaseLink}" target="_blank" class="block w-full bg-primary text-white py-3 rounded-lg font-medium text-center hover:bg-primary-dark transition-colors">
-                        <i class="fas fa-shopping-cart mr-2"></i> Beli Sekarang
-                    </a>
                 </div>
             `;
             
-            // Show detail panel with animation
-            const panel = document.getElementById('productDetail');
-            const detailPanel = panel.querySelector('.detail-panel');
-            
-            panel.classList.remove('hidden');
-            setTimeout(() => {
-                detailPanel.classList.remove('translate-x-full');
-            }, 10);
+            // Show modal with animation
+            const modal = document.getElementById('productDetailModal');
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
         }
 
-        // Hide product detail
-        function hideProductDetail() {
-            const panel = document.getElementById('productDetail');
-            const detailPanel = panel.querySelector('.detail-panel');
+        // Show demo
+        function showDemo(productId) {
+            const product = products[productId];
+            if (!product) return;
             
-            detailPanel.classList.add('translate-x-full');
-            setTimeout(() => {
-                panel.classList.add('hidden');
-                // Reset URL to home
-                history.pushState({}, '', '/');
-            }, 300);
+            // Open demo in new tab
+            window.open(product.demoLink, '_blank');
+        }
+
+        // Hide product detail modal
+        function hideProductDetail() {
+            const modal = document.getElementById('productDetailModal');
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
         }
 
         // Helper function to generate star rating
@@ -643,9 +648,16 @@
             return categoryMap[categoryKey] || categoryKey;
         }
 
-        // Handle browser back button
-        window.addEventListener('popstate', function(event) {
-            if (!event.state || !event.state.productId) {
+        // Close modal when clicking outside
+        document.getElementById('productDetailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideProductDetail();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
                 hideProductDetail();
             }
         });
