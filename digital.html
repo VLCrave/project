@@ -39,6 +39,17 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        .category-active {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none; /* Chrome, Safari and Opera */
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans">
@@ -85,13 +96,13 @@
     <!-- Categories -->
     <section class="py-8 bg-white">
         <div class="container mx-auto px-4">
-            <div class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar">
-                <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">Semua Produk</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Template Website</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Aset Kreatif</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Plugin & Script</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Kursus Online</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">E-Book</button>
+            <div class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar" id="categoryContainer">
+                <button class="category-active bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-category="all">Semua Produk</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="template">Template Website</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="asset">Aset Kreatif</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="plugin">Plugin & Script</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="course">Kursus Online</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="ebook">E-Book</button>
             </div>
         </div>
     </section>
@@ -101,191 +112,16 @@
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-dark">Produk Terbaru</h2>
-                <button class="text-primary font-medium flex items-center">
-                    Lihat Semua <i class="fas fa-arrow-right ml-2"></i>
-                </button>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-600" id="productCount">Menampilkan 6 produk</div>
+                    <button class="text-primary font-medium flex items-center">
+                        Lihat Semua <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <!-- Product 1 -->
-                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="relative">
-                        <img src="https://cdn.pixabay.com/photo/2020/05/18/19/44/website-5186965_1280.jpg" alt="Website Template" class="w-full h-40 object-cover">
-                        <div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">
-                            TERLARIS
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold text-dark mb-1 text-sm">Template Website Portfolio</h3>
-                        <div class="flex items-center mb-2">
-                            <div class="flex text-yellow-400 text-xs">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                            </div>
-                            <span class="text-gray-500 text-xs ml-1">(128)</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="text-primary font-bold">Rp 299.000</span>
-                                <span class="text-gray-500 text-sm line-through ml-1">Rp 499.000</span>
-                            </div>
-                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p1')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product 2 -->
-                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="relative">
-                        <img src="https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg" alt="Digital Art" class="w-full h-40 object-cover">
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold text-dark mb-1 text-sm">Koleksi Vector Space</h3>
-                        <div class="flex items-center mb-2">
-                            <div class="flex text-yellow-400 text-xs">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                            </div>
-                            <span class="text-gray-500 text-xs ml-1">(64)</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="text-primary font-bold">Rp 149.000</span>
-                            </div>
-                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p2')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product 3 -->
-                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="relative">
-                        <img src="https://cdn.pixabay.com/photo/2020/05/31/09/40/online-course-5242018_1280.jpg" alt="Online Course" class="w-full h-40 object-cover">
-                        <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
-                            BARU
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold text-dark mb-1 text-sm">Kursus UI/UX Design</h3>
-                        <div class="flex items-center mb-2">
-                            <div class="flex text-yellow-400 text-xs">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                            </div>
-                            <span class="text-gray-500 text-xs ml-1">(89)</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="text-primary font-bold">Rp 799.000</span>
-                                <span class="text-gray-500 text-sm line-through ml-1">Rp 1.200.000</span>
-                            </div>
-                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p3')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product 4 -->
-                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="relative">
-                        <img src="https://cdn.pixabay.com/photo/2015/07/17/22/43/student-849825_1280.jpg" alt="E-Book" class="w-full h-40 object-cover">
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold text-dark mb-1 text-sm">E-Book Panduan Coding</h3>
-                        <div class="flex items-center mb-2">
-                            <div class="flex text-yellow-400 text-xs">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                            </div>
-                            <span class="text-gray-500 text-xs ml-1">(42)</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="text-primary font-bold">Rp 99.000</span>
-                            </div>
-                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p4')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product 5 -->
-                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="relative">
-                        <img src="https://cdn.pixabay.com/photo/2016/11/19/14/00/code-1839406_1280.jpg" alt="Plugin" class="w-full h-40 object-cover">
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold text-dark mb-1 text-sm">Plugin WordPress Premium</h3>
-                        <div class="flex items-center mb-2">
-                            <div class="flex text-yellow-400 text-xs">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="far fa-star"></i>
-                            </div>
-                            <span class="text-gray-500 text-xs ml-1">(56)</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="text-primary font-bold">Rp 450.000</span>
-                            </div>
-                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p5')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product 6 -->
-                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
-                    <div class="relative">
-                        <img src="https://cdn.pixabay.com/photo/2017/08/05/11/16/logo-2582748_1280.png" alt="Logo Package" class="w-full h-40 object-cover">
-                        <div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">
-                            DISKON
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold text-dark mb-1 text-sm">Paket Logo Profesional</h3>
-                        <div class="flex items-center mb-2">
-                            <div class="flex text-yellow-400 text-xs">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                            </div>
-                            <span class="text-gray-500 text-xs ml-1">(73)</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <span class="text-primary font-bold">Rp 199.000</span>
-                                <span class="text-gray-500 text-sm line-through ml-1">Rp 350.000</span>
-                            </div>
-                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p6')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="productsGrid">
+                <!-- Products will be dynamically loaded here -->
             </div>
         </div>
     </section>
@@ -381,7 +217,8 @@
                     'Form kontak yang berfungsi',
                     'Dokumentasi lengkap'
                 ],
-                category: 'Template Website'
+                category: 'template',
+                tags: ['template', 'website', 'portfolio', 'responsive']
             },
             p2: {
                 id: 'p2',
@@ -399,7 +236,8 @@
                     'Komersial dan penggunaan pribadi',
                     'Mudah dikustomisasi'
                 ],
-                category: 'Aset Kreatif'
+                category: 'asset',
+                tags: ['asset', 'vector', 'graphic', 'design']
             },
             p3: {
                 id: 'p3',
@@ -417,7 +255,8 @@
                     'Akses seumur hidup',
                     'Sertifikat penyelesaian'
                 ],
-                category: 'Kursus Online'
+                category: 'course',
+                tags: ['course', 'ui/ux', 'design', 'tutorial']
             },
             p4: {
                 id: 'p4',
@@ -435,7 +274,8 @@
                     'Tips karir di bidang IT',
                     'Update gratis untuk versi berikutnya'
                 ],
-                category: 'E-Book'
+                category: 'ebook',
+                tags: ['ebook', 'coding', 'programming', 'tutorial']
             },
             p5: {
                 id: 'p5',
@@ -453,7 +293,8 @@
                     'Update rutin dan support',
                     'Dokumentasi lengkap'
                 ],
-                category: 'Plugin & Script'
+                category: 'plugin',
+                tags: ['plugin', 'wordpress', 'script', 'website']
             },
             p6: {
                 id: 'p6',
@@ -471,9 +312,149 @@
                     'Pedoman penggunaan brand',
                     'Revisi hingga puas'
                 ],
-                category: 'Aset Kreatif'
+                category: 'asset',
+                tags: ['asset', 'logo', 'branding', 'design']
+            },
+            p7: {
+                id: 'p7',
+                name: 'Template E-Commerce',
+                price: 'Rp 399.000',
+                originalPrice: 'Rp 599.000',
+                rating: 4.5,
+                reviewCount: 95,
+                image: 'https://cdn.pixabay.com/photo/2016/11/19/15/32/laptop-1839876_1280.jpg',
+                description: 'Template website e-commerce dengan desain modern dan fitur lengkap untuk toko online.',
+                features: [
+                    'Halaman produk dan kategori',
+                    'Keranjang belanja dan checkout',
+                    'Integrasi payment gateway',
+                    'Manajemen inventori',
+                    'Dashboard admin'
+                ],
+                category: 'template',
+                tags: ['template', 'e-commerce', 'website', 'responsive']
+            },
+            p8: {
+                id: 'p8',
+                name: 'Kursus Digital Marketing',
+                price: 'Rp 699.000',
+                originalPrice: 'Rp 999.000',
+                rating: 4.7,
+                reviewCount: 112,
+                image: 'https://cdn.pixabay.com/photo/2018/05/18/15/30/web-design-3411373_1280.jpg',
+                description: 'Kursus lengkap digital marketing dari dasar hingga strategi lanjutan untuk meningkatkan penjualan online.',
+                features: [
+                    'SEO dan konten marketing',
+                    'Media sosial dan iklan online',
+                    'Analisis dan optimasi',
+                    'Studi kasus nyata',
+                    'Sertifikat penyelesaian'
+                ],
+                category: 'course',
+                tags: ['course', 'digital marketing', 'seo', 'social media']
             }
         };
+
+        // Current active category
+        let activeCategory = 'all';
+        let allProducts = Object.values(products);
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            renderProducts(allProducts);
+            setupCategoryFilters();
+        });
+
+        // Render products to the grid
+        function renderProducts(productsToRender) {
+            const productsGrid = document.getElementById('productsGrid');
+            const productCount = document.getElementById('productCount');
+            
+            // Update product count
+            productCount.textContent = `Menampilkan ${productsToRender.length} produk`;
+            
+            // Clear existing products
+            productsGrid.innerHTML = '';
+            
+            // Render each product
+            productsToRender.forEach(product => {
+                const productElement = createProductElement(product);
+                productsGrid.appendChild(productElement);
+            });
+        }
+
+        // Create product HTML element
+        function createProductElement(product) {
+            const productDiv = document.createElement('div');
+            productDiv.className = 'product-card bg-white rounded-lg shadow-md overflow-hidden';
+            productDiv.setAttribute('data-category', product.category);
+            
+            productDiv.innerHTML = `
+                <div class="relative">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-40 object-cover">
+                    ${product.originalPrice ? '<div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">DISKON</div>' : ''}
+                </div>
+                <div class="p-4">
+                    <h3 class="font-semibold text-dark mb-1 text-sm">${product.name}</h3>
+                    <div class="flex items-center mb-2">
+                        <div class="flex text-yellow-400 text-xs">
+                            ${getStarRating(product.rating)}
+                        </div>
+                        <span class="text-gray-500 text-xs ml-1">(${product.reviewCount})</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-primary font-bold">${product.price}</span>
+                            ${product.originalPrice ? `<span class="text-gray-500 text-sm line-through ml-1">${product.originalPrice}</span>` : ''}
+                        </div>
+                        <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('${product.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return productDiv;
+        }
+
+        // Setup category filter buttons
+        function setupCategoryFilters() {
+            const categoryButtons = document.querySelectorAll('#categoryContainer button');
+            
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    categoryButtons.forEach(btn => {
+                        btn.classList.remove('category-active', 'bg-primary', 'text-white');
+                        btn.classList.add('bg-gray-200', 'text-gray-700');
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.add('category-active', 'bg-primary', 'text-white');
+                    this.classList.remove('bg-gray-200', 'text-gray-700');
+                    
+                    // Get category from data attribute
+                    const category = this.getAttribute('data-category');
+                    activeCategory = category;
+                    
+                    // Filter products
+                    filterProducts(category);
+                });
+            });
+        }
+
+        // Filter products by category
+        function filterProducts(category) {
+            let filteredProducts;
+            
+            if (category === 'all') {
+                filteredProducts = allProducts;
+            } else {
+                filteredProducts = allProducts.filter(product => product.category === category);
+            }
+            
+            renderProducts(filteredProducts);
+        }
 
         // Show product detail
         function showProductDetail(productId) {
@@ -511,7 +492,7 @@
                 
                 <div class="mb-6">
                     <h3 class="font-bold mb-2">Kategori:</h3>
-                    <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${product.category}</span>
+                    <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${getCategoryName(product.category)}</span>
                 </div>
                 
                 <div class="flex space-x-4">
@@ -567,6 +548,20 @@
             }
             
             return stars;
+        }
+
+        // Helper function to get category display name
+        function getCategoryName(categoryKey) {
+            const categoryMap = {
+                'all': 'Semua Produk',
+                'template': 'Template Website',
+                'asset': 'Aset Kreatif',
+                'plugin': 'Plugin & Script',
+                'course': 'Kursus Online',
+                'ebook': 'E-Book'
+            };
+            
+            return categoryMap[categoryKey] || categoryKey;
         }
 
         // Handle browser back button
