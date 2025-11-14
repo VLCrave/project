@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLDigital - Toko Produk Digital Premium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        'primary-dark': '#1d4ed8',
+                        secondary: '#ef4444',
+                        accent: '#10b981',
+                        dark: '#1f2937',
+                        light: '#f9fafb',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .product-card {
+            transition: all 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+        .detail-panel {
+            transition: transform 0.4s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .category-active {
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .sticky-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .search-container {
+            transition: all 0.3s ease;
+        }
+        .search-expanded {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50">
+    <!-- Header Transparan dengan Blur -->
+    <header class="sticky-header fixed top-0 w-full z-50 border-b border-gray-200">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                    <h1 class="text-xl font-bold text-dark">VLDigital</h1>
+                </div>
+                
+                <!-- Search Bar -->
+                <div class="flex-1 max-w-md mx-4">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="Cari produk..." 
+                            class="w-full bg-white border border-gray-300 rounded-lg py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        >
+                        <i class="fas fa-search text-gray-400 absolute left-3 top-3"></i>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="#contact" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+                        <i class="fas fa-headset mr-1"></i> Kontak
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Spacer untuk header fixed -->
+    <div class="h-20"></div>
+
+    <!-- Hero Section - Simple -->
+    <section class="bg-gradient-to-r from-primary to-blue-700 text-white py-12">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-4">Produk Digital Berkualitas</h2>
+            <p class="text-lg mb-6 max-w-2xl mx-auto">Template, aset kreatif, plugin, dan kursus online untuk kebutuhan digital Anda</p>
+            <div class="flex justify-center">
+                <a href="#products" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 shadow-md transition-colors">
+                    <i class="fas fa-shopping-bag mr-2"></i> Beli Sekarang
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="py-6 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="flex overflow-x-auto space-x-3 pb-2 hide-scrollbar" id="categoryContainer">
+                <button class="category-active bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-category="all">Semua</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="template">Template</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="asset">Aset Kreatif</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="plugin">Plugin</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="course">Kursus</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="ebook">E-Book</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Grid -->
+    <section id="products" class="py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-dark">Produk Terbaru</h2>
+                <div class="text-sm text-gray-600" id="productCount">Menampilkan 8 produk</div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="productsGrid">
+                <!-- Products will be dynamically loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- How to Buy Section -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl font-bold text-dark mb-4">Cara Pembelian</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Hanya dalam 3 langkah mudah, produk digital premium sudah bisa Anda miliki</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center p-6 rounded-xl bg-blue-50 border border-blue-100">
+                    <div class="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-bold">1</div>
+                    <h3 class="font-bold text-dark mb-2">Pilih Produk</h3>
+                    <p class="text-gray-600 text-sm">Jelajahi katalog dan pilih produk yang Anda butuhkan</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-xl bg-purple-50 border border-purple-100">
+                    <div class="bg-purple-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-bold">2</div>
+                    <h3 class="font-bold text-dark mb-2">Klik Link Pembelian</h3>
+                    <p class="text-gray-600 text-sm">Klik tombol "Beli Sekarang" untuk menuju halaman pembayaran</p>
+                </div>
+                
+                <div class="text-center p-6 rounded-xl bg-green-50 border border-green-100">
+                    <div class="bg-green-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-bold">3</div>
+                    <h3 class="font-bold text-dark mb-2">Download Instan</h3>
+                    <p class="text-gray-600 text-sm">Setelah pembayaran, produk dapat langsung di-download</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-12 bg-gradient-to-r from-primary to-blue-700 text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-2xl font-bold mb-4">Butuh Bantuan?</h2>
+            <p class="mb-8 max-w-2xl mx-auto">Hubungi kami melalui WhatsApp untuk informasi lebih lanjut atau bantuan pembelian</p>
+            
+            <div class="flex flex-col md:flex-row justify-center gap-4">
+                <a href="https://wa.me/6281234567890" target="_blank" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center">
+                    <i class="fab fa-whatsapp mr-2 text-lg"></i> WhatsApp
+                </a>
+                <a href="https://t.me/vldigital" target="_blank" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center">
+                    <i class="fab fa-telegram mr-2 text-lg"></i> Telegram
+                </a>
+                <a href="mailto:info@vldigital.com" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center">
+                    <i class="fas fa-envelope mr-2 text-lg"></i> Email
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">VLDigital</h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">Toko produk digital premium untuk kebutuhan kreatif dan profesional.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Kategori</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Template Website</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Aset Kreatif</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Plugin & Script</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Kursus Online</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Bantuan</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Cara Beli</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Hubungi Kami</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 pt-6 text-center text-gray-400">
+                <p>© 2023 VLDigital. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Product Detail Panel -->
+    <div id="productDetail" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden fade-in">
+        <div class="absolute right-0 top-0 h-full w-full md:w-1/2 lg:w-1/3 bg-white detail-panel transform translate-x-full overflow-y-auto">
+            <div class="h-full">
+                <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+                    <h3 class="text-lg font-bold">Detail Produk</h3>
+                    <button onclick="hideProductDetail()" class="text-gray-500 hover:text-dark transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-4">
+                    <div id="detailContent">
+                        <!-- Content will be loaded here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Product data
+        const products = {
+            p1: {
+                id: 'p1',
+                name: 'Template Website Portfolio',
+                price: 'Rp 299.000',
+                originalPrice: 'Rp 499.000',
+                rating: 4.5,
+                reviewCount: 128,
+                image: 'https://cdn.pixabay.com/photo/2020/05/18/19/44/website-5186965_1280.jpg',
+                description: 'Template website portfolio modern yang cocok untuk freelancer, desainer, atau developer. Dilengkapi dengan halaman tentang, portfolio, layanan, dan kontak.',
+                features: [
+                    'Desain responsif untuk semua perangkat',
+                    'Optimasi SEO',
+                    'Integrasi media sosial',
+                    'Form kontak yang berfungsi',
+                    'Dokumentasi lengkap'
+                ],
+                category: 'template',
+                purchaseLink: 'https://linktree.vldigital.com/template-portfolio'
+            },
+            p2: {
+                id: 'p2',
+                name: 'Koleksi Vector Space',
+                price: 'Rp 149.000',
+                originalPrice: null,
+                rating: 4,
+                reviewCount: 64,
+                image: 'https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg',
+                description: 'Koleksi 50+ vector premium bertema luar angkasa dengan kualitas tinggi. Cocok untuk desain grafis, ilustrasi, dan proyek kreatif lainnya.',
+                features: [
+                    '50+ vector berkualitas tinggi',
+                    'Format AI, EPS, SVG, dan PNG',
+                    'Resolusi tinggi untuk cetak',
+                    'Komersial dan penggunaan pribadi',
+                    'Mudah dikustomisasi'
+                ],
+                category: 'asset',
+                purchaseLink: 'https://linktree.vldigital.com/vector-space'
+            },
+            p3: {
+                id: 'p3',
+                name: 'Kursus UI/UX Design',
+                price: 'Rp 799.000',
+                originalPrice: 'Rp 1.200.000',
+                rating: 5,
+                reviewCount: 89,
+                image: 'https://cdn.pixabay.com/photo/2020/05/31/09/40/online-course-5242018_1280.jpg',
+                description: 'Kursus lengkap untuk mempelajari desain UI/UX dari dasar hingga mahir. Dilengkapi dengan studi kasus nyata dan project akhir.',
+                features: [
+                    '30+ jam video pembelajaran',
+                    'Studi kasus nyata',
+                    'Project akhir dengan review',
+                    'Akses seumur hidup',
+                    'Sertifikat penyelesaian'
+                ],
+                category: 'course',
+                purchaseLink: 'https://linktree.vldigital.com/ui-ux-course'
+            },
+            p4: {
+                id: 'p4',
+                name: 'E-Book Panduan Coding',
+                price: 'Rp 99.000',
+                originalPrice: null,
+                rating: 4.5,
+                reviewCount: 42,
+                image: 'https://cdn.pixabay.com/photo/2015/07/17/22/43/student-849825_1280.jpg',
+                description: 'Panduan lengkap untuk belajar coding dari nol. Cocok untuk pemula yang ingin memulai karir di bidang pemrograman.',
+                features: [
+                    '300+ halaman konten',
+                    'Contoh kode langsung',
+                    'Latihan dan tantangan',
+                    'Tips karir di bidang IT',
+                    'Update gratis untuk versi berikutnya'
+                ],
+                category: 'ebook',
+                purchaseLink: 'https://linktree.vldigital.com/coding-ebook'
+            },
+            p5: {
+                id: 'p5',
+                name: 'Plugin WordPress Premium',
+                price: 'Rp 450.000',
+                originalPrice: null,
+                rating: 4,
+                reviewCount: 56,
+                image: 'https://cdn.pixabay.com/photo/2016/11/19/14/00/code-1839406_1280.jpg',
+                description: 'Plugin WordPress premium dengan fitur lengkap untuk mengoptimasi website Anda. Mendukung berbagai tipe konten dan memiliki antarmuka yang user-friendly.',
+                features: [
+                    'Optimasi performa website',
+                    'Keamanan tingkat tinggi',
+                    'Dukungan multisite',
+                    'Update rutin dan support',
+                    'Dokumentasi lengkap'
+                ],
+                category: 'plugin',
+                purchaseLink: 'https://linktree.vldigital.com/wp-plugin'
+            },
+            p6: {
+                id: 'p6',
+                name: 'Paket Logo Profesional',
+                price: 'Rp 199.000',
+                originalPrice: 'Rp 350.000',
+                rating: 5,
+                reviewCount: 73,
+                image: 'https://cdn.pixabay.com/photo/2017/08/05/11/16/logo-2582748_1280.png',
+                description: 'Paket logo profesional dengan berbagai variasi dan format file. Cocok untuk bisnis, startup, atau brand pribadi.',
+                features: [
+                    '3 konsep logo berbeda',
+                    'File AI, EPS, PNG, dan JPG',
+                    'Variasi warna dan layout',
+                    'Pedoman penggunaan brand',
+                    'Revisi hingga puas'
+                ],
+                category: 'asset',
+                purchaseLink: 'https://linktree.vldigital.com/logo-pack'
+            },
+            p7: {
+                id: 'p7',
+                name: 'Template E-Commerce',
+                price: 'Rp 399.000',
+                originalPrice: 'Rp 599.000',
+                rating: 4.5,
+                reviewCount: 95,
+                image: 'https://cdn.pixabay.com/photo/2016/11/19/15/32/laptop-1839876_1280.jpg',
+                description: 'Template website e-commerce dengan desain modern dan fitur lengkap untuk toko online.',
+                features: [
+                    'Halaman produk dan kategori',
+                    'Keranjang belanja dan checkout',
+                    'Integrasi payment gateway',
+                    'Manajemen inventori',
+                    'Dashboard admin'
+                ],
+                category: 'template',
+                purchaseLink: 'https://linktree.vldigital.com/ecommerce-template'
+            },
+            p8: {
+                id: 'p8',
+                name: 'Kursus Digital Marketing',
+                price: 'Rp 699.000',
+                originalPrice: 'Rp 999.000',
+                rating: 4.7,
+                reviewCount: 112,
+                image: 'https://cdn.pixabay.com/photo/2018/05/18/15/30/web-design-3411373_1280.jpg',
+                description: 'Kursus lengkap digital marketing dari dasar hingga strategi lanjutan untuk meningkatkan penjualan online.',
+                features: [
+                    'SEO dan konten marketing',
+                    'Media sosial dan iklan online',
+                    'Analisis dan optimasi',
+                    'Studi kasus nyata',
+                    'Sertifikat penyelesaian'
+                ],
+                category: 'course',
+                purchaseLink: 'https://linktree.vldigital.com/digital-marketing'
+            }
+        };
+
+        // Current active category
+        let activeCategory = 'all';
+        let allProducts = Object.values(products);
+        let filteredProducts = [...allProducts];
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            renderProducts(allProducts);
+            setupCategoryFilters();
+            setupSearch();
+        });
+
+        // Render products to the grid
+        function renderProducts(productsToRender) {
+            const productsGrid = document.getElementById('productsGrid');
+            const productCount = document.getElementById('productCount');
+            
+            // Update product count
+            productCount.textContent = `Menampilkan ${productsToRender.length} produk`;
+            
+            // Clear existing products
+            productsGrid.innerHTML = '';
+            
+            // Render each product
+            productsToRender.forEach(product => {
+                const productElement = createProductElement(product);
+                productsGrid.appendChild(productElement);
+            });
+        }
+
+        // Create product HTML element
+        function createProductElement(product) {
+            const productDiv = document.createElement('div');
+            productDiv.className = 'product-card bg-white rounded-lg shadow-md overflow-hidden';
+            productDiv.setAttribute('data-category', product.category);
+            
+            productDiv.innerHTML = `
+                <div class="relative">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-40 object-cover">
+                    ${product.originalPrice ? '<div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">DISKON</div>' : ''}
+                </div>
+                <div class="p-4">
+                    <h3 class="font-semibold text-dark mb-1 text-sm">${product.name}</h3>
+                    <div class="flex items-center mb-2">
+                        <div class="flex text-yellow-400 text-xs">
+                            ${getStarRating(product.rating)}
+                        </div>
+                        <span class="text-gray-500 text-xs ml-1">(${product.reviewCount})</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <span class="text-primary font-bold">${product.price}</span>
+                            ${product.originalPrice ? `<span class="text-gray-500 text-sm line-through ml-1">${product.originalPrice}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="showProductDetail('${product.id}')" class="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 py-2 rounded-lg text-xs font-medium transition-colors">
+                            <i class="fas fa-eye mr-1"></i> Detail
+                        </button>
+                        <a href="${product.purchaseLink}" target="_blank" class="flex-1 bg-primary text-white hover:bg-primary-dark py-2 rounded-lg text-xs font-medium text-center transition-colors">
+                            <i class="fas fa-shopping-cart mr-1"></i> Beli
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            return productDiv;
+        }
+
+        // Setup category filter buttons
+        function setupCategoryFilters() {
+            const categoryButtons = document.querySelectorAll('#categoryContainer button');
+            
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    categoryButtons.forEach(btn => {
+                        btn.classList.remove('category-active', 'bg-primary', 'text-white');
+                        btn.classList.add('bg-gray-200', 'text-gray-700');
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.add('category-active', 'bg-primary', 'text-white');
+                    this.classList.remove('bg-gray-200', 'text-gray-700');
+                    
+                    // Get category from data attribute
+                    const category = this.getAttribute('data-category');
+                    activeCategory = category;
+                    
+                    // Filter products
+                    filterProducts(category);
+                });
+            });
+        }
+
+        // Setup search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                
+                if (searchTerm === '') {
+                    // If search is empty, show products based on current category filter
+                    filterProducts(activeCategory);
+                } else {
+                    // Filter products based on search term
+                    const searchResults = allProducts.filter(product => 
+                        product.name.toLowerCase().includes(searchTerm) || 
+                        product.description.toLowerCase().includes(searchTerm) ||
+                        getCategoryName(product.category).toLowerCase().includes(searchTerm)
+                    );
+                    
+                    renderProducts(searchResults);
+                }
+            });
+        }
+
+        // Filter products by category
+        function filterProducts(category) {
+            if (category === 'all') {
+                filteredProducts = allProducts;
+            } else {
+                filteredProducts = allProducts.filter(product => product.category === category);
+            }
+            
+            renderProducts(filteredProducts);
+        }
+
+        // Show product detail
+        function showProductDetail(productId) {
+            const product = products[productId];
+            if (!product) return;
+            
+            // Update URL without page reload
+            history.pushState({productId}, '', `/product?id=${productId}`);
+            
+            // Build detail content
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="mb-6">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4">
+                    <h2 class="text-xl font-bold mb-2">${product.name}</h2>
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-yellow-400">
+                            ${getStarRating(product.rating)}
+                        </div>
+                        <span class="text-gray-500 text-sm ml-2">(${product.reviewCount} ulasan)</span>
+                    </div>
+                    <div class="flex items-center mb-4">
+                        <span class="text-primary font-bold text-xl">${product.price}</span>
+                        ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2">${product.originalPrice}</span>` : ''}
+                    </div>
+                    <p class="text-gray-700 mb-4">${product.description}</p>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Fitur Utama:</h3>
+                    <ul class="list-disc pl-5 text-gray-700">
+                        ${product.features.map(feature => `<li class="mb-1">${feature}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Kategori:</h3>
+                    <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${getCategoryName(product.category)}</span>
+                </div>
+                
+                <div class="space-y-3">
+                    <a href="${product.purchaseLink}" target="_blank" class="block w-full bg-primary text-white py-3 rounded-lg font-medium text-center hover:bg-primary-dark transition-colors">
+                        <i class="fas fa-shopping-cart mr-2"></i> Beli Sekarang
+                    </a>
+                </div>
+            `;
+            
+            // Show detail panel with animation
+            const panel = document.getElementById('productDetail');
+            const detailPanel = panel.querySelector('.detail-panel');
+            
+            panel.classList.remove('hidden');
+            setTimeout(() => {
+                detailPanel.classList.remove('translate-x-full');
+            }, 10);
+        }
+
+        // Hide product detail
+        function hideProductDetail() {
+            const panel = document.getElementById('productDetail');
+            const detailPanel = panel.querySelector('.detail-panel');
+            
+            detailPanel.classList.add('translate-x-full');
+            setTimeout(() => {
+                panel.classList.add('hidden');
+                // Reset URL to home
+                history.pushState({}, '', '/');
+            }, 300);
+        }
+
+        // Helper function to generate star rating
+        function getStarRating(rating) {
+            let stars = '';
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 !== 0;
+            
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+            
+            if (hasHalfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+            
+            const emptyStars = 5 - Math.ceil(rating);
+            for (let i = 0; i < emptyStars; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+            
+            return stars;
+        }
+
+        // Helper function to get category display name
+        function getCategoryName(categoryKey) {
+            const categoryMap = {
+                'all': 'Semua Produk',
+                'template': 'Template Website',
+                'asset': 'Aset Kreatif',
+                'plugin': 'Plugin & Script',
+                'course': 'Kursus Online',
+                'ebook': 'E-Book'
+            };
+            
+            return categoryMap[categoryKey] || categoryKey;
+        }
+
+        // Handle browser back button
+        window.addEventListener('popstate', function(event) {
+            if (!event.state || !event.state.productId) {
+                hideProductDetail();
+            }
+        });
+    </script>
+</body>
+</html>
