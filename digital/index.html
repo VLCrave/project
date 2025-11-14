@@ -52,174 +52,218 @@
             display: none;
         }
         .sticky-header {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
         }
         .modal-overlay {
             background: rgba(0, 0, 0, 0.6);
         }
-        .notification {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            z-index: 1000;
-            padding: 16px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateX(120%);
+        .mobile-menu {
+            transform: translateX(-100%);
             transition: transform 0.3s ease;
         }
-        .notification.show {
+        .mobile-menu.open {
             transform: translateX(0);
         }
-        .demo-content {
-            max-height: 70vh;
-            overflow-y: auto;
+        /* Custom scrollbar untuk modal */
+        .modal-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
     </style>
 </head>
 <body class="font-inter bg-gray-50">
-    <!-- Header Transparan dengan Blur -->
+    <!-- Header Mobile dengan Menu Hamburger -->
     <header class="sticky-header fixed top-0 w-full z-50 border-b border-gray-200">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center py-4">
+        <div class="container mx-auto px-3">
+            <div class="flex justify-between items-center py-3">
                 <div class="flex items-center">
-                    <i class="fas fa-cube text-primary text-2xl mr-2"></i>
-                    <h1 class="text-xl font-bold text-dark">VLDigital</h1>
+                    <button id="mobileMenuButton" class="mr-3 text-dark md:hidden">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <i class="fas fa-cube text-primary text-xl mr-2"></i>
+                    <h1 class="text-lg font-bold text-dark">VLDigital</h1>
                 </div>
                 
-                <!-- Search Bar -->
-                <div class="flex-1 max-w-md mx-4">
+                <!-- Search Bar - Tersembunyi di mobile, muncul saat diklik -->
+                <div class="hidden md:block flex-1 max-w-md mx-4">
                     <div class="relative">
                         <input 
                             type="text" 
                             id="searchInput" 
                             placeholder="Cari produk..." 
-                            class="w-full bg-white border border-gray-300 rounded-lg py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                            class="w-full bg-white border border-gray-300 rounded-lg py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                         >
                         <i class="fas fa-search text-gray-400 absolute left-3 top-3"></i>
                     </div>
                 </div>
                 
-                <div class="flex items-center space-x-4">
-                    <a href="#contact" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+                <div class="flex items-center space-x-3">
+                    <!-- Tombol Search untuk Mobile -->
+                    <button id="mobileSearchButton" class="md:hidden text-dark">
+                        <i class="fas fa-search text-lg"></i>
+                    </button>
+                    <a href="#contact" class="bg-primary text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-primary-dark transition-colors hidden sm:block">
                         <i class="fas fa-headset mr-1"></i> Kontak
                     </a>
+                </div>
+            </div>
+            
+            <!-- Search Bar Mobile (Muncul saat tombol search ditekan) -->
+            <div id="mobileSearchContainer" class="py-2 hidden md:hidden">
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="mobileSearchInput" 
+                        placeholder="Cari produk..." 
+                        class="w-full bg-white border border-gray-300 rounded-lg py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                    >
+                    <i class="fas fa-search text-gray-400 absolute left-3 top-3"></i>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Spacer untuk header fixed -->
-    <div class="h-20"></div>
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="mobile-menu fixed inset-0 z-40 bg-white pt-16 px-5 md:hidden">
+        <div class="flex flex-col space-y-6 py-6">
+            <a href="#products" class="text-lg font-medium text-dark border-b pb-2" onclick="toggleMobileMenu()">Produk</a>
+            <a href="#how-to-buy" class="text-lg font-medium text-dark border-b pb-2" onclick="toggleMobileMenu()">Cara Beli</a>
+            <a href="#contact" class="text-lg font-medium text-dark border-b pb-2" onclick="toggleMobileMenu()">Kontak</a>
+            <div class="pt-4">
+                <h3 class="font-bold mb-2">Kategori</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button class="category-active bg-primary text-white px-3 py-1 rounded-lg text-xs font-medium" data-category="all" onclick="filterProducts('all'); toggleMobileMenu()">Semua</button>
+                    <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs font-medium" data-category="template" onclick="filterProducts('template'); toggleMobileMenu()">Template</button>
+                    <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs font-medium" data-category="asset" onclick="filterProducts('asset'); toggleMobileMenu()">Aset</button>
+                    <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs font-medium" data-category="plugin" onclick="filterProducts('plugin'); toggleMobileMenu()">Plugin</button>
+                    <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs font-medium" data-category="course" onclick="filterProducts('course'); toggleMobileMenu()">Kursus</button>
+                    <button class="bg-gray-200 text-gray-700 px-3 py-1 rounded-lg text-xs font-medium" data-category="ebook" onclick="filterProducts('ebook'); toggleMobileMenu()">E-Book</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Hero Section - Simple -->
-    <section class="bg-gradient-to-r from-primary to-blue-700 text-white py-12">
-        <div class="container mx-auto px-4 text-center">
-            <h2 class="text-3xl font-bold mb-4">Produk Digital Berkualitas</h2>
-            <p class="text-lg mb-6 max-w-2xl mx-auto">Template, aset kreatif, plugin, dan kursus online untuk kebutuhan digital Anda</p>
+    <!-- Spacer untuk header fixed -->
+    <div class="h-16 md:h-20"></div>
+
+    <!-- Hero Section - Optimized untuk Mobile -->
+    <section class="bg-gradient-to-r from-primary to-blue-700 text-white py-8 md:py-12">
+        <div class="container mx-auto px-3 text-center">
+            <h2 class="text-2xl md:text-3xl font-bold mb-3 md:mb-4">Produk Digital Berkualitas</h2>
+            <p class="text-sm md:text-lg mb-4 md:mb-6 max-w-2xl mx-auto">Template, aset kreatif, plugin, dan kursus online untuk kebutuhan digital Anda</p>
             <div class="flex justify-center">
-                <a href="#products" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 shadow-md transition-colors">
+                <a href="#products" class="bg-white text-primary px-5 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-gray-100 shadow-md transition-colors text-sm md:text-base">
                     <i class="fas fa-shopping-bag mr-2"></i> Beli Sekarang
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Categories -->
-    <section class="py-6 bg-white">
-        <div class="container mx-auto px-4">
-            <div class="flex overflow-x-auto space-x-3 pb-2 hide-scrollbar" id="categoryContainer">
-                <button class="category-active bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-category="all">Semua</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="template">Template</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="asset">Aset Kreatif</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="plugin">Plugin</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="course">Kursus</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="ebook">E-Book</button>
+    <!-- Categories - Scroll Horizontal untuk Mobile -->
+    <section class="py-4 md:py-6 bg-white">
+        <div class="container mx-auto px-3">
+            <div class="flex overflow-x-auto space-x-2 md:space-x-3 pb-2 hide-scrollbar" id="categoryContainer">
+                <button class="category-active bg-primary text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap" data-category="all">Semua</button>
+                <button class="bg-gray-200 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="template">Template</button>
+                <button class="bg-gray-200 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="asset">Aset Kreatif</button>
+                <button class="bg-gray-200 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="plugin">Plugin</button>
+                <button class="bg-gray-200 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="course">Kursus</button>
+                <button class="bg-gray-200 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-colors" data-category="ebook">E-Book</button>
             </div>
         </div>
     </section>
 
-    <!-- Products Grid -->
-    <section id="products" class="py-8">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-dark">Produk Terbaru</h2>
-                <div class="text-sm text-gray-600" id="productCount">Menampilkan 8 produk</div>
+    <!-- Products Grid - Responsif untuk Mobile -->
+    <section id="products" class="py-6 md:py-8">
+        <div class="container mx-auto px-3">
+            <div class="flex justify-between items-center mb-4 md:mb-6">
+                <h2 class="text-xl md:text-2xl font-bold text-dark">Produk Terbaru</h2>
+                <div class="text-xs md:text-sm text-gray-600" id="productCount">Menampilkan 8 produk</div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="productsGrid">
+            <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4" id="productsGrid">
                 <!-- Products will be dynamically loaded here -->
             </div>
         </div>
     </section>
 
-    <!-- How to Buy Section -->
-    <section class="py-12 bg-white">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-10">
-                <h2 class="text-2xl font-bold text-dark mb-4">Cara Pembelian</h2>
-                <p class="text-gray-600 max-w-2xl mx-auto">Hanya dalam 3 langkah mudah, produk digital premium sudah bisa Anda miliki</p>
+    <!-- How to Buy Section - Tampilan Kolom untuk Mobile -->
+    <section id="how-to-buy" class="py-8 md:py-12 bg-white">
+        <div class="container mx-auto px-3">
+            <div class="text-center mb-8 md:mb-10">
+                <h2 class="text-xl md:text-2xl font-bold text-dark mb-3 md:mb-4">Cara Pembelian</h2>
+                <p class="text-sm md:text-base text-gray-600 max-w-2xl mx-auto">Hanya dalam 3 langkah mudah, produk digital premium sudah bisa Anda miliki</p>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="text-center p-6 rounded-xl bg-blue-50 border border-blue-100">
-                    <div class="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-bold">1</div>
-                    <h3 class="font-bold text-dark mb-2">Pilih Produk</h3>
-                    <p class="text-gray-600 text-sm">Jelajahi katalog dan pilih produk yang Anda butuhkan</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="text-center p-4 md:p-6 rounded-xl bg-blue-50 border border-blue-100">
+                    <div class="bg-blue-500 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4 text-white font-bold text-sm md:text-base">1</div>
+                    <h3 class="font-bold text-dark mb-2 text-sm md:text-base">Pilih Produk</h3>
+                    <p class="text-gray-600 text-xs md:text-sm">Jelajahi katalog dan pilih produk yang Anda butuhkan</p>
                 </div>
                 
-                <div class="text-center p-6 rounded-xl bg-purple-50 border border-purple-100">
-                    <div class="bg-purple-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-bold">2</div>
-                    <h3 class="font-bold text-dark mb-2">Klik Link Pembelian</h3>
-                    <p class="text-gray-600 text-sm">Klik tombol "Beli Sekarang" untuk menuju halaman pembayaran</p>
+                <div class="text-center p-4 md:p-6 rounded-xl bg-purple-50 border border-purple-100">
+                    <div class="bg-purple-500 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4 text-white font-bold text-sm md:text-base">2</div>
+                    <h3 class="font-bold text-dark mb-2 text-sm md:text-base">Klik Link Pembelian</h3>
+                    <p class="text-gray-600 text-xs md:text-sm">Klik tombol "Beli Sekarang" untuk menuju halaman pembayaran</p>
                 </div>
                 
-                <div class="text-center p-6 rounded-xl bg-green-50 border border-green-100">
-                    <div class="bg-green-500 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-bold">3</div>
-                    <h3 class="font-bold text-dark mb-2">Download Instan</h3>
-                    <p class="text-gray-600 text-sm">Setelah pembayaran, produk dapat langsung di-download</p>
+                <div class="text-center p-4 md:p-6 rounded-xl bg-green-50 border border-green-100">
+                    <div class="bg-green-500 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center mx-auto mb-3 md:mb-4 text-white font-bold text-sm md:text-base">3</div>
+                    <h3 class="font-bold text-dark mb-2 text-sm md:text-base">Download Instan</h3>
+                    <p class="text-gray-600 text-xs md:text-sm">Setelah pembayaran, produk dapat langsung di-download</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Contact Section -->
-    <section id="contact" class="py-12 bg-gradient-to-r from-primary to-blue-700 text-white">
-        <div class="container mx-auto px-4 text-center">
-            <h2 class="text-2xl font-bold mb-4">Butuh Bantuan?</h2>
-            <p class="mb-8 max-w-2xl mx-auto">Hubungi kami melalui WhatsApp untuk informasi lebih lanjut atau bantuan pembelian</p>
+    <!-- Contact Section - Tampilan Kolom untuk Mobile -->
+    <section id="contact" class="py-8 md:py-12 bg-gradient-to-r from-primary to-blue-700 text-white">
+        <div class="container mx-auto px-3 text-center">
+            <h2 class="text-xl md:text-2xl font-bold mb-3 md:mb-4">Butuh Bantuan?</h2>
+            <p class="mb-6 md:mb-8 text-sm md:text-base max-w-2xl mx-auto">Hubungi kami melalui WhatsApp untuk informasi lebih lanjut atau bantuan pembelian</p>
             
-            <div class="flex flex-col md:flex-row justify-center gap-4">
-                <a href="https://wa.me/6281234567890" target="_blank" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center">
+            <div class="flex flex-col sm:flex-row justify-center gap-3 md:gap-4">
+                <a href="https://wa.me/6281234567890" target="_blank" class="bg-white text-primary px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center text-sm md:text-base">
                     <i class="fab fa-whatsapp mr-2 text-lg"></i> WhatsApp
                 </a>
-                <a href="https://t.me/vldigital" target="_blank" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center">
+                <a href="https://t.me/vldigital" target="_blank" class="bg-white text-primary px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center text-sm md:text-base">
                     <i class="fab fa-telegram mr-2 text-lg"></i> Telegram
                 </a>
-                <a href="mailto:info@vldigital.com" class="bg-white text-primary px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center">
+                <a href="mailto:info@vldigital.com" class="bg-white text-primary px-4 py-2.5 md:px-6 md:py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center text-sm md:text-base">
                     <i class="fas fa-envelope mr-2 text-lg"></i> Email
                 </a>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-8">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <!-- Footer - Tampilan Kolom untuk Mobile -->
+    <footer class="bg-dark text-white py-6 md:py-8">
+        <div class="container mx-auto px-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-6 md:mb-8">
                 <div>
-                    <div class="flex items-center mb-4">
-                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
-                        <h2 class="text-xl font-bold">VLDigital</h2>
+                    <div class="flex items-center mb-3 md:mb-4">
+                        <i class="fas fa-cube text-primary text-xl md:text-2xl mr-2"></i>
+                        <h2 class="text-lg md:text-xl font-bold">VLDigital</h2>
                     </div>
-                    <p class="text-gray-400 mb-4">Toko produk digital premium untuk kebutuhan kreatif dan profesional.</p>
+                    <p class="text-gray-400 mb-4 text-sm md:text-base">Toko produk digital premium untuk kebutuhan kreatif dan profesional.</p>
                 </div>
                 
                 <div>
-                    <h3 class="font-bold mb-4">Kategori</h3>
-                    <ul class="space-y-2 text-gray-400">
+                    <h3 class="font-bold mb-3 md:mb-4 text-sm md:text-base">Kategori</h3>
+                    <ul class="space-y-1 md:space-y-2 text-gray-400 text-sm md:text-base">
                         <li><a href="#" class="hover:text-white transition-colors">Template Website</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Aset Kreatif</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Plugin & Script</a></li>
@@ -228,8 +272,8 @@
                 </div>
                 
                 <div>
-                    <h3 class="font-bold mb-4">Bantuan</h3>
-                    <ul class="space-y-2 text-gray-400">
+                    <h3 class="font-bold mb-3 md:mb-4 text-sm md:text-base">Bantuan</h3>
+                    <ul class="space-y-1 md:space-y-2 text-gray-400 text-sm md:text-base">
                         <li><a href="#" class="hover:text-white transition-colors">Cara Beli</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
                         <li><a href="#" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
@@ -238,59 +282,25 @@
                 </div>
             </div>
             
-            <div class="border-t border-gray-700 pt-6 text-center text-gray-400">
+            <div class="border-t border-gray-700 pt-4 md:pt-6 text-center text-gray-400 text-sm md:text-base">
                 <p>© 2023 VLDigital. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Product Detail Modal -->
+    <!-- Product Detail Modal - Responsif untuk Mobile -->
     <div id="productDetailModal" class="fixed inset-0 z-50 hidden fade-in">
         <div class="modal-overlay absolute inset-0" onclick="hideProductDetail()"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
-                <h3 class="text-lg font-bold">Detail Produk</h3>
+        <div class="absolute top-0 left-0 w-full h-full md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-4xl md:max-h-[90vh] bg-white md:rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-3 md:p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-base md:text-lg font-bold">Detail Produk</h3>
                 <button onclick="hideProductDetail()" class="text-gray-500 hover:text-dark transition-colors">
-                    <i class="fas fa-times text-xl"></i>
+                    <i class="fas fa-times text-lg md:text-xl"></i>
                 </button>
             </div>
             
-            <div class="p-6 overflow-y-auto" id="detailContent">
+            <div class="p-4 md:p-6 overflow-y-auto modal-content" id="detailContent">
                 <!-- Content will be loaded here by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Demo Modal -->
-    <div id="demoModal" class="fixed inset-0 z-50 hidden fade-in">
-        <div class="modal-overlay absolute inset-0" onclick="hideDemo()"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
-                <h3 class="text-lg font-bold" id="demoTitle">Demo Produk</h3>
-                <button onclick="hideDemo()" class="text-gray-500 hover:text-dark transition-colors">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            
-            <div class="p-6 overflow-y-auto demo-content" id="demoContent">
-                <!-- Demo content will be loaded here by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification Element -->
-    <div id="notification" class="notification bg-white border-l-4 border-secondary shadow-lg">
-        <div class="flex items-start">
-            <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-secondary text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium text-dark" id="notificationText">Tidak ada demo untuk produk ini</p>
-            </div>
-            <div class="ml-auto pl-3">
-                <button onclick="hideNotification()" class="text-gray-400 hover:text-gray-500">
-                    <i class="fas fa-times"></i>
-                </button>
             </div>
         </div>
     </div>
@@ -315,8 +325,7 @@
                     'Dokumentasi lengkap'
                 ],
                 category: 'template',
-                purchaseLink: 'https://linktree.vldigital.com/template-portfolio',
-                hasDemo: true
+                purchaseLink: 'https://linktree.vldigital.com/template-portfolio'
             },
             p2: {
                 id: 'p2',
@@ -335,8 +344,7 @@
                     'Mudah dikustomisasi'
                 ],
                 category: 'asset',
-                purchaseLink: 'https://linktree.vldigital.com/vector-space',
-                hasDemo: false
+                purchaseLink: 'https://linktree.vldigital.com/vector-space'
             },
             p3: {
                 id: 'p3',
@@ -355,8 +363,7 @@
                     'Sertifikat penyelesaian'
                 ],
                 category: 'course',
-                purchaseLink: 'https://linktree.vldigital.com/ui-ux-course',
-                hasDemo: true
+                purchaseLink: 'https://linktree.vldigital.com/ui-ux-course'
             },
             p4: {
                 id: 'p4',
@@ -375,8 +382,7 @@
                     'Update gratis untuk versi berikutnya'
                 ],
                 category: 'ebook',
-                purchaseLink: 'https://linktree.vldigital.com/coding-ebook',
-                hasDemo: false
+                purchaseLink: 'https://linktree.vldigital.com/coding-ebook'
             },
             p5: {
                 id: 'p5',
@@ -395,8 +401,7 @@
                     'Dokumentasi lengkap'
                 ],
                 category: 'plugin',
-                purchaseLink: 'https://linktree.vldigital.com/wp-plugin',
-                hasDemo: true
+                purchaseLink: 'https://linktree.vldigital.com/wp-plugin'
             },
             p6: {
                 id: 'p6',
@@ -415,8 +420,7 @@
                     'Revisi hingga puas'
                 ],
                 category: 'asset',
-                purchaseLink: 'https://linktree.vldigital.com/logo-pack',
-                hasDemo: true
+                purchaseLink: 'https://linktree.vldigital.com/logo-pack'
             },
             p7: {
                 id: 'p7',
@@ -435,8 +439,7 @@
                     'Dashboard admin'
                 ],
                 category: 'template',
-                purchaseLink: 'https://linktree.vldigital.com/ecommerce-template',
-                hasDemo: true
+                purchaseLink: 'https://linktree.vldigital.com/ecommerce-template'
             },
             p8: {
                 id: 'p8',
@@ -455,8 +458,7 @@
                     'Sertifikat penyelesaian'
                 ],
                 category: 'course',
-                purchaseLink: 'https://linktree.vldigital.com/digital-marketing',
-                hasDemo: true
+                purchaseLink: 'https://linktree.vldigital.com/digital-marketing'
             }
         };
 
@@ -470,7 +472,52 @@
             renderProducts(allProducts);
             setupCategoryFilters();
             setupSearch();
+            setupMobileMenu();
         });
+
+        // Setup mobile menu functionality
+        function setupMobileMenu() {
+            const mobileMenuButton = document.getElementById('mobileMenuButton');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileSearchButton = document.getElementById('mobileSearchButton');
+            const mobileSearchContainer = document.getElementById('mobileSearchContainer');
+            
+            // Toggle mobile menu
+            mobileMenuButton.addEventListener('click', function() {
+                mobileMenu.classList.toggle('open');
+                document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : 'auto';
+            });
+            
+            // Toggle mobile search
+            mobileSearchButton.addEventListener('click', function() {
+                mobileSearchContainer.classList.toggle('hidden');
+            });
+            
+            // Setup mobile search functionality
+            const mobileSearchInput = document.getElementById('mobileSearchInput');
+            mobileSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                
+                if (searchTerm === '') {
+                    filterProducts(activeCategory);
+                } else {
+                    const searchResults = allProducts.filter(product => 
+                        product.name.toLowerCase().includes(searchTerm) || 
+                        product.description.toLowerCase().includes(searchTerm) ||
+                        getCategoryName(product.category).toLowerCase().includes(searchTerm)
+                    );
+                    
+                    renderProducts(searchResults);
+                }
+            });
+        }
+
+        // Toggle mobile menu
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileMenu');
+            mobileMenu.classList.toggle('open');
+            document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : 'auto';
+        }
 
         // Render products to the grid
         function renderProducts(productsToRender) {
@@ -498,11 +545,11 @@
             
             productDiv.innerHTML = `
                 <div class="relative">
-                    <img src="${product.image}" alt="${product.name}" class="w-full h-40 object-cover">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-32 sm:h-36 md:h-40 object-cover">
                     ${product.originalPrice ? '<div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">DISKON</div>' : ''}
                 </div>
-                <div class="p-4">
-                    <h3 class="font-semibold text-dark mb-1 text-sm">${product.name}</h3>
+                <div class="p-3 md:p-4">
+                    <h3 class="font-semibold text-dark mb-1 text-xs sm:text-sm">${product.name}</h3>
                     <div class="flex items-center mb-2">
                         <div class="flex text-yellow-400 text-xs">
                             ${getStarRating(product.rating)}
@@ -511,21 +558,18 @@
                     </div>
                     <div class="flex justify-between items-center mb-3">
                         <div>
-                            <span class="text-primary font-bold">${product.price}</span>
-                            ${product.originalPrice ? `<span class="text-gray-500 text-sm line-through ml-1">${product.originalPrice}</span>` : ''}
+                            <span class="text-primary font-bold text-sm">${product.price}</span>
+                            ${product.originalPrice ? `<span class="text-gray-500 text-xs line-through ml-1">${product.originalPrice}</span>` : ''}
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="showProductDetail('${product.id}')" class="bg-gray-100 text-gray-700 hover:bg-gray-200 py-2 rounded-lg text-xs font-medium transition-colors">
+                    <div class="flex space-x-2">
+                        <button onclick="showProductDetail('${product.id}')" class="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 py-2 rounded-lg text-xs font-medium transition-colors">
                             <i class="fas fa-eye mr-1"></i> Detail
                         </button>
-                        <button onclick="showDemo('${product.id}')" class="bg-accent text-white hover:bg-green-600 py-2 rounded-lg text-xs font-medium transition-colors">
-                            <i class="fas fa-play-circle mr-1"></i> Demo
-                        </button>
+                        <a href="${product.purchaseLink}" target="_blank" class="flex-1 bg-primary text-white hover:bg-primary-dark py-2 rounded-lg text-xs font-medium text-center transition-colors">
+                            <i class="fas fa-shopping-cart mr-1"></i> Beli
+                        </a>
                     </div>
-                    <a href="${product.purchaseLink}" target="_blank" class="block w-full bg-primary text-white hover:bg-primary-dark py-2 rounded-lg text-xs font-medium text-center mt-2 transition-colors">
-                        <i class="fas fa-shopping-cart mr-1"></i> Beli Sekarang
-                    </a>
                 </div>
             `;
             
@@ -600,43 +644,38 @@
             // Build detail content
             const detailContent = document.getElementById('detailContent');
             detailContent.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                        <img src="${product.image}" alt="${product.name}" class="w-full h-64 object-cover rounded-lg mb-4">
-                        <div class="flex space-x-2">
-                            <a href="${product.purchaseLink}" target="_blank" class="flex-1 bg-primary text-white py-3 rounded-lg font-medium text-center hover:bg-primary-dark transition-colors">
-                                <i class="fas fa-shopping-cart mr-2"></i> Beli Sekarang
-                            </a>
-                            <button onclick="showDemo('${product.id}')" class="flex-1 bg-accent text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors">
-                                <i class="fas fa-play-circle mr-2"></i> Lihat Demo
-                            </button>
-                        </div>
+                        <img src="${product.image}" alt="${product.name}" class="w-full h-48 md:h-64 object-cover rounded-lg mb-4">
+                        <a href="${product.purchaseLink}" target="_blank" class="block w-full bg-primary text-white py-3 rounded-lg font-medium text-center hover:bg-primary-dark transition-colors text-sm">
+                            <i class="fas fa-shopping-cart mr-2"></i> Beli Sekarang
+                        </a>
                     </div>
                     
                     <div>
-                        <h2 class="text-2xl font-bold mb-2">${product.name}</h2>
+                        <h2 class="text-xl md:text-2xl font-bold mb-2">${product.name}</h2>
                         <div class="flex items-center mb-4">
-                            <div class="flex text-yellow-400">
+                            <div class="flex text-yellow-400 text-sm">
                                 ${getStarRating(product.rating)}
                             </div>
                             <span class="text-gray-500 text-sm ml-2">(${product.reviewCount} ulasan)</span>
                         </div>
                         <div class="flex items-center mb-4">
-                            <span class="text-primary font-bold text-xl">${product.price}</span>
-                            ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2">${product.originalPrice}</span>` : ''}
+                            <span class="text-primary font-bold text-lg md:text-xl">${product.price}</span>
+                            ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2 text-sm md:text-base">${product.originalPrice}</span>` : ''}
                         </div>
-                        <p class="text-gray-700 mb-4">${product.description}</p>
+                        <p class="text-gray-700 mb-4 text-sm md:text-base">${product.description}</p>
                         
                         <div class="mb-6">
-                            <h3 class="font-bold mb-2">Fitur Utama:</h3>
-                            <ul class="list-disc pl-5 text-gray-700">
+                            <h3 class="font-bold mb-2 text-sm md:text-base">Fitur Utama:</h3>
+                            <ul class="list-disc pl-5 text-gray-700 text-sm md:text-base">
                                 ${product.features.map(feature => `<li class="mb-1">${feature}</li>`).join('')}
                             </ul>
                         </div>
                         
                         <div class="mb-6">
-                            <h3 class="font-bold mb-2">Kategori:</h3>
-                            <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${getCategoryName(product.category)}</span>
+                            <h3 class="font-bold mb-2 text-sm md:text-base">Kategori:</h3>
+                            <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs md:text-sm">${getCategoryName(product.category)}</span>
                         </div>
                     </div>
                 </div>
@@ -648,193 +687,11 @@
             document.body.style.overflow = 'hidden';
         }
 
-        // Show demo
-        function showDemo(productId) {
-            const product = products[productId];
-            if (!product) return;
-            
-            // Check if product has demo
-            if (!product.hasDemo) {
-                showNotification('Tidak ada demo untuk produk ini');
-                return;
-            }
-            
-            // Set demo title
-            document.getElementById('demoTitle').textContent = `Demo: ${product.name}`;
-            
-            // Build demo content based on product category
-            const demoContent = document.getElementById('demoContent');
-            let contentHtml = '';
-            
-            switch(product.category) {
-                case 'template':
-                    contentHtml = `
-                        <div class="text-center mb-6">
-                            <h3 class="text-xl font-bold mb-4">Preview Template</h3>
-                            <p class="text-gray-600 mb-4">Berikut adalah preview dari template ${product.name}</p>
-                        </div>
-                        <div class="bg-gray-100 p-4 rounded-lg mb-6">
-                            <img src="${product.image}" alt="Preview ${product.name}" class="w-full h-auto rounded-lg shadow-md">
-                        </div>
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="font-bold mb-2">Fitur yang Ditampilkan:</h4>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                ${product.features.slice(0, 3).map(feature => `<li>${feature}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'course':
-                    contentHtml = `
-                        <div class="text-center mb-6">
-                            <h3 class="text-xl font-bold mb-4">Preview Kursus</h3>
-                            <p class="text-gray-600 mb-4">Berikut adalah materi preview dari kursus ${product.name}</p>
-                        </div>
-                        <div class="bg-gray-800 text-white p-6 rounded-lg mb-6">
-                            <div class="flex items-center justify-center mb-4">
-                                <i class="fas fa-play-circle text-4xl text-accent mr-3"></i>
-                                <h4 class="text-xl font-bold">Video Preview</h4>
-                            </div>
-                            <p class="text-center mb-4">Video pengenalan materi kursus</p>
-                            <div class="bg-gray-700 p-4 rounded text-center">
-                                <p>Durasi: 15 menit</p>
-                                <p>Format: MP4 (1080p)</p>
-                            </div>
-                        </div>
-                        <div class="bg-green-50 p-4 rounded-lg">
-                            <h4 class="font-bold mb-2">Yang Akan Anda Pelajari:</h4>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                ${product.features.slice(0, 4).map(feature => `<li>${feature}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'plugin':
-                    contentHtml = `
-                        <div class="text-center mb-6">
-                            <h3 class="text-xl font-bold mb-4">Demo Plugin</h3>
-                            <p class="text-gray-600 mb-4">Berikut adalah demonstrasi fitur plugin ${product.name}</p>
-                        </div>
-                        <div class="bg-gray-100 p-6 rounded-lg mb-6">
-                            <div class="flex justify-center mb-4">
-                                <div class="bg-white p-4 rounded shadow-md w-full max-w-md">
-                                    <h4 class="font-bold mb-2 text-center">Panel Admin Plugin</h4>
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between">
-                                            <span>Status:</span>
-                                            <span class="text-green-600 font-bold">Aktif</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span>Versi:</span>
-                                            <span>1.2.0</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span>Pengaturan:</span>
-                                            <span class="text-blue-600">Konfigurasi</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-purple-50 p-4 rounded-lg">
-                            <h4 class="font-bold mb-2">Fitur Utama:</h4>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                ${product.features.slice(0, 3).map(feature => `<li>${feature}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                    break;
-                    
-                case 'asset':
-                    contentHtml = `
-                        <div class="text-center mb-6">
-                            <h3 class="text-xl font-bold mb-4">Preview Aset</h3>
-                            <p class="text-gray-600 mb-4">Berikut adalah contoh aset dari ${product.name}</p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="bg-gray-100 p-4 rounded-lg">
-                                <img src="${product.image}" alt="Sample 1" class="w-full h-32 object-cover rounded">
-                                <p class="text-center mt-2 text-sm">Sample 1</p>
-                            </div>
-                            <div class="bg-gray-100 p-4 rounded-lg">
-                                <div class="w-full h-32 bg-gradient-to-r from-blue-400 to-purple-500 rounded flex items-center justify-center">
-                                    <span class="text-white font-bold">Vector</span>
-                                </div>
-                                <p class="text-center mt-2 text-sm">Sample 2</p>
-                            </div>
-                        </div>
-                        <div class="bg-yellow-50 p-4 rounded-lg">
-                            <h4 class="font-bold mb-2">Format Tersedia:</h4>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                <li>AI (Adobe Illustrator)</li>
-                                <li>EPS</li>
-                                <li>SVG</li>
-                                <li>PNG (300 DPI)</li>
-                            </ul>
-                        </div>
-                    `;
-                    break;
-                    
-                default:
-                    contentHtml = `
-                        <div class="text-center mb-6">
-                            <h3 class="text-xl font-bold mb-4">Preview Produk</h3>
-                            <p class="text-gray-600 mb-4">Berikut adalah preview dari ${product.name}</p>
-                        </div>
-                        <div class="bg-gray-100 p-4 rounded-lg mb-6">
-                            <img src="${product.image}" alt="Preview ${product.name}" class="w-full h-auto rounded-lg shadow-md">
-                        </div>
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <h4 class="font-bold mb-2">Fitur Utama:</h4>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                ${product.features.slice(0, 3).map(feature => `<li>${feature}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-            }
-            
-            demoContent.innerHTML = contentHtml;
-            
-            // Show demo modal
-            const modal = document.getElementById('demoModal');
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
         // Hide product detail modal
         function hideProductDetail() {
             const modal = document.getElementById('productDetailModal');
             modal.classList.add('hidden');
             document.body.style.overflow = 'auto';
-        }
-
-        // Hide demo modal
-        function hideDemo() {
-            const modal = document.getElementById('demoModal');
-            modal.classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        // Show notification
-        function showNotification(message) {
-            const notification = document.getElementById('notification');
-            const notificationText = document.getElementById('notificationText');
-            
-            notificationText.textContent = message;
-            notification.classList.add('show');
-            
-            // Auto hide after 3 seconds
-            setTimeout(() => {
-                hideNotification();
-            }, 3000);
-        }
-
-        // Hide notification
-        function hideNotification() {
-            const notification = document.getElementById('notification');
-            notification.classList.remove('show');
         }
 
         // Helper function to generate star rating
@@ -880,17 +737,14 @@
             }
         });
 
-        document.getElementById('demoModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                hideDemo();
-            }
-        });
-
         // Close modal with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 hideProductDetail();
-                hideDemo();
+                const mobileMenu = document.getElementById('mobileMenu');
+                if (mobileMenu.classList.contains('open')) {
+                    toggleMobileMenu();
+                }
             }
         });
     </script>
