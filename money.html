@@ -92,6 +92,29 @@
         .modal-overlay:not(.hidden) {
             display: flex;
         }
+        
+        /* Status badges */
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .status-unpaid {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .status-paid {
+            background-color: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .status-overdue {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans antialiased">
@@ -331,6 +354,67 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Debt & Receivable Tab -->
+                <div id="debtReceivableTab" class="tab-content animate-fade-in">
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="totalDebt">Rp 0</div>
+                            <div class="text-xs text-gray-500">Total Hutang</div>
+                            <i class="fas fa-hand-holding-usd absolute top-4 right-4 text-red-500 text-xl"></i>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="totalReceivable">Rp 0</div>
+                            <div class="text-xs text-gray-500">Total Piutang</div>
+                            <i class="fas fa-handshake absolute top-4 right-4 text-green-500 text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-plus-circle text-blue-500"></i>
+                            Tambah Baru
+                        </h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="app.showAddDebtModal()" class="bg-red-500 hover:bg-red-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-plus"></i>
+                                Hutang
+                            </button>
+                            <button onclick="app.showAddReceivableModal()" class="bg-green-500 hover:bg-green-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-plus"></i>
+                                Piutang
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs for Debt & Receivable -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div class="flex border-b border-gray-200">
+                            <button id="debtTabBtn" class="flex-1 py-3 text-center font-semibold text-gray-700 border-b-2 border-red-500" onclick="app.showDebtReceivableTab('debt')">
+                                Hutang
+                            </button>
+                            <button id="receivableTabBtn" class="flex-1 py-3 text-center font-semibold text-gray-700" onclick="app.showDebtReceivableTab('receivable')">
+                                Piutang
+                            </button>
+                        </div>
+
+                        <!-- Debt List -->
+                        <div id="debtListContainer" class="p-4 max-h-96 overflow-y-auto custom-scrollbar">
+                            <div id="debtList">
+                                <!-- Debt items will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Receivable List -->
+                        <div id="receivableListContainer" class="p-4 max-h-96 overflow-y-auto custom-scrollbar hidden">
+                            <div id="receivableList">
+                                <!-- Receivable items will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -356,6 +440,10 @@
             <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="app.showTab('analysis')">
                 <i class="fas fa-chart-pie text-lg mb-1"></i>
                 <span class="text-xs font-semibold">Analisis</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="app.showTab('debtReceivable')">
+                <i class="fas fa-handshake text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Hutang/Piutang</span>
             </button>
         </nav>
     </div>
@@ -641,6 +729,186 @@
         </div>
     </div>
 
+    <!-- Add Debt Modal -->
+    <div id="addDebtModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-red-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <span id="debtModalTitle">Tambah Hutang</span>
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Nama Pemberi Hutang</label>
+                    <input type="text" id="debtCreditor" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Nama pemberi hutang">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jumlah Hutang</label>
+                    <input type="number" id="debtAmount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Jumlah hutang">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Keterangan</label>
+                    <input type="text" id="debtDescription" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Keterangan hutang">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Tanggal Jatuh Tempo</label>
+                    <input type="date" id="debtDueDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="app.saveDebt()" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-colors">
+                    Simpan Hutang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Receivable Modal -->
+    <div id="addReceivableModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-green-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-handshake"></i>
+                    <span id="receivableModalTitle">Tambah Piutang</span>
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Nama Penerima Piutang</label>
+                    <input type="text" id="receivableDebtor" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Nama penerima piutang">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jumlah Piutang</label>
+                    <input type="number" id="receivableAmount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Jumlah piutang">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Keterangan</label>
+                    <input type="text" id="receivableDescription" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Keterangan piutang">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Tanggal Jatuh Tempo</label>
+                    <input type="date" id="receivableDueDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="app.saveReceivable()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold transition-colors">
+                    Simpan Piutang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pay Debt Modal -->
+    <div id="payDebtModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-red-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Bayar Hutang
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-200">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-gray-800" id="payDebtCreditor">-</span>
+                        <span class="font-bold text-red-600" id="payDebtAmount">Rp 0</span>
+                    </div>
+                    <p class="text-xs text-gray-600" id="payDebtDescription">-</p>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Rekening Pembayaran</label>
+                    <select id="payDebtAccount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        <!-- Accounts will be populated here -->
+                    </select>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jumlah Bayar</label>
+                    <input type="number" id="payDebtPaymentAmount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Jumlah yang akan dibayar">
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Keterangan Pembayaran</label>
+                    <input type="text" id="payDebtPaymentDescription" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Keterangan pembayaran">
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="app.processDebtPayment()" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-colors">
+                    Bayar Hutang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receive Receivable Modal -->
+    <div id="receiveReceivableModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-green-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    Terima Piutang
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="mb-4 p-3 rounded-xl bg-green-50 border border-green-200">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-gray-800" id="receiveReceivableDebtor">-</span>
+                        <span class="font-bold text-green-600" id="receiveReceivableAmount">Rp 0</span>
+                    </div>
+                    <p class="text-xs text-gray-600" id="receiveReceivableDescription">-</p>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Rekening Penerima</label>
+                    <select id="receiveReceivableAccount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <!-- Accounts will be populated here -->
+                    </select>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jumlah Terima</label>
+                    <input type="number" id="receiveReceivablePaymentAmount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Jumlah yang akan diterima">
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Keterangan Penerimaan</label>
+                    <input type="text" id="receiveReceivablePaymentDescription" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Keterangan penerimaan">
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="app.processReceivablePayment()" class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold transition-colors">
+                    Terima Piutang
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification System -->
     <div id="notificationContainer" class="fixed top-4 right-4 left-4 z-50 space-y-2"></div>
 
@@ -666,9 +934,13 @@
             invoices: [],
             transactions: [],
             accounts: [],
+            debts: [],
+            receivables: [],
             currentEditingInvoice: null,
             currentEditingAccount: null,
             currentEditingBalanceAccount: null,
+            currentEditingDebt: null,
+            currentEditingReceivable: null,
             expenseCategories: {
                 'operasional': { name: 'Operasional', color: '#ef4444' },
                 'bahan_baku': { name: 'Bahan Baku', color: '#f97316' },
@@ -821,6 +1093,35 @@
                         this.renderAccountsList();
                         this.updateAccountSelect();
                         this.updateTransferAccountSelects();
+                        this.updateDebtReceivableAccountSelects();
+                    });
+
+                // Debts listener
+                db.collection("debts")
+                    .orderBy("createdAt", "desc")
+                    .onSnapshot((snapshot) => {
+                        this.debts = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.debts.push(data);
+                        });
+                        this.updateDashboard();
+                        this.renderDebtList();
+                    });
+
+                // Receivables listener
+                db.collection("receivables")
+                    .orderBy("createdAt", "desc")
+                    .onSnapshot((snapshot) => {
+                        this.receivables = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.receivables.push(data);
+                        });
+                        this.updateDashboard();
+                        this.renderReceivableList();
                     });
             },
 
@@ -832,6 +1133,31 @@
                 
                 document.getElementById(tabName + 'Tab').classList.add('active');
                 this.currentTab = tabName;
+                
+                // Reset debt/receivable tab to debt when switching to the tab
+                if (tabName === 'debtReceivable') {
+                    this.showDebtReceivableTab('debt');
+                }
+            },
+
+            // Debt/Receivable Tab Navigation
+            showDebtReceivableTab(type) {
+                const debtTabBtn = document.getElementById('debtTabBtn');
+                const receivableTabBtn = document.getElementById('receivableTabBtn');
+                const debtListContainer = document.getElementById('debtListContainer');
+                const receivableListContainer = document.getElementById('receivableListContainer');
+                
+                if (type === 'debt') {
+                    debtTabBtn.classList.add('border-b-2', 'border-red-500');
+                    receivableTabBtn.classList.remove('border-b-2', 'border-green-500');
+                    debtListContainer.classList.remove('hidden');
+                    receivableListContainer.classList.add('hidden');
+                } else {
+                    debtTabBtn.classList.remove('border-b-2', 'border-red-500');
+                    receivableTabBtn.classList.add('border-b-2', 'border-green-500');
+                    debtListContainer.classList.add('hidden');
+                    receivableListContainer.classList.remove('hidden');
+                }
             },
 
             // Modal Management
@@ -880,6 +1206,97 @@
                 this.updateTransferAccountBalances();
             },
 
+            // Debt/Receivable Modals
+            showAddDebtModal(debt = null) {
+                this.currentEditingDebt = debt ? debt.id : null;
+                
+                const modalTitle = document.getElementById('debtModalTitle');
+                const creditorInput = document.getElementById('debtCreditor');
+                const amountInput = document.getElementById('debtAmount');
+                const descriptionInput = document.getElementById('debtDescription');
+                const dueDateInput = document.getElementById('debtDueDate');
+                
+                if (debt) {
+                    modalTitle.textContent = 'Edit Hutang';
+                    creditorInput.value = debt.creditor || '';
+                    amountInput.value = debt.amount || '';
+                    descriptionInput.value = debt.description || '';
+                    
+                    if (debt.dueDate) {
+                        const dueDate = debt.dueDate.toDate ? debt.dueDate.toDate() : new Date(debt.dueDate);
+                        dueDateInput.value = dueDate.toISOString().split('T')[0];
+                    } else {
+                        dueDateInput.value = '';
+                    }
+                } else {
+                    modalTitle.textContent = 'Tambah Hutang';
+                    creditorInput.value = '';
+                    amountInput.value = '';
+                    descriptionInput.value = '';
+                    dueDateInput.value = '';
+                }
+                
+                document.getElementById('addDebtModal').classList.remove('hidden');
+            },
+
+            showAddReceivableModal(receivable = null) {
+                this.currentEditingReceivable = receivable ? receivable.id : null;
+                
+                const modalTitle = document.getElementById('receivableModalTitle');
+                const debtorInput = document.getElementById('receivableDebtor');
+                const amountInput = document.getElementById('receivableAmount');
+                const descriptionInput = document.getElementById('receivableDescription');
+                const dueDateInput = document.getElementById('receivableDueDate');
+                
+                if (receivable) {
+                    modalTitle.textContent = 'Edit Piutang';
+                    debtorInput.value = receivable.debtor || '';
+                    amountInput.value = receivable.amount || '';
+                    descriptionInput.value = receivable.description || '';
+                    
+                    if (receivable.dueDate) {
+                        const dueDate = receivable.dueDate.toDate ? receivable.dueDate.toDate() : new Date(receivable.dueDate);
+                        dueDateInput.value = dueDate.toISOString().split('T')[0];
+                    } else {
+                        dueDateInput.value = '';
+                    }
+                } else {
+                    modalTitle.textContent = 'Tambah Piutang';
+                    debtorInput.value = '';
+                    amountInput.value = '';
+                    descriptionInput.value = '';
+                    dueDateInput.value = '';
+                }
+                
+                document.getElementById('addReceivableModal').classList.remove('hidden');
+            },
+
+            showPayDebtModal(debt) {
+                this.currentEditingDebt = debt.id;
+                
+                document.getElementById('payDebtCreditor').textContent = debt.creditor || '-';
+                document.getElementById('payDebtAmount').textContent = this.formatCurrency(debt.amount || 0);
+                document.getElementById('payDebtDescription').textContent = debt.description || '-';
+                document.getElementById('payDebtPaymentAmount').value = debt.amount || 0;
+                document.getElementById('payDebtPaymentDescription').value = `Pembayaran hutang kepada ${debt.creditor}`;
+                
+                this.updateDebtReceivableAccountSelects();
+                document.getElementById('payDebtModal').classList.remove('hidden');
+            },
+
+            showReceiveReceivableModal(receivable) {
+                this.currentEditingReceivable = receivable.id;
+                
+                document.getElementById('receiveReceivableDebtor').textContent = receivable.debtor || '-';
+                document.getElementById('receiveReceivableAmount').textContent = this.formatCurrency(receivable.amount || 0);
+                document.getElementById('receiveReceivableDescription').textContent = receivable.description || '-';
+                document.getElementById('receiveReceivablePaymentAmount').value = receivable.amount || 0;
+                document.getElementById('receiveReceivablePaymentDescription').value = `Penerimaan piutang dari ${receivable.debtor}`;
+                
+                this.updateDebtReceivableAccountSelects();
+                document.getElementById('receiveReceivableModal').classList.remove('hidden');
+            },
+
             closeModal() {
                 document.querySelectorAll('.modal-overlay').forEach(modal => {
                     modal.classList.add('hidden');
@@ -887,6 +1304,8 @@
                 this.currentEditingInvoice = null;
                 this.currentEditingAccount = null;
                 this.currentEditingBalanceAccount = null;
+                this.currentEditingDebt = null;
+                this.currentEditingReceivable = null;
             },
 
             // Invoice Form Management
@@ -1071,6 +1490,19 @@
                 // Add change listeners to update balance display
                 fromSelect.addEventListener('change', () => this.updateTransferAccountBalances());
                 toSelect.addEventListener('change', () => this.updateTransferAccountBalances());
+            },
+
+            updateDebtReceivableAccountSelects() {
+                const payDebtSelect = document.getElementById('payDebtAccount');
+                const receiveReceivableSelect = document.getElementById('receiveReceivableAccount');
+                
+                payDebtSelect.innerHTML = this.accounts.map(account => `
+                    <option value="${account.id}">${account.name} - ${this.formatCurrency(account.balance)}</option>
+                `).join('');
+                
+                receiveReceivableSelect.innerHTML = this.accounts.map(account => `
+                    <option value="${account.id}">${account.name} - ${this.formatCurrency(account.balance)}</option>
+                `).join('');
             },
 
             updateTransferAccountBalances() {
@@ -1674,6 +2106,350 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 }
             },
 
+            // Debt & Receivable Management
+            async saveDebt() {
+                const creditor = document.getElementById('debtCreditor').value.trim();
+                const amount = parseFloat(document.getElementById('debtAmount').value) || 0;
+                const description = document.getElementById('debtDescription').value.trim();
+                const dueDateString = document.getElementById('debtDueDate').value;
+                
+                if (!creditor || amount <= 0) {
+                    this.showNotification('Isi nama pemberi hutang dan jumlah dengan benar', 'error');
+                    return;
+                }
+                
+                const debtData = {
+                    creditor,
+                    amount,
+                    description,
+                    status: 'unpaid',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+                
+                if (dueDateString) {
+                    debtData.dueDate = new Date(dueDateString);
+                }
+                
+                try {
+                    if (this.currentEditingDebt) {
+                        await db.collection("debts").doc(this.currentEditingDebt).update(debtData);
+                        this.showNotification('Hutang berhasil diperbarui', 'success');
+                    } else {
+                        await db.collection("debts").add(debtData);
+                        this.showNotification('Hutang berhasil ditambahkan', 'success');
+                    }
+                    
+                    this.closeModal();
+                } catch (error) {
+                    console.error("Error saving debt:", error);
+                    this.showNotification('Error menyimpan hutang', 'error');
+                }
+            },
+
+            async saveReceivable() {
+                const debtor = document.getElementById('receivableDebtor').value.trim();
+                const amount = parseFloat(document.getElementById('receivableAmount').value) || 0;
+                const description = document.getElementById('receivableDescription').value.trim();
+                const dueDateString = document.getElementById('receivableDueDate').value;
+                
+                if (!debtor || amount <= 0) {
+                    this.showNotification('Isi nama penerima piutang dan jumlah dengan benar', 'error');
+                    return;
+                }
+                
+                const receivableData = {
+                    debtor,
+                    amount,
+                    description,
+                    status: 'unreceived',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                };
+                
+                if (dueDateString) {
+                    receivableData.dueDate = new Date(dueDateString);
+                }
+                
+                try {
+                    if (this.currentEditingReceivable) {
+                        await db.collection("receivables").doc(this.currentEditingReceivable).update(receivableData);
+                        this.showNotification('Piutang berhasil diperbarui', 'success');
+                    } else {
+                        await db.collection("receivables").add(receivableData);
+                        this.showNotification('Piutang berhasil ditambahkan', 'success');
+                    }
+                    
+                    this.closeModal();
+                } catch (error) {
+                    console.error("Error saving receivable:", error);
+                    this.showNotification('Error menyimpan piutang', 'error');
+                }
+            },
+
+            async processDebtPayment() {
+                const debtId = this.currentEditingDebt;
+                const accountId = document.getElementById('payDebtAccount').value;
+                const paymentAmount = parseFloat(document.getElementById('payDebtPaymentAmount').value) || 0;
+                const paymentDescription = document.getElementById('payDebtPaymentDescription').value.trim();
+                
+                if (paymentAmount <= 0 || !accountId) {
+                    this.showNotification('Isi jumlah pembayaran dan pilih rekening', 'error');
+                    return;
+                }
+                
+                const debt = this.debts.find(d => d.id === debtId);
+                const account = this.accounts.find(acc => acc.id === accountId);
+                
+                if (!debt || !account) {
+                    this.showNotification('Data tidak ditemukan', 'error');
+                    return;
+                }
+                
+                if (account.balance < paymentAmount) {
+                    this.showNotification('Saldo rekening tidak mencukupi', 'error');
+                    return;
+                }
+                
+                try {
+                    // Update debt status
+                    const remainingAmount = debt.amount - paymentAmount;
+                    const newStatus = remainingAmount <= 0 ? 'paid' : 'unpaid';
+                    
+                    await db.collection("debts").doc(debtId).update({
+                        status: newStatus,
+                        paidAmount: (debt.paidAmount || 0) + paymentAmount,
+                        updatedAt: new Date()
+                    });
+                    
+                    // Update account balance
+                    const newBalance = account.balance - paymentAmount;
+                    await this.updateAccountBalanceDirect(accountId, newBalance);
+                    
+                    // Record transaction
+                    const transactionData = {
+                        type: 'expense',
+                        category: 'operasional',
+                        accountId: accountId,
+                        accountName: account.name,
+                        amount: paymentAmount,
+                        description: paymentDescription || `Pembayaran hutang kepada ${debt.creditor}`,
+                        debtPayment: true,
+                        debtId: debtId,
+                        balanceBefore: account.balance,
+                        balanceAfter: newBalance,
+                        createdAt: new Date(),
+                        date: new Date()
+                    };
+                    
+                    await db.collection("finance_transactions").add(transactionData);
+                    
+                    this.showNotification('Pembayaran hutang berhasil', 'success');
+                    this.closeModal();
+                } catch (error) {
+                    console.error("Error processing debt payment:", error);
+                    this.showNotification('Error memproses pembayaran hutang', 'error');
+                }
+            },
+
+            async processReceivablePayment() {
+                const receivableId = this.currentEditingReceivable;
+                const accountId = document.getElementById('receiveReceivableAccount').value;
+                const paymentAmount = parseFloat(document.getElementById('receiveReceivablePaymentAmount').value) || 0;
+                const paymentDescription = document.getElementById('receiveReceivablePaymentDescription').value.trim();
+                
+                if (paymentAmount <= 0 || !accountId) {
+                    this.showNotification('Isi jumlah penerimaan dan pilih rekening', 'error');
+                    return;
+                }
+                
+                const receivable = this.receivables.find(r => r.id === receivableId);
+                const account = this.accounts.find(acc => acc.id === accountId);
+                
+                if (!receivable || !account) {
+                    this.showNotification('Data tidak ditemukan', 'error');
+                    return;
+                }
+                
+                try {
+                    // Update receivable status
+                    const remainingAmount = receivable.amount - paymentAmount;
+                    const newStatus = remainingAmount <= 0 ? 'received' : 'unreceived';
+                    
+                    await db.collection("receivables").doc(receivableId).update({
+                        status: newStatus,
+                        receivedAmount: (receivable.receivedAmount || 0) + paymentAmount,
+                        updatedAt: new Date()
+                    });
+                    
+                    // Update account balance
+                    const newBalance = account.balance + paymentAmount;
+                    await this.updateAccountBalanceDirect(accountId, newBalance);
+                    
+                    // Record transaction
+                    const transactionData = {
+                        type: 'income',
+                        category: 'operasional',
+                        accountId: accountId,
+                        accountName: account.name,
+                        amount: paymentAmount,
+                        description: paymentDescription || `Penerimaan piutang dari ${receivable.debtor}`,
+                        receivablePayment: true,
+                        receivableId: receivableId,
+                        balanceBefore: account.balance,
+                        balanceAfter: newBalance,
+                        createdAt: new Date(),
+                        date: new Date()
+                    };
+                    
+                    await db.collection("finance_transactions").add(transactionData);
+                    
+                    this.showNotification('Penerimaan piutang berhasil', 'success');
+                    this.closeModal();
+                } catch (error) {
+                    console.error("Error processing receivable payment:", error);
+                    this.showNotification('Error memproses penerimaan piutang', 'error');
+                }
+            },
+
+            async deleteDebt(debtId) {
+                if (!confirm('Hapus hutang ini?')) return;
+                
+                try {
+                    await db.collection("debts").doc(debtId).delete();
+                    this.showNotification('Hutang dihapus', 'success');
+                } catch (error) {
+                    console.error("Error deleting debt:", error);
+                    this.showNotification('Error menghapus hutang', 'error');
+                }
+            },
+
+            async deleteReceivable(receivableId) {
+                if (!confirm('Hapus piutang ini?')) return;
+                
+                try {
+                    await db.collection("receivables").doc(receivableId).delete();
+                    this.showNotification('Piutang dihapus', 'success');
+                } catch (error) {
+                    console.error("Error deleting receivable:", error);
+                    this.showNotification('Error menghapus piutang', 'error');
+                }
+            },
+
+            renderDebtList() {
+                const container = document.getElementById('debtList');
+                
+                if (this.debts.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-hand-holding-usd text-3xl mb-3"></i>
+                            <p>Belum ada hutang</p>
+                            <p class="text-sm">Tambah hutang baru</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.debts.map(debt => {
+                    const isOverdue = debt.dueDate && new Date(debt.dueDate.toDate ? debt.dueDate.toDate() : debt.dueDate) < new Date();
+                    const statusClass = debt.status === 'paid' ? 'status-paid' : 
+                                      isOverdue ? 'status-overdue' : 'status-unpaid';
+                    const statusText = debt.status === 'paid' ? 'Lunas' : 
+                                     isOverdue ? 'Jatuh Tempo' : 'Belum Lunas';
+                    
+                    return `
+                        <div class="flex justify-between items-start p-3 mb-3 rounded-xl bg-white hover:bg-gray-50 transition-colors border border-gray-200">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800 text-sm">${debt.creditor}</div>
+                                <div class="text-xs text-gray-500">${debt.description || '-'}</div>
+                                <div class="text-xs text-gray-500">${this.formatDate(debt.createdAt)}</div>
+                                ${debt.dueDate ? `
+                                    <div class="text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-gray-500'}">
+                                        Jatuh tempo: ${this.formatDate(debt.dueDate)}
+                                    </div>
+                                ` : ''}
+                                <div class="status-badge ${statusClass} inline-block mt-1">
+                                    ${statusText}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-red-600 text-sm mb-2">${this.formatCurrency(debt.amount)}</div>
+                                <div class="flex gap-1">
+                                    ${debt.status !== 'paid' ? `
+                                        <button onclick="app.showPayDebtModal(${JSON.stringify(debt).replace(/"/g, '&quot;')})" class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
+                                            <i class="fas fa-money-bill-wave text-xs"></i>
+                                        </button>
+                                    ` : ''}
+                                    <button onclick="app.showAddDebtModal(${JSON.stringify(debt).replace(/"/g, '&quot;')})" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </button>
+                                    <button onclick="app.deleteDebt('${debt.id}')" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            renderReceivableList() {
+                const container = document.getElementById('receivableList');
+                
+                if (this.receivables.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-handshake text-3xl mb-3"></i>
+                            <p>Belum ada piutang</p>
+                            <p class="text-sm">Tambah piutang baru</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.receivables.map(receivable => {
+                    const isOverdue = receivable.dueDate && new Date(receivable.dueDate.toDate ? receivable.dueDate.toDate() : receivable.dueDate) < new Date();
+                    const statusClass = receivable.status === 'received' ? 'status-paid' : 
+                                      isOverdue ? 'status-overdue' : 'status-unpaid';
+                    const statusText = receivable.status === 'received' ? 'Diterima' : 
+                                     isOverdue ? 'Jatuh Tempo' : 'Belum Diterima';
+                    
+                    return `
+                        <div class="flex justify-between items-start p-3 mb-3 rounded-xl bg-white hover:bg-gray-50 transition-colors border border-gray-200">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800 text-sm">${receivable.debtor}</div>
+                                <div class="text-xs text-gray-500">${receivable.description || '-'}</div>
+                                <div class="text-xs text-gray-500">${this.formatDate(receivable.createdAt)}</div>
+                                ${receivable.dueDate ? `
+                                    <div class="text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-gray-500'}">
+                                        Jatuh tempo: ${this.formatDate(receivable.dueDate)}
+                                    </div>
+                                ` : ''}
+                                <div class="status-badge ${statusClass} inline-block mt-1">
+                                    ${statusText}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-green-600 text-sm mb-2">${this.formatCurrency(receivable.amount)}</div>
+                                <div class="flex gap-1">
+                                    ${receivable.status !== 'received' ? `
+                                        <button onclick="app.showReceiveReceivableModal(${JSON.stringify(receivable).replace(/"/g, '&quot;')})" class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
+                                            <i class="fas fa-hand-holding-usd text-xs"></i>
+                                        </button>
+                                    ` : ''}
+                                    <button onclick="app.showAddReceivableModal(${JSON.stringify(receivable).replace(/"/g, '&quot;')})" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </button>
+                                    <button onclick="app.deleteReceivable('${receivable.id}')" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
             // Expense Analysis
             async analyzeExpenses() {
                 const expenseTransactions = this.transactions.filter(t => 
@@ -1852,6 +2628,18 @@ Terima kasih telah mempercayai VLCrave Express!`;
 
                 document.getElementById('financeIncome').textContent = this.formatCurrency(monthlyIncome);
                 document.getElementById('financeExpense').textContent = this.formatCurrency(monthlyExpense);
+
+                // Update Debt & Receivable totals
+                const totalDebt = this.debts
+                    .filter(debt => debt.status === 'unpaid')
+                    .reduce((sum, debt) => sum + (debt.amount - (debt.paidAmount || 0)), 0);
+                
+                const totalReceivable = this.receivables
+                    .filter(receivable => receivable.status === 'unreceived')
+                    .reduce((sum, receivable) => sum + (receivable.amount - (receivable.receivedAmount || 0)), 0);
+
+                document.getElementById('totalDebt').textContent = this.formatCurrency(totalDebt);
+                document.getElementById('totalReceivable').textContent = this.formatCurrency(totalReceivable);
             },
 
             // Transaction History
