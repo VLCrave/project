@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kebijakan Privasi - VLDigital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        'primary-dark': '#1d4ed8',
+                        secondary: '#ef4444',
+                        accent: '#10b981',
+                        dark: '#1f2937',
+                        light: '#f9fafb',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sticky-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .section-content.active {
+            max-height: 1000px;
+            transition: max-height 0.5s ease-in;
+        }
+        .section-header {
+            cursor: pointer;
+        }
+        .section-header:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50">
+    <!-- Header -->
+    <header class="sticky-header fixed top-0 w-full z-50 border-b border-gray-200">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                        <h1 class="text-xl font-bold text-dark">VLDigital</h1>
+                    </a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="index.html" class="text-gray-600 hover:text-primary transition-colors">
+                        <i class="fas fa-home mr-1"></i> Beranda
+                    </a>
+                    <a href="syarat-ketentuan.html" class="text-gray-600 hover:text-primary transition-colors">
+                        <i class="fas fa-file-contract mr-1"></i> Syarat & Ketentuan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Spacer untuk header fixed -->
+    <div class="h-20"></div>
+
+    <!-- Main Content -->
+    <main class="py-8">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <!-- Page Header -->
+                <div class="text-center mb-12">
+                    <h1 class="text-3xl font-bold text-dark mb-4">Kebijakan Privasi</h1>
+                    <p class="text-gray-600 max-w-2xl mx-auto">Ketahui bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda</p>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Terakhir diperbarui: 1 Desember 2023
+                    </div>
+                </div>
+
+                <!-- Privacy Content -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                    <div class="section-header p-6 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-dark">1. Pengumpulan Informasi</h2>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <div class="section-content p-6">
+                        <p class="text-gray-700 mb-4">
+                            VLDigital mengumpulkan informasi pribadi Anda ketika Anda melakukan pembelian, mendaftar untuk buletin, atau menghubungi tim dukungan kami.
+                        </p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Informasi yang dikumpulkan termasuk nama, alamat email, dan informasi pembayaran</li>
+                            <li>Kami juga mengumpulkan informasi teknis seperti alamat IP, jenis perangkat, dan riwayat penelusuran</li>
+                            <li>Informasi pembayaran diproses oleh penyedia pembayaran pihak ketiga yang terpercaya</li>
+                            <li>Kami tidak menyimpan informasi kartu kredit atau data pembayaran sensitif lainnya</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                    <div class="section-header p-6 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-dark">2. Penggunaan Informasi</h2>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <div class="section-content p-6">
+                        <p class="text-gray-700 mb-4">
+                            Informasi yang kami kumpulkan digunakan untuk berbagai tujuan, termasuk:
+                        </p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Memproses pesanan dan mengirimkan produk digital</li>
+                            <li>Memberikan dukungan pelanggan</li>
+                            <li>Mengirim pembaruan produk dan penawaran khusus</li>
+                            <li>Meningkatkan kualitas layanan dan produk kami</li>
+                            <li>Memenuhi kewajiban hukum dan peraturan</li>
+                        </ul>
+                        <p class="text-gray-700 mt-4">
+                            Kami tidak akan menjual, menyewakan, atau membagikan informasi pribadi Anda kepada pihak ketiga tanpa persetujuan Anda, kecuali jika diwajibkan oleh hukum.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                    <div class="section-header p-6 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-dark">3. Perlindungan Data</h2>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <div class="section-content p-6">
+                        <p class="text-gray-700 mb-4">
+                            VLDigital mengambil langkah-langkah keamanan yang wajar untuk melindungi informasi pribadi Anda dari akses, penggunaan, atau pengungkapan yang tidak sah.
+                        </p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Kami menggunakan enkripsi SSL untuk melindungi data selama transmisi</li>
+                            <li>Informasi disimpan di server yang aman dengan akses terbatas</li>
+                            <li>Karyawan yang memiliki akses ke data pribadi terikat oleh perjanjian kerahasiaan</li>
+                            <li>Kami secara teratur meninjau dan memperbarui praktik keamanan kami</li>
+                        </ul>
+                        <p class="text-gray-700 mt-4">
+                            Meskipun kami berusaha melindungi informasi pribadi Anda, tidak ada metode transmisi melalui internet atau penyimpanan elektronik yang 100% aman. Oleh karena itu, kami tidak dapat menjamin keamanan mutlak.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                    <div class="section-header p-6 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-dark">4. Cookie dan Teknologi Pelacakan</h2>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <div class="section-content p-6">
+                        <p class="text-gray-700 mb-4">
+                            VLDigital menggunakan cookie dan teknologi pelacakan serupa untuk meningkatkan pengalaman pengguna dan menganalisis lalu lintas situs web.
+                        </p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Cookie adalah file teks kecil yang disimpan di perangkat Anda ketika Anda mengunjungi situs web kami</li>
+                            <li>Kami menggunakan cookie untuk mengingat preferensi Anda dan menyediakan konten yang dipersonalisasi</li>
+                            <li>Kami juga menggunakan alat analitik untuk memahami bagaimana pengguna berinteraksi dengan situs web kami</li>
+                            <li>Anda dapat menonaktifkan cookie melalui pengaturan browser Anda, tetapi ini dapat memengaruhi fungsionalitas situs web</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                    <div class="section-header p-6 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-dark">5. Hak Privasi Anda</h2>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <div class="section-content p-6">
+                        <p class="text-gray-700 mb-4">
+                            Sebagai pengguna VLDigital, Anda memiliki hak-hak tertentu terkait data pribadi Anda:
+                        </p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Hak untuk mengakses informasi pribadi yang kami simpan tentang Anda</li>
+                            <li>Hak untuk memperbaiki informasi yang tidak akurat atau tidak lengkap</li>
+                            <li>Hak untuk meminta penghapusan data pribadi Anda dalam keadaan tertentu</li>
+                            <li>Hak untuk membatasi atau menolak pemrosesan data pribadi Anda</li>
+                            <li>Hak untuk menerima data pribadi Anda dalam format yang terstruktur dan dapat dibaca mesin</li>
+                        </ul>
+                        <p class="text-gray-700 mt-4">
+                            Untuk melaksanakan hak-hak ini, silakan hubungi kami melalui informasi kontak yang tersedia di situs web.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+                    <div class="section-header p-6 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-dark">6. Perubahan Kebijakan Privasi</h2>
+                        <i class="fas fa-chevron-down text-gray-400"></i>
+                    </div>
+                    <div class="section-content p-6">
+                        <p class="text-gray-700 mb-4">
+                            VLDigital dapat memperbarui Kebijakan Privasi ini dari waktu ke waktu. Kami akan memberi tahu Anda tentang perubahan signifikan dengan memposting pemberitahuan di situs web kami atau mengirimkan email langsung kepada Anda.
+                        </p>
+                        <ul class="list-disc pl-5 text-gray-700 space-y-2">
+                            <li>Perubahan kebijakan privasi akan efektif segera setelah diposting di situs web</li>
+                            <li>Kami akan menunjukkan tanggal "Terakhir Diperbarui" di bagian atas kebijakan privasi</li>
+                            <li>Penggunaan berkelanjutan layanan kami setelah perubahan berarti Anda menerima kebijakan yang diperbarui</li>
+                            <li>Jika Anda tidak setuju dengan perubahan, Anda harus berhenti menggunakan layanan kami</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="bg-primary text-white rounded-xl p-6 mt-8">
+                    <h3 class="text-xl font-bold mb-4">Pertanyaan tentang Kebijakan Privasi?</h3>
+                    <p class="mb-4">Jika Anda memiliki pertanyaan tentang Kebijakan Privasi kami, jangan ragu untuk menghubungi kami:</p>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <a href="mailto:info@vldigital.com" class="bg-white text-primary px-4 py-2 rounded-lg text-center font-medium hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-envelope mr-2"></i> Email Kami
+                        </a>
+                        <a href="https://wa.me/6281234567890" target="_blank" class="bg-white text-primary px-4 py-2 rounded-lg text-center font-medium hover:bg-gray-100 transition-colors">
+                            <i class="fab fa-whatsapp mr-2"></i> WhatsApp
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">VLDigital</h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">Toko produk digital premium untuk kebutuhan kreatif dan profesional.</p>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Kategori</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html" class="hover:text-white transition-colors">Template Website</a></li>
+                        <li><a href="index.html" class="hover:text-white transition-colors">Aset Kreatif</a></li>
+                        <li><a href="index.html" class="hover:text-white transition-colors">Plugin & Script</a></li>
+                        <li><a href="index.html" class="hover:text-white transition-colors">Kursus Online</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Bantuan</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html" class="hover:text-white transition-colors">Cara Beli</a></li>
+                        <li><a href="kebijakan-privasi.html" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                        <li><a href="syarat-ketentuan.html" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
+                        <li><a href="index.html#contact" class="hover:text-white transition-colors">Hubungi Kami</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 pt-6 text-center text-gray-400">
+                <p>© 2023 VLDigital. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Accordion functionality for sections
+        document.addEventListener('DOMContentLoaded', function() {
+            const sectionHeaders = document.querySelectorAll('.section-header');
+            
+            sectionHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const content = this.nextElementSibling;
+                    const icon = this.querySelector('i');
+                    
+                    // Toggle active class
+                    content.classList.toggle('active');
+                    
+                    // Rotate icon
+                    if (content.classList.contains('active')) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-up');
+                    } else {
+                        icon.classList.remove('fa-chevron-up');
+                        icon.classList.add('fa-chevron-down');
+                    }
+                });
+            });
+            
+            // Open first section by default
+            if (sectionHeaders.length > 0) {
+                const firstContent = sectionHeaders[0].nextElementSibling;
+                const firstIcon = sectionHeaders[0].querySelector('i');
+                
+                firstContent.classList.add('active');
+                firstIcon.classList.remove('fa-chevron-down');
+                firstIcon.classList.add('fa-chevron-up');
+            }
+        });
+    </script>
+</body>
+</html>
