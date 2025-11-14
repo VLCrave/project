@@ -143,9 +143,14 @@
                                 <i class="fas fa-piggy-bank text-orange-500"></i>
                                 Saldo Rekening
                             </h2>
-                            <button onclick="app.showManageAccountsModal()" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
-                                <i class="fas fa-cog text-gray-600"></i>
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="app.showTransferBalanceModal()" class="p-2 rounded-xl bg-purple-100 hover:bg-purple-200 transition-colors" title="Pindah Saldo">
+                                    <i class="fas fa-exchange-alt text-purple-600"></i>
+                                </button>
+                                <button onclick="app.showManageAccountsModal()" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+                                    <i class="fas fa-cog text-gray-600"></i>
+                                </button>
+                            </div>
                         </div>
                         <div id="accountBalances">
                             <div class="text-center py-6 text-gray-500">
@@ -374,7 +379,7 @@
                         <div class="product-row grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-gray-50">
                             <div class="col-span-2">
                                 <label class="block text-xs font-medium text-gray-600 mb-1">Nama Produk</label>
-                                <input type="text" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama produk" value="">
+                                <input type="text" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama produk" value="Teh Tarik">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 mb-1">Qty</label>
@@ -382,7 +387,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-600 mb-1">Harga</label>
-                                <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Harga" value="">
+                                <input type="number" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Harga" value="10000">
                             </div>
                             <div class="col-span-2 flex justify-end">
                                 <button onclick="app.removeProduct(this)" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
@@ -398,7 +403,7 @@
 
                 <div class="form-group mb-4">
                     <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Ongkos Kirim</label>
-                    <input type="number" id="shippingCost" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="0" value="">
+                    <input type="number" id="shippingCost" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="0" value="5000">
                 </div>
 
                 <div class="form-group mb-4">
@@ -541,6 +546,101 @@
         </div>
     </div>
 
+    <!-- Edit Balance Modal -->
+    <div id="editBalanceModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-blue-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-edit"></i>
+                    Edit Saldo Rekening
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="mb-4">
+                    <div class="flex items-center gap-3 mb-4 p-3 rounded-xl bg-gray-50">
+                        <i class="fas fa-wallet text-blue-500 text-xl"></i>
+                        <div>
+                            <div class="font-semibold text-gray-800" id="editAccountName">-</div>
+                            <div class="text-xs text-gray-500" id="editAccountType">-</div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Saldo Saat Ini</label>
+                        <input type="text" id="currentBalanceDisplay" class="w-full p-3 border border-gray-300 rounded-xl bg-gray-100" readonly>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Saldo Baru</label>
+                        <input type="number" id="newBalance" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Masukkan saldo baru">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Keterangan</label>
+                        <input type="text" id="balanceEditDescription" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Alasan perubahan saldo">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="app.saveBalanceEdit()" class="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-colors">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Balance Modal -->
+    <div id="transferBalanceModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-purple-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-exchange-alt"></i>
+                    Pindah Saldo Rekening
+                </h2>
+                <button onclick="app.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="mb-4">
+                    <div class="mb-4">
+                        <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Dari Rekening</label>
+                        <select id="fromAccount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <!-- Accounts will be populated here -->
+                        </select>
+                        <div class="text-xs text-gray-500 mt-1" id="fromAccountBalance">Saldo: Rp 0</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Ke Rekening</label>
+                        <select id="toAccount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <!-- Accounts will be populated here -->
+                        </select>
+                        <div class="text-xs text-gray-500 mt-1" id="toAccountBalance">Saldo: Rp 0</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jumlah</label>
+                        <input type="number" id="transferAmount" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Jumlah yang akan dipindah">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Keterangan</label>
+                        <input type="text" id="transferDescription" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Keterangan transfer">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="app.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="app.saveTransfer()" class="flex-1 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold transition-colors">
+                    Pindah Saldo
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification System -->
     <div id="notificationContainer" class="fixed top-4 right-4 left-4 z-50 space-y-2"></div>
 
@@ -568,6 +668,7 @@
             accounts: [],
             currentEditingInvoice: null,
             currentEditingAccount: null,
+            currentEditingBalanceAccount: null,
             expenseCategories: {
                 'operasional': { name: 'Operasional', color: '#ef4444' },
                 'bahan_baku': { name: 'Bahan Baku', color: '#f97316' },
@@ -577,6 +678,7 @@
                 'internet': { name: 'Internet', color: '#3b82f6' },
                 'pemeliharaan': { name: 'Pemeliharaan', color: '#8b5cf6' },
                 'penyesuaian': { name: 'Penyesuaian', color: '#a855f7' },
+                'transfer': { name: 'Transfer Antar Rekening', color: '#7e22ce' },
                 'lainnya': { name: 'Lainnya', color: '#64748b' }
             },
             
@@ -718,6 +820,7 @@
                         this.renderAccountBalances();
                         this.renderAccountsList();
                         this.updateAccountSelect();
+                        this.updateTransferAccountSelects();
                     });
             },
 
@@ -748,12 +851,42 @@
                 document.getElementById('manageAccountsModal').classList.remove('hidden');
             },
 
+            showEditBalanceModal(accountId) {
+                const account = this.accounts.find(acc => acc.id === accountId);
+                if (!account) return;
+                
+                this.currentEditingBalanceAccount = accountId;
+                
+                document.getElementById('editAccountName').textContent = account.name;
+                document.getElementById('editAccountType').textContent = account.type;
+                document.getElementById('currentBalanceDisplay').value = this.formatCurrency(account.balance);
+                document.getElementById('newBalance').value = account.balance;
+                document.getElementById('balanceEditDescription').value = '';
+                
+                document.getElementById('editBalanceModal').classList.remove('hidden');
+            },
+
+            showTransferBalanceModal() {
+                if (this.accounts.length < 2) {
+                    this.showNotification('Minimal harus ada 2 rekening untuk melakukan transfer', 'error');
+                    return;
+                }
+                
+                document.getElementById('transferBalanceModal').classList.remove('hidden');
+                document.getElementById('transferAmount').value = '';
+                document.getElementById('transferDescription').value = '';
+                
+                // Update account balances display
+                this.updateTransferAccountBalances();
+            },
+
             closeModal() {
                 document.querySelectorAll('.modal-overlay').forEach(modal => {
                     modal.classList.add('hidden');
                 });
                 this.currentEditingInvoice = null;
                 this.currentEditingAccount = null;
+                this.currentEditingBalanceAccount = null;
             },
 
             // Invoice Form Management
@@ -877,7 +1010,7 @@
                         </div>
                         <div class="text-right">
                             <div class="font-bold text-gray-800">${this.formatCurrency(account.balance)}</div>
-                            <button onclick="app.editAccountBalance('${account.id}')" class="text-xs text-blue-600 font-medium mt-1">
+                            <button onclick="app.showEditBalanceModal('${account.id}')" class="text-xs text-blue-600 font-medium mt-1">
                                 Edit Saldo
                             </button>
                         </div>
@@ -900,7 +1033,7 @@
                             <div class="text-sm text-gray-500">${this.formatCurrency(account.balance)}</div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="app.editAccountBalance('${account.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                            <button onclick="app.showEditBalanceModal('${account.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button onclick="app.deleteAccount('${account.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
@@ -916,6 +1049,185 @@
                 select.innerHTML = this.accounts.map(account => `
                     <option value="${account.id}">${account.name} - ${this.formatCurrency(account.balance)}</option>
                 `).join('');
+            },
+
+            updateTransferAccountSelects() {
+                const fromSelect = document.getElementById('fromAccount');
+                const toSelect = document.getElementById('toAccount');
+                
+                fromSelect.innerHTML = this.accounts.map(account => `
+                    <option value="${account.id}">${account.name} - ${this.formatCurrency(account.balance)}</option>
+                `).join('');
+                
+                toSelect.innerHTML = this.accounts.map(account => `
+                    <option value="${account.id}">${account.name} - ${this.formatCurrency(account.balance)}</option>
+                `).join('');
+                
+                // Set different default accounts
+                if (this.accounts.length >= 2) {
+                    toSelect.selectedIndex = 1;
+                }
+                
+                // Add change listeners to update balance display
+                fromSelect.addEventListener('change', () => this.updateTransferAccountBalances());
+                toSelect.addEventListener('change', () => this.updateTransferAccountBalances());
+            },
+
+            updateTransferAccountBalances() {
+                const fromAccountId = document.getElementById('fromAccount').value;
+                const toAccountId = document.getElementById('toAccount').value;
+                
+                const fromAccount = this.accounts.find(acc => acc.id === fromAccountId);
+                const toAccount = this.accounts.find(acc => acc.id === toAccountId);
+                
+                if (fromAccount) {
+                    document.getElementById('fromAccountBalance').textContent = `Saldo: ${this.formatCurrency(fromAccount.balance)}`;
+                }
+                
+                if (toAccount) {
+                    document.getElementById('toAccountBalance').textContent = `Saldo: ${this.formatCurrency(toAccount.balance)}`;
+                }
+            },
+
+            // Edit Balance Feature
+            async saveBalanceEdit() {
+                const accountId = this.currentEditingBalanceAccount;
+                const newBalance = parseFloat(document.getElementById('newBalance').value) || 0;
+                const description = document.getElementById('balanceEditDescription').value.trim() || 'Penyesuaian saldo';
+                
+                const account = this.accounts.find(acc => acc.id === accountId);
+                if (!account) {
+                    this.showNotification('Rekening tidak ditemukan', 'error');
+                    return;
+                }
+                
+                const oldBalance = account.balance;
+                const difference = newBalance - oldBalance;
+                
+                if (oldBalance === newBalance) {
+                    this.showNotification('Tidak ada perubahan saldo', 'info');
+                    return;
+                }
+                
+                try {
+                    // Update account balance
+                    await db.collection("finance_accounts").doc(accountId).update({
+                        balance: newBalance,
+                        updatedAt: new Date()
+                    });
+                    
+                    // Record adjustment transaction
+                    const transactionData = {
+                        type: difference > 0 ? 'income' : 'expense',
+                        category: 'penyesuaian',
+                        accountId: accountId,
+                        accountName: account.name,
+                        amount: Math.abs(difference),
+                        description: description,
+                        adjustment: true,
+                        balanceBefore: oldBalance,
+                        balanceAfter: newBalance,
+                        createdAt: new Date(),
+                        date: new Date()
+                    };
+                    
+                    await db.collection("finance_transactions").add(transactionData);
+                    
+                    this.showNotification('Saldo berhasil diperbarui', 'success');
+                    this.closeModal();
+                } catch (error) {
+                    console.error("Error updating balance:", error);
+                    this.showNotification('Error memperbarui saldo', 'error');
+                }
+            },
+
+            // Transfer Balance Feature
+            async saveTransfer() {
+                const fromAccountId = document.getElementById('fromAccount').value;
+                const toAccountId = document.getElementById('toAccount').value;
+                const amount = parseFloat(document.getElementById('transferAmount').value) || 0;
+                const description = document.getElementById('transferDescription').value.trim() || 'Transfer antar rekening';
+                
+                if (fromAccountId === toAccountId) {
+                    this.showNotification('Pilih rekening yang berbeda', 'error');
+                    return;
+                }
+                
+                if (amount <= 0) {
+                    this.showNotification('Jumlah transfer harus lebih dari 0', 'error');
+                    return;
+                }
+                
+                const fromAccount = this.accounts.find(acc => acc.id === fromAccountId);
+                const toAccount = this.accounts.find(acc => acc.id === toAccountId);
+                
+                if (!fromAccount || !toAccount) {
+                    this.showNotification('Rekening tidak ditemukan', 'error');
+                    return;
+                }
+                
+                if (fromAccount.balance < amount) {
+                    this.showNotification('Saldo tidak mencukupi', 'error');
+                    return;
+                }
+                
+                try {
+                    // Update account balances
+                    const fromNewBalance = fromAccount.balance - amount;
+                    const toNewBalance = toAccount.balance + amount;
+                    
+                    await db.collection("finance_accounts").doc(fromAccountId).update({
+                        balance: fromNewBalance,
+                        updatedAt: new Date()
+                    });
+                    
+                    await db.collection("finance_accounts").doc(toAccountId).update({
+                        balance: toNewBalance,
+                        updatedAt: new Date()
+                    });
+                    
+                    // Record transfer transactions
+                    const transferOutData = {
+                        type: 'expense',
+                        category: 'transfer',
+                        accountId: fromAccountId,
+                        accountName: fromAccount.name,
+                        amount: amount,
+                        description: `Transfer ke ${toAccount.name}: ${description}`,
+                        transfer: true,
+                        transferTo: toAccountId,
+                        transferToName: toAccount.name,
+                        balanceBefore: fromAccount.balance,
+                        balanceAfter: fromNewBalance,
+                        createdAt: new Date(),
+                        date: new Date()
+                    };
+                    
+                    const transferInData = {
+                        type: 'income',
+                        category: 'transfer',
+                        accountId: toAccountId,
+                        accountName: toAccount.name,
+                        amount: amount,
+                        description: `Transfer dari ${fromAccount.name}: ${description}`,
+                        transfer: true,
+                        transferFrom: fromAccountId,
+                        transferFromName: fromAccount.name,
+                        balanceBefore: toAccount.balance,
+                        balanceAfter: toNewBalance,
+                        createdAt: new Date(),
+                        date: new Date()
+                    };
+                    
+                    await db.collection("finance_transactions").add(transferOutData);
+                    await db.collection("finance_transactions").add(transferInData);
+                    
+                    this.showNotification('Transfer saldo berhasil', 'success');
+                    this.closeModal();
+                } catch (error) {
+                    console.error("Error transferring balance:", error);
+                    this.showNotification('Error melakukan transfer', 'error');
+                }
             },
 
             // Invoice Management with Pagination
@@ -1057,7 +1369,7 @@
                 });
             },
 
-            // Generate Invoice
+            // Generate Invoice - HANYA ONGKOS KIRIM YANG DITAMBAHKAN KE REKENING
             async generateInvoice() {
                 const productRows = document.querySelectorAll('.product-row');
                 const products = [];
@@ -1108,9 +1420,10 @@
                 try {
                     await db.collection("invoices").add(invoiceData);
                     
+                    // HANYA ONGKOS KIRIM YANG DITAMBAHKAN KE SALDO REKENING
                     const account = this.accounts.find(acc => acc.type === paymentMethod);
                     if (account) {
-                        const newBalance = account.balance + total;
+                        const newBalance = account.balance + shippingCost;
                         await this.updateAccountBalanceDirect(account.id, newBalance);
                     }
                     
@@ -1157,7 +1470,8 @@
                         );
                         
                         if (account) {
-                            const newBalance = Math.max(0, account.balance - invoice.total);
+                            // HANYA ONGKOS KIRIM YANG DIKURANGI DARI SALDO REKENING
+                            const newBalance = Math.max(0, account.balance - (invoice.shippingCost || 0));
                             await this.updateAccountBalanceDirect(account.id, newBalance);
                         }
                     }
@@ -1256,11 +1570,15 @@ Terima kasih telah mempercayai VLCrave Express!`;
 
                 container.innerHTML = recent.map(transaction => {
                     const isAdjustment = transaction.adjustment;
+                    const isTransfer = transaction.transfer;
                     const icon = isAdjustment ? 'fa-adjust' : 
+                                isTransfer ? 'fa-exchange-alt' :
                                 transaction.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up';
                     const bgColor = isAdjustment ? 'bg-purple-100' : 
+                                   isTransfer ? 'bg-indigo-100' :
                                    transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100';
                     const textColor = isAdjustment ? 'text-purple-600' : 
+                                     isTransfer ? 'text-indigo-600' :
                                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600';
                     
                     return `
@@ -1273,8 +1591,9 @@ Terima kasih telah mempercayai VLCrave Express!`;
                                 <div class="text-xs text-gray-500">
                                     ${this.formatDate(transaction.createdAt)} • ${transaction.category}
                                     ${isAdjustment ? '• <span class="text-purple-600">Penyesuaian</span>' : ''}
+                                    ${isTransfer ? '• <span class="text-indigo-600">Transfer</span>' : ''}
                                 </div>
-                                ${isAdjustment ? `
+                                ${isAdjustment || isTransfer ? `
                                     <div class="text-xs text-gray-500 mt-1">
                                         <span class="font-medium">Sebelum:</span> ${this.formatCurrency(transaction.balanceBefore)} 
                                         <span class="font-medium ml-2">Sesudah:</span> ${this.formatCurrency(transaction.balanceAfter)}
@@ -1342,10 +1661,23 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 }
             },
 
+            // Account deletion
+            async deleteAccount(accountId) {
+                if (!confirm('Hapus rekening ini? Saldo akan hilang.')) return;
+                
+                try {
+                    await db.collection("finance_accounts").doc(accountId).delete();
+                    this.showNotification('Rekening dihapus', 'success');
+                } catch (error) {
+                    console.error("Error deleting account:", error);
+                    this.showNotification('Error menghapus rekening', 'error');
+                }
+            },
+
             // Expense Analysis
             async analyzeExpenses() {
                 const expenseTransactions = this.transactions.filter(t => 
-                    t.type === 'expense' && !t.adjustment
+                    t.type === 'expense' && !t.adjustment && !t.transfer
                 );
                 
                 if (expenseTransactions.length === 0) {
@@ -1471,7 +1803,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 `;
             },
 
-            // Dashboard Updates
+            // Dashboard Updates - HANYA ONGKOS KIRIM YANG DIHITUNG SEBAGAI PENDAPATAN
             updateDashboard() {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -1479,6 +1811,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 const currentMonth = new Date().getMonth();
                 const currentYear = new Date().getFullYear();
 
+                // HANYA ONGKOS KIRIM YANG DIHITUNG SEBAGAI PENDAPATAN
                 const todayIncome = this.invoices
                     .filter(invoice => {
                         const invoiceDate = new Date(invoice.createdAt?.toDate?.() || invoice.createdAt);
@@ -1519,6 +1852,11 @@ Terima kasih telah mempercayai VLCrave Express!`;
 
                 document.getElementById('financeIncome').textContent = this.formatCurrency(monthlyIncome);
                 document.getElementById('financeExpense').textContent = this.formatCurrency(monthlyExpense);
+            },
+
+            // Transaction History
+            showTransactionHistory() {
+                this.showTab('finance');
             },
 
             // Utility Functions
