@@ -3,1932 +3,578 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - VLDigital</title>
+    <title>VLDigital - Toko Produk Digital</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    
     <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDhWEXBlPx1CGq0x9Z3xfdJ2BhM1bBpFnA",
-            authDomain: "vldigital-65182.firebaseapp.com",
-            projectId: "vldigital-65182",
-            storageBucket: "vldigital-65182.firebasestorage.app",
-            messagingSenderId: "162560205430",
-            appId: "1:162560205430:web:d112726c03480be40b3557",
-            measurementId: "G-XB4LP0Z1C9"
-        };
-
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        'primary-dark': '#1d4ed8',
+                        secondary: '#ef4444',
+                        dark: '#1f2937',
+                        light: '#f9fafb',
+                        gray: '#6b7280',
+                    }
+                }
+            }
+        }
     </script>
-    
     <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .sidebar {
+        .product-card {
             transition: all 0.3s ease;
         }
-        
-        .content {
-            transition: all 0.3s ease;
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            
-            .sidebar.active {
-                transform: translateX(0);
-            }
-            
-            .overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 40;
-            }
-            
-            .overlay.active {
-                display: block;
-            }
-        }
-        
-        .stat-card {
-            transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
+        .product-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-        
-        .table-row:hover {
-            background-color: #f9fafb;
+        .detail-panel {
+            transition: transform 0.4s ease;
         }
-        
-        .btn-primary {
-            background: linear-gradient(to right, #8B5CF6, #7C3AED);
-            transition: all 0.3s ease;
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 8px;
-            color: white;
-            z-index: 1000;
-            transform: translateX(150%);
-            transition: transform 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .notification.show {
-            transform: translateX(0);
-        }
-        
-        .notification.success {
-            background-color: #10B981;
-        }
-        
-        .notification.error {
-            background-color: #EF4444;
-        }
-        
-        .notification.info {
-            background-color: #3B82F6;
-        }
-        
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 16px;
-            color: #6B7280;
-            border-radius: 8px;
-            margin-bottom: 4px;
-            transition: all 0.2s;
-        }
-        
-        .nav-item:hover {
-            background-color: #F3F4F6;
-            color: #374151;
-        }
-        
-        .nav-item.active {
-            background-color: #EDE9FE;
-            color: #8B5CF6;
-            font-weight: 500;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .form-input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #D1D5DB;
-            border-radius: 6px;
-            transition: border-color 0.2s;
-        }
-        
-        .form-input:focus {
-            outline: none;
-            border-color: #8B5CF6;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
 </head>
-<body class="bg-gray-100 font-poppins">
-    <!-- Login Modal -->
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md mx-4">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-gray-800">Admin Login</h3>
-                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <i class="fas fa-lock text-purple-600 text-xl"></i>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                    <h1 class="text-xl font-bold text-dark">VLDigital</h1>
                 </div>
-            </div>
-            
-            <form id="loginForm">
-                <div class="mb-4">
-                    <label class="block text-gray-700 mb-2" for="email">Email</label>
-                    <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="admin@vldigital.com" required>
-                </div>
-                
-                <div class="mb-6">
-                    <label class="block text-gray-700 mb-2" for="password">Password</label>
-                    <input type="password" id="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Masukkan password" required>
-                </div>
-                
-                <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-300 mb-4">
-                    <span id="loginText">Masuk</span>
-                    <div id="loginSpinner" class="loading hidden"></div>
-                </button>
-            </form>
-            
-            <div class="text-center text-sm text-gray-500 mt-4">
-                <p>Gunakan email dan password admin untuk mengakses panel</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Admin Layout (Initially Hidden) -->
-    <div id="adminPanel" class="hidden">
-        <!-- Mobile Menu Button -->
-        <div class="md:hidden bg-white shadow p-4 flex justify-between items-center">
-            <button id="mobileMenuButton" class="text-gray-600">
-                <i class="fas fa-bars text-xl"></i>
-            </button>
-            <h1 class="text-xl font-bold text-purple-600">VLDigital Admin</h1>
-            <button id="logoutBtn" class="text-gray-600">
-                <i class="fas fa-sign-out-alt text-xl"></i>
-            </button>
-        </div>
-
-        <!-- Overlay for Mobile -->
-        <div id="overlay" class="overlay"></div>
-
-        <div class="flex h-screen">
-            <!-- Sidebar -->
-            <div class="sidebar bg-white shadow-lg w-64 fixed inset-y-0 left-0 z-30 md:relative md:translate-x-0">
-                <div class="p-6 border-b border-gray-200">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                            <i class="fas fa-laptop-code text-white"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-bold text-gray-800">VLDigital</h2>
-                            <p class="text-xs text-gray-500">Admin Panel</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <nav class="mt-6">
-                    <a href="#" class="nav-item active" data-tab="dashboard">
-                        <i class="fas fa-tachometer-alt mr-3"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="#" class="nav-item" data-tab="products">
-                        <i class="fas fa-box mr-3"></i>
-                        <span>Manajemen Produk</span>
-                    </a>
-                    <a href="#" class="nav-item" data-tab="transactions">
-                        <i class="fas fa-receipt mr-3"></i>
-                        <span>Transaksi</span>
-                    </a>
-                    <a href="#" class="nav-item" data-tab="payments">
-                        <i class="fas fa-credit-card mr-3"></i>
-                        <span>Pembayaran</span>
-                    </a>
-                    <a href="#" class="nav-item" data-tab="customers">
-                        <i class="fas fa-users mr-3"></i>
-                        <span>Pelanggan</span>
-                    </a>
-                    <a href="#" class="nav-item" data-tab="settings">
-                        <i class="fas fa-cog mr-3"></i>
-                        <span>Pengaturan</span>
-                    </a>
-                </nav>
-                
-                <div class="absolute bottom-0 w-full p-4 border-t border-gray-200">
-                    <button id="sidebarLogoutBtn" class="flex items-center w-full p-3 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                        <i class="fas fa-sign-out-alt mr-3"></i>
-                        <span>Keluar</span>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-600 hover:text-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="text-gray-600 hover:text-primary relative">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="absolute -top-2 -right-2 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                    </button>
+                    <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark">
+                        <i class="fas fa-user mr-1"></i> Masuk
                     </button>
                 </div>
             </div>
-            
-            <!-- Main Content -->
-            <div class="content flex-1 overflow-y-auto">
-                <!-- Top Bar -->
-                <div class="bg-white shadow-sm p-4 flex justify-between items-center">
-                    <div>
-                        <h1 id="pageTitle" class="text-2xl font-bold text-gray-800">Dashboard</h1>
-                        <p class="text-gray-600" id="pageSubtitle">Ringkasan aktivitas toko digital</p>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-primary to-blue-700 text-white py-12">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-4">Produk Digital Berkualitas</h2>
+            <p class="text-lg mb-6 max-w-2xl mx-auto">Temukan berbagai produk digital terbaik dengan harga terjangkau. Download instan setelah pembayaran.</p>
+            <div class="flex justify-center space-x-4">
+                <button class="bg-white text-primary px-6 py-2 rounded-lg font-medium hover:bg-gray-100">
+                    <i class="fas fa-shopping-bag mr-2"></i> Beli Sekarang
+                </button>
+                <button class="bg-transparent border border-white text-white px-6 py-2 rounded-lg font-medium hover:bg-white hover:text-primary">
+                    <i class="fas fa-play-circle mr-2"></i> Lihat Demo
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="py-8 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar">
+                <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">Semua Produk</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Template Website</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Aset Kreatif</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Plugin & Script</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">Kursus Online</button>
+                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300">E-Book</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Grid -->
+    <section class="py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-dark">Produk Terbaru</h2>
+                <button class="text-primary font-medium flex items-center">
+                    Lihat Semua <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Product 1 -->
+                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="relative">
+                        <img src="https://cdn.pixabay.com/photo/2020/05/18/19/44/website-5186965_1280.jpg" alt="Website Template" class="w-full h-40 object-cover">
+                        <div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">
+                            TERLARIS
+                        </div>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <div class="relative">
-                            <button class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-bell text-xl"></i>
-                                <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">3</span>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-dark mb-1 text-sm">Template Website Portfolio</h3>
+                        <div class="flex items-center mb-2">
+                            <div class="flex text-yellow-400 text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <span class="text-gray-500 text-xs ml-1">(128)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-primary font-bold">Rp 299.000</span>
+                                <span class="text-gray-500 text-sm line-through ml-1">Rp 499.000</span>
+                            </div>
+                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p1')">
+                                <i class="fas fa-eye"></i>
                             </button>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-user text-purple-600"></i>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="relative">
+                        <img src="https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg" alt="Digital Art" class="w-full h-40 object-cover">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-dark mb-1 text-sm">Koleksi Vector Space</h3>
+                        <div class="flex items-center mb-2">
+                            <div class="flex text-yellow-400 text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
                             </div>
-                            <div class="hidden md:block">
-                                <p class="font-medium text-gray-800" id="adminName">Admin VLDigital</p>
-                                <p class="text-xs text-gray-500">Administrator</p>
+                            <span class="text-gray-500 text-xs ml-1">(64)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-primary font-bold">Rp 149.000</span>
                             </div>
+                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p2')">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Dashboard Content -->
-                <div id="dashboard" class="tab-content p-6 active">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div class="stat-card bg-white rounded-xl shadow p-6">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <p class="text-gray-500">Total Pendapatan</p>
-                                    <h3 class="text-2xl font-bold text-gray-800" id="totalRevenue">Rp 0</h3>
-                                </div>
-                                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-dollar-sign text-green-600"></i>
-                                </div>
-                            </div>
-                            <p class="text-green-600 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> Memuat data...</p>
-                        </div>
-                        
-                        <div class="stat-card bg-white rounded-xl shadow p-6">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <p class="text-gray-500">Total Produk</p>
-                                    <h3 class="text-2xl font-bold text-gray-800" id="totalProducts">0</h3>
-                                </div>
-                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-box text-blue-600"></i>
-                                </div>
-                            </div>
-                            <p class="text-blue-600 text-sm mt-2"><i class="fas fa-plus mr-1"></i> Memuat data...</p>
-                        </div>
-                        
-                        <div class="stat-card bg-white rounded-xl shadow p-6">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <p class="text-gray-500">Total Transaksi</p>
-                                    <h3 class="text-2xl font-bold text-gray-800" id="totalTransactions">0</h3>
-                                </div>
-                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-receipt text-purple-600"></i>
-                                </div>
-                            </div>
-                            <p class="text-purple-600 text-sm mt-2"><i class="fas fa-arrow-up mr-1"></i> Memuat data...</p>
-                        </div>
-                        
-                        <div class="stat-card bg-white rounded-xl shadow p-6">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <p class="text-gray-500">Pelanggan Baru</p>
-                                    <h3 class="text-2xl font-bold text-gray-800" id="newCustomers">0</h3>
-                                </div>
-                                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-users text-yellow-600"></i>
-                                </div>
-                            </div>
-                            <p class="text-yellow-600 text-sm mt-2"><i class="fas fa-user-plus mr-1"></i> Memuat data...</p>
+
+                <!-- Product 3 -->
+                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="relative">
+                        <img src="https://cdn.pixabay.com/photo/2020/05/31/09/40/online-course-5242018_1280.jpg" alt="Online Course" class="w-full h-40 object-cover">
+                        <div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+                            BARU
                         </div>
                     </div>
-                    
-                    <!-- Recent Transactions -->
-                    <div class="bg-white rounded-xl shadow p-6 mb-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-gray-800">Transaksi Terbaru</h2>
-                            <a href="#" class="text-purple-600 hover:text-purple-800 font-medium" data-tab="transactions">Lihat Semua</a>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="text-left text-gray-500 border-b">
-                                        <th class="pb-3">ID Transaksi</th>
-                                        <th class="pb-3">Pelanggan</th>
-                                        <th class="pb-3">Produk</th>
-                                        <th class="pb-3">Total</th>
-                                        <th class="pb-3">Status</th>
-                                        <th class="pb-3">Tanggal</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recentTransactions">
-                                    <tr>
-                                        <td colspan="6" class="py-8 text-center text-gray-500">
-                                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                                            <p>Memuat data transaksi...</p>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Popular Products -->
-                    <div class="bg-white rounded-xl shadow p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-bold text-gray-800">Produk Populer</h2>
-                            <a href="#" class="text-purple-600 hover:text-purple-800 font-medium" data-tab="products">Lihat Semua</a>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="popularProducts">
-                            <div class="col-span-full py-8 text-center text-gray-500">
-                                <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                                <p>Memuat data produk...</p>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-dark mb-1 text-sm">Kursus UI/UX Design</h3>
+                        <div class="flex items-center mb-2">
+                            <div class="flex text-yellow-400 text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
                             </div>
+                            <span class="text-gray-500 text-xs ml-1">(89)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-primary font-bold">Rp 799.000</span>
+                                <span class="text-gray-500 text-sm line-through ml-1">Rp 1.200.000</span>
+                            </div>
+                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p3')">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Products Management -->
-                <div id="products" class="tab-content p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800">Manajemen Produk</h2>
-                            <p class="text-gray-600">Kelola produk digital di toko Anda</p>
-                        </div>
-                        <button id="addProductBtn" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-300">
-                            <i class="fas fa-plus mr-2"></i>Tambah Produk
-                        </button>
+
+                <!-- Product 4 -->
+                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="relative">
+                        <img src="https://cdn.pixabay.com/photo/2015/07/17/22/43/student-849825_1280.jpg" alt="E-Book" class="w-full h-40 object-cover">
                     </div>
-                    
-                    <div class="bg-white rounded-xl shadow overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="text-left text-gray-500 bg-gray-50">
-                                        <th class="py-4 px-6">Nama Produk</th>
-                                        <th class="py-4 px-6">Kategori</th>
-                                        <th class="py-4 px-6">Harga</th>
-                                        <th class="py-4 px-6">Status</th>
-                                        <th class="py-4 px-6">Terjual</th>
-                                        <th class="py-4 px-6">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="productsTable">
-                                    <tr>
-                                        <td colspan="6" class="py-8 text-center text-gray-500">
-                                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                                            <p>Memuat data produk...</p>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-dark mb-1 text-sm">E-Book Panduan Coding</h3>
+                        <div class="flex items-center mb-2">
+                            <div class="flex text-yellow-400 text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <span class="text-gray-500 text-xs ml-1">(42)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-primary font-bold">Rp 99.000</span>
+                            </div>
+                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p4')">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Transactions Management -->
-                <div id="transactions" class="tab-content p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800">Manajemen Transaksi</h2>
-                            <p class="text-gray-600">Lihat dan kelola semua transaksi</p>
-                        </div>
-                        <div class="flex space-x-2">
-                            <select id="transactionFilter" class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                                <option value="all">Semua Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="paid">Dibayar</option>
-                                <option value="completed">Selesai</option>
-                                <option value="cancelled">Dibatalkan</option>
-                            </select>
-                        </div>
+
+                <!-- Product 5 -->
+                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="relative">
+                        <img src="https://cdn.pixabay.com/photo/2016/11/19/14/00/code-1839406_1280.jpg" alt="Plugin" class="w-full h-40 object-cover">
                     </div>
-                    
-                    <div class="bg-white rounded-xl shadow overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="text-left text-gray-500 bg-gray-50">
-                                        <th class="py-4 px-6">ID Transaksi</th>
-                                        <th class="py-4 px-6">Pelanggan</th>
-                                        <th class="py-4 px-6">Produk</th>
-                                        <th class="py-4 px-6">Total</th>
-                                        <th class="py-4 px-6">Status</th>
-                                        <th class="py-4 px-6">Tanggal</th>
-                                        <th class="py-4 px-6">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="transactionsTable">
-                                    <tr>
-                                        <td colspan="7" class="py-8 text-center text-gray-500">
-                                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                                            <p>Memuat data transaksi...</p>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-dark mb-1 text-sm">Plugin WordPress Premium</h3>
+                        <div class="flex items-center mb-2">
+                            <div class="flex text-yellow-400 text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                            <span class="text-gray-500 text-xs ml-1">(56)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-primary font-bold">Rp 450.000</span>
+                            </div>
+                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p5')">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Payments Management -->
-                <div id="payments" class="tab-content p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800">Manajemen Pembayaran</h2>
-                            <p class="text-gray-600">Kelola metode pembayaran dan konfirmasi</p>
+
+                <!-- Product 6 -->
+                <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="relative">
+                        <img src="https://cdn.pixabay.com/photo/2017/08/05/11/16/logo-2582748_1280.png" alt="Logo Package" class="w-full h-40 object-cover">
+                        <div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">
+                            DISKON
                         </div>
-                        <button id="configurePaymentBtn" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-300">
-                            <i class="fas fa-cog mr-2"></i>Konfigurasi Pembayaran
-                        </button>
                     </div>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                        <div class="bg-white rounded-xl shadow p-6">
-                            <h3 class="text-lg font-bold text-gray-800 mb-4">Metode Pembayaran</h3>
-                            <div id="paymentMethods" class="space-y-4">
-                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fas fa-university text-blue-600"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">Transfer Bank</p>
-                                            <p class="text-sm text-gray-500">BCA, BNI, BRI, Mandiri</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer" checked>
-                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                        </label>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fab fa-cc-visa text-green-600"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">Kartu Kredit</p>
-                                            <p class="text-sm text-gray-500">Visa, Mastercard</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer" checked>
-                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                        </label>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                                            <i class="fas fa-wallet text-orange-600"></i>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium">E-Wallet</p>
-                                            <p class="text-sm text-gray-500">OVO, Gopay, Dana</p>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" class="sr-only peer" checked>
-                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                        </label>
-                                    </div>
-                                </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-dark mb-1 text-sm">Paket Logo Profesional</h3>
+                        <div class="flex items-center mb-2">
+                            <div class="flex text-yellow-400 text-xs">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
                             </div>
+                            <span class="text-gray-500 text-xs ml-1">(73)</span>
                         </div>
-                        
-                        <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
-                            <h3 class="text-lg font-bold text-gray-800 mb-4">Pembayaran Menunggu Konfirmasi</h3>
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead>
-                                        <tr class="text-left text-gray-500 border-b">
-                                            <th class="pb-3">ID Transaksi</th>
-                                            <th class="pb-3">Metode</th>
-                                            <th class="pb-3">Jumlah</th>
-                                            <th class="pb-3">Tanggal</th>
-                                            <th class="pb-3">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="pendingPayments">
-                                        <tr>
-                                            <td colspan="5" class="py-8 text-center text-gray-500">
-                                                <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                                                <p>Memuat data pembayaran...</p>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="text-primary font-bold">Rp 199.000</span>
+                                <span class="text-gray-500 text-sm line-through ml-1">Rp 350.000</span>
                             </div>
+                            <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('p6')">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Customers Management -->
-                <div id="customers" class="tab-content p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 class="text-2xl font-bold text-gray-800">Manajemen Pelanggan</h2>
-                            <p class="text-gray-600">Data semua pelanggan VLDigital</p>
-                        </div>
-                        <div class="flex space-x-2">
-                            <input type="text" id="customerSearch" placeholder="Cari pelanggan..." class="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-xl shadow overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead>
-                                    <tr class="text-left text-gray-500 bg-gray-50">
-                                        <th class="py-4 px-6">Nama</th>
-                                        <th class="py-4 px-6">Email</th>
-                                        <th class="py-4 px-6">Telepon</th>
-                                        <th class="py-4 px-6">Total Transaksi</th>
-                                        <th class="py-4 px-6">Total Belanja</th>
-                                        <th class="py-4 px-6">Terdaftar</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="customersTable">
-                                    <tr>
-                                        <td colspan="6" class="py-8 text-center text-gray-500">
-                                            <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                                            <p>Memuat data pelanggan...</p>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Product Detail Panel -->
+    <div id="productDetail" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden fade-in">
+        <div class="absolute right-0 top-0 h-full w-full md:w-1/2 lg:w-1/3 bg-white detail-panel transform translate-x-full">
+            <div class="h-full overflow-y-auto">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h3 class="text-lg font-bold">Detail Produk</h3>
+                    <button onclick="hideProductDetail()" class="text-gray-500 hover:text-dark">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
                 </div>
                 
-                <!-- Settings -->
-                <div id="settings" class="tab-content p-6">
-                    <div class="mb-6">
-                        <h2 class="text-2xl font-bold text-gray-800">Pengaturan</h2>
-                        <p class="text-gray-600">Kelola pengaturan toko digital Anda</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="bg-white rounded-xl shadow p-6 lg:col-span-2">
-                            <h3 class="text-lg font-bold text-gray-800 mb-4">Informasi Toko</h3>
-                            <form id="storeSettingsForm">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label class="block text-gray-700 mb-2" for="storeName">Nama Toko</label>
-                                        <input type="text" id="storeName" class="form-input" value="VLDigital">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-700 mb-2" for="storeEmail">Email</label>
-                                        <input type="email" id="storeEmail" class="form-input" value="info@vldigital.com">
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="block text-gray-700 mb-2" for="storeDescription">Deskripsi Toko</label>
-                                    <textarea id="storeDescription" class="form-input" rows="3">Toko produk digital premium dengan kualitas terbaik dan harga terjangkau.</textarea>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label class="block text-gray-700 mb-2" for="storeAddress">Alamat</label>
-                                    <textarea id="storeAddress" class="form-input" rows="2">Jakarta, Indonesia</textarea>
-                                </div>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                    <div>
-                                        <label class="block text-gray-700 mb-2" for="storePhone">Telepon</label>
-                                        <input type="text" id="storePhone" class="form-input" value="+62 21 1234 5678">
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-700 mb-2" for="storeWebsite">Website</label>
-                                        <input type="text" id="storeWebsite" class="form-input" value="https://vldigital.com">
-                                    </div>
-                                </div>
-                                
-                                <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-300">
-                                    Simpan Perubahan
-                                </button>
-                            </form>
-                        </div>
-                        
-                        <div class="bg-white rounded-xl shadow p-6">
-                            <h3 class="text-lg font-bold text-gray-800 mb-4">Pengaturan Lainnya</h3>
-                            <div class="space-y-4">
-                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div>
-                                        <p class="font-medium">Notifikasi Email</p>
-                                        <p class="text-sm text-gray-500">Kirim notifikasi ke email</p>
-                                    </div>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" class="sr-only peer" checked>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                    </label>
-                                </div>
-                                
-                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div>
-                                        <p class="font-medium">Auto Send Product</p>
-                                        <p class="text-sm text-gray-500">Kirim produk otomatis setelah pembayaran</p>
-                                    </div>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" class="sr-only peer" checked>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                    </label>
-                                </div>
-                                
-                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div>
-                                        <p class="font-medium">Maintenance Mode</p>
-                                        <p class="text-sm text-gray-500">Tutup sementara toko</p>
-                                    </div>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-6 pt-6 border-t border-gray-200">
-                                <h4 class="font-medium text-gray-800 mb-3">Bahasa & Region</h4>
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-gray-700 mb-1" for="language">Bahasa</label>
-                                        <select id="language" class="form-input">
-                                            <option value="id">Bahasa Indonesia</option>
-                                            <option value="en">English</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-gray-700 mb-1" for="currency">Mata Uang</label>
-                                        <select id="currency" class="form-input">
-                                            <option value="IDR">Rupiah (IDR)</option>
-                                            <option value="USD">US Dollar (USD)</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <div class="p-4">
+                    <div id="detailContent">
+                        <!-- Content will be loaded here by JavaScript -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Add Product Modal -->
-    <div id="addProductModal" class="modal">
-        <div class="modal-content">
-            <div class="p-6 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800">Tambah Produk Baru</h3>
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-8 mt-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
+                        <h2 class="text-xl font-bold">VLDigital</h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">Platform terpercaya untuk produk digital berkualitas dengan harga terjangkau.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Kategori</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Template Website</a></li>
+                        <li><a href="#" class="hover:text-white">Aset Kreatif</a></li>
+                        <li><a href="#" class="hover:text-white">Plugin & Script</a></li>
+                        <li><a href="#" class="hover:text-white">Kursus Online</a></li>
+                        <li><a href="#" class="hover:text-white">E-Book</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold mb-4">Bantuan</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white">Cara Beli</a></li>
+                        <li><a href="#" class="hover:text-white">Pusat Bantuan</a></li>
+                        <li><a href="#" class="hover:text-white">Kebijakan Privasi</a></li>
+                        <li><a href="#" class="hover:text-white">Syarat & Ketentuan</a></li>
+                        <li><a href="#" class="hover:text-white">Hubungi Kami</a></li>
+                    </ul>
+                </div>
             </div>
-            <form id="addProductForm" class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-gray-700 mb-2" for="productName">Nama Produk</label>
-                        <input type="text" id="productName" class="form-input" placeholder="Nama produk digital" required>
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2" for="productCategory">Kategori</label>
-                        <select id="productCategory" class="form-input" required>
-                            <option value="">Pilih Kategori</option>
-                            <option value="software">Software</option>
-                            <option value="template">Template</option>
-                            <option value="ebook">E-Book</option>
-                            <option value="course">Kursus Online</option>
-                            <option value="asset">Digital Asset</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-700 mb-2" for="productDescription">Deskripsi Produk</label>
-                    <textarea id="productDescription" class="form-input" rows="3" placeholder="Deskripsi lengkap produk" required></textarea>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block text-gray-700 mb-2" for="productPrice">Harga (IDR)</label>
-                        <input type="number" id="productPrice" class="form-input" placeholder="100000" required>
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 mb-2" for="productStock">Stok</label>
-                        <input type="number" id="productStock" class="form-input" placeholder="9999" value="9999" required>
-                    </div>
-                </div>
-                
-                <div class="mb-6">
-                    <label class="block text-gray-700 mb-2" for="productFile">File Produk</label>
-                    <input type="file" id="productFile" class="form-input" accept=".zip,.rar,.pdf,.doc,.docx" required>
-                    <p class="text-sm text-gray-500 mt-1">Format yang didukung: ZIP, RAR, PDF, DOC, DOCX</p>
-                </div>
-                
-                <div class="flex justify-end space-x-3">
-                    <button type="button" id="cancelAddProduct" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-300">
-                        Batal
-                    </button>
-                    <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-300">
-                        Simpan Produk
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Transaction Detail Modal -->
-    <div id="transactionDetailModal" class="modal">
-        <div class="modal-content">
-            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">Detail Transaksi</h3>
-                <button id="closeTransactionDetail" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="transactionDetailContent">
-                <!-- Detail transaksi akan dimuat di sini -->
+            
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+                <p>© 2023 VLDigital. All rights reserved.</p>
             </div>
         </div>
-    </div>
-
-    <!-- Payment Configuration Modal -->
-    <div id="paymentConfigModal" class="modal">
-        <div class="modal-content">
-            <div class="p-6 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800">Konfigurasi Pembayaran</h3>
-            </div>
-            <form id="paymentConfigForm" class="p-6">
-                <div class="mb-6">
-                    <h4 class="font-bold text-gray-800 mb-3">Biaya Admin</h4>
-                    <div class="flex items-center">
-                        <input type="number" id="adminFee" class="form-input w-32" value="2500" min="0">
-                        <span class="ml-2 text-gray-700">IDR per transaksi</span>
-                    </div>
-                    <p class="text-sm text-gray-500 mt-1">Biaya admin akan ditambahkan ke setiap transaksi</p>
-                </div>
-                
-                <div class="mb-6">
-                    <h4 class="font-bold text-gray-800 mb-3">Transfer Bank</h4>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-gray-700 mb-2" for="bankName">Nama Bank</label>
-                            <input type="text" id="bankName" class="form-input" placeholder="Contoh: BCA" value="BCA">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 mb-2" for="accountNumber">Nomor Rekening</label>
-                            <input type="text" id="accountNumber" class="form-input" placeholder="Contoh: 1234567890" value="1234567890">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 mb-2" for="accountName">Nama Pemilik Rekening</label>
-                            <input type="text" id="accountName" class="form-input" placeholder="Contoh: John Doe" value="VL Digital">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mb-6">
-                    <h4 class="font-bold text-gray-800 mb-3">QRIS</h4>
-                    <div>
-                        <label class="block text-gray-700 mb-2" for="qrisCode">Kode QRIS</label>
-                        <input type="text" id="qrisCode" class="form-input" placeholder="Masukkan kode QRIS">
-                        <p class="text-sm text-gray-500 mt-1">Masukkan kode QRIS untuk pembayaran via QR</p>
-                    </div>
-                </div>
-                
-                <div class="flex justify-end space-x-3">
-                    <button type="button" id="cancelPaymentConfig" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-300">
-                        Batal
-                    </button>
-                    <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-300">
-                        Simpan Konfigurasi
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Notification Element -->
-    <div id="notification" class="notification">
-        <div class="flex items-center">
-            <i id="notificationIcon" class="fas fa-info-circle mr-2"></i>
-            <span id="notificationMessage">Pesan notifikasi</span>
-        </div>
-    </div>
+    </footer>
 
     <script>
-        // Data storage
-        let products = [];
-        let transactions = [];
-        let customers = [];
-        let paymentSettings = {
-            adminFee: 2500,
-            bankName: "BCA",
-            accountNumber: "1234567890",
-            accountName: "VL Digital",
-            qrisCode: ""
+        // Product data
+        const products = {
+            p1: {
+                id: 'p1',
+                name: 'Template Website Portfolio',
+                price: 'Rp 299.000',
+                originalPrice: 'Rp 499.000',
+                rating: 4.5,
+                reviewCount: 128,
+                image: 'https://cdn.pixabay.com/photo/2020/05/18/19/44/website-5186965_1280.jpg',
+                description: 'Template website portfolio modern yang cocok untuk freelancer, desainer, atau developer. Dilengkapi dengan halaman tentang, portfolio, layanan, dan kontak.',
+                features: [
+                    'Desain responsif untuk semua perangkat',
+                    'Optimasi SEO',
+                    'Integrasi media sosial',
+                    'Form kontak yang berfungsi',
+                    'Dokumentasi lengkap'
+                ],
+                category: 'Template Website'
+            },
+            p2: {
+                id: 'p2',
+                name: 'Koleksi Vector Space',
+                price: 'Rp 149.000',
+                originalPrice: null,
+                rating: 4,
+                reviewCount: 64,
+                image: 'https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg',
+                description: 'Koleksi 50+ vector premium bertema luar angkasa dengan kualitas tinggi. Cocok untuk desain grafis, ilustrasi, dan proyek kreatif lainnya.',
+                features: [
+                    '50+ vector berkualitas tinggi',
+                    'Format AI, EPS, SVG, dan PNG',
+                    'Resolusi tinggi untuk cetak',
+                    'Komersial dan penggunaan pribadi',
+                    'Mudah dikustomisasi'
+                ],
+                category: 'Aset Kreatif'
+            },
+            p3: {
+                id: 'p3',
+                name: 'Kursus UI/UX Design',
+                price: 'Rp 799.000',
+                originalPrice: 'Rp 1.200.000',
+                rating: 5,
+                reviewCount: 89,
+                image: 'https://cdn.pixabay.com/photo/2020/05/31/09/40/online-course-5242018_1280.jpg',
+                description: 'Kursus lengkap untuk mempelajari desain UI/UX dari dasar hingga mahir. Dilengkapi dengan studi kasus nyata dan project akhir.',
+                features: [
+                    '30+ jam video pembelajaran',
+                    'Studi kasus nyata',
+                    'Project akhir dengan review',
+                    'Akses seumur hidup',
+                    'Sertifikat penyelesaian'
+                ],
+                category: 'Kursus Online'
+            },
+            p4: {
+                id: 'p4',
+                name: 'E-Book Panduan Coding',
+                price: 'Rp 99.000',
+                originalPrice: null,
+                rating: 4.5,
+                reviewCount: 42,
+                image: 'https://cdn.pixabay.com/photo/2015/07/17/22/43/student-849825_1280.jpg',
+                description: 'Panduan lengkap untuk belajar coding dari nol. Cocok untuk pemula yang ingin memulai karir di bidang pemrograman.',
+                features: [
+                    '300+ halaman konten',
+                    'Contoh kode langsung',
+                    'Latihan dan tantangan',
+                    'Tips karir di bidang IT',
+                    'Update gratis untuk versi berikutnya'
+                ],
+                category: 'E-Book'
+            },
+            p5: {
+                id: 'p5',
+                name: 'Plugin WordPress Premium',
+                price: 'Rp 450.000',
+                originalPrice: null,
+                rating: 4,
+                reviewCount: 56,
+                image: 'https://cdn.pixabay.com/photo/2016/11/19/14/00/code-1839406_1280.jpg',
+                description: 'Plugin WordPress premium dengan fitur lengkap untuk mengoptimasi website Anda. Mendukung berbagai tipe konten dan memiliki antarmuka yang user-friendly.',
+                features: [
+                    'Optimasi performa website',
+                    'Keamanan tingkat tinggi',
+                    'Dukungan multisite',
+                    'Update rutin dan support',
+                    'Dokumentasi lengkap'
+                ],
+                category: 'Plugin & Script'
+            },
+            p6: {
+                id: 'p6',
+                name: 'Paket Logo Profesional',
+                price: 'Rp 199.000',
+                originalPrice: 'Rp 350.000',
+                rating: 5,
+                reviewCount: 73,
+                image: 'https://cdn.pixabay.com/photo/2017/08/05/11/16/logo-2582748_1280.png',
+                description: 'Paket logo profesional dengan berbagai variasi dan format file. Cocok untuk bisnis, startup, atau brand pribadi.',
+                features: [
+                    '3 konsep logo berbeda',
+                    'File AI, EPS, PNG, dan JPG',
+                    'Variasi warna dan layout',
+                    'Pedoman penggunaan brand',
+                    'Revisi hingga puas'
+                ],
+                category: 'Aset Kreatif'
+            }
         };
 
-        // Firestore listeners
-        let productsListener = null;
-        let transactionsListener = null;
-        let customersListener = null;
-        let paymentSettingsListener = null;
-
-        // Authentication State Listener
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // User is signed in
-                document.getElementById('loginModal').classList.add('hidden');
-                document.getElementById('adminPanel').classList.remove('hidden');
-                document.getElementById('adminName').textContent = user.email;
-                setupFirestoreListeners();
-                loadPaymentSettings();
-            } else {
-                // User is signed out
-                document.getElementById('loginModal').classList.remove('hidden');
-                document.getElementById('adminPanel').classList.add('hidden');
-                // Remove listeners when user logs out
-                removeFirestoreListeners();
-            }
-        });
-
-        // Setup Firestore Listeners
-        function setupFirestoreListeners() {
-            // Products listener
-            productsListener = db.collection("products").onSnapshot((snapshot) => {
-                products = [];
-                snapshot.forEach((doc) => {
-                    products.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                loadDashboardData();
-                if (document.getElementById('products').classList.contains('active')) {
-                    loadProducts();
-                }
-            }, (error) => {
-                console.error("Error loading products: ", error);
-                showNotification('Gagal memuat data produk!', 'error');
-            });
-
-            // Transactions listener
-            transactionsListener = db.collection("transactions").onSnapshot((snapshot) => {
-                transactions = [];
-                snapshot.forEach((doc) => {
-                    transactions.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                loadDashboardData();
-                if (document.getElementById('transactions').classList.contains('active')) {
-                    loadTransactions();
-                }
-                if (document.getElementById('payments').classList.contains('active')) {
-                    loadPendingPayments();
-                }
-            }, (error) => {
-                console.error("Error loading transactions: ", error);
-                showNotification('Gagal memuat data transaksi!', 'error');
-            });
-
-            // Customers listener
-            customersListener = db.collection("customers").onSnapshot((snapshot) => {
-                customers = [];
-                snapshot.forEach((doc) => {
-                    customers.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                loadDashboardData();
-                if (document.getElementById('customers').classList.contains('active')) {
-                    loadCustomers();
-                }
-            }, (error) => {
-                console.error("Error loading customers: ", error);
-                showNotification('Gagal memuat data pelanggan!', 'error');
-            });
-
-            // Payment settings listener
-            paymentSettingsListener = db.collection("settings").doc("payment").onSnapshot((doc) => {
-                if (doc.exists) {
-                    paymentSettings = doc.data();
-                } else {
-                    // Create default payment settings if not exists
-                    db.collection("settings").doc("payment").set(paymentSettings);
-                }
-            }, (error) => {
-                console.error("Error loading payment settings: ", error);
-            });
-        }
-
-        // Remove Firestore Listeners
-        function removeFirestoreListeners() {
-            if (productsListener) {
-                productsListener();
-                productsListener = null;
-            }
-            if (transactionsListener) {
-                transactionsListener();
-                transactionsListener = null;
-            }
-            if (customersListener) {
-                customersListener();
-                customersListener = null;
-            }
-            if (paymentSettingsListener) {
-                paymentSettingsListener();
-                paymentSettingsListener = null;
-            }
-        }
-
-        // Login Form Handler
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
+        // Show product detail
+        function showProductDetail(productId) {
+            const product = products[productId];
+            if (!product) return;
             
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const loginText = document.getElementById('loginText');
-            const loginSpinner = document.getElementById('loginSpinner');
+            // Update URL without page reload
+            history.pushState({productId}, '', `/product?id=${productId}`);
             
-            loginText.classList.add('hidden');
-            loginSpinner.classList.remove('hidden');
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // Login successful
-                    showNotification('Login berhasil!', 'success');
-                })
-                .catch((error) => {
-                    // Login failed
-                    console.error('Login error:', error);
-                    showNotification('Email atau password salah!', 'error');
-                })
-                .finally(() => {
-                    loginText.classList.remove('hidden');
-                    loginSpinner.classList.add('hidden');
-                });
-        });
-
-        // Logout Handlers
-        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-        document.getElementById('sidebarLogoutBtn').addEventListener('click', handleLogout);
-        
-        function handleLogout() {
-            auth.signOut()
-                .then(() => {
-                    showNotification('Anda telah logout', 'info');
-                })
-                .catch((error) => {
-                    console.error('Logout error:', error);
-                });
-        }
-
-        // Mobile Menu Toggle
-        document.getElementById('mobileMenuButton').addEventListener('click', () => {
-            document.querySelector('.sidebar').classList.add('active');
-            document.getElementById('overlay').classList.add('active');
-        });
-
-        document.getElementById('overlay').addEventListener('click', () => {
-            document.querySelector('.sidebar').classList.remove('active');
-            document.getElementById('overlay').classList.remove('active');
-        });
-
-        // Navigation Tabs
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                
-                // Remove active class from all nav items
-                document.querySelectorAll('.nav-item').forEach(nav => {
-                    nav.classList.remove('active');
-                });
-                
-                // Add active class to clicked nav item
-                item.classList.add('active');
-                
-                // Hide all tab contents
-                document.querySelectorAll('.tab-content').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                // Show selected tab content
-                const tabId = item.getAttribute('data-tab');
-                document.getElementById(tabId).classList.add('active');
-                
-                // Update page title and subtitle
-                updatePageTitle(tabId);
-                
-                // Load data for the selected tab
-                if (tabId === 'dashboard') {
-                    loadDashboardData();
-                } else if (tabId === 'products') {
-                    loadProducts();
-                } else if (tabId === 'transactions') {
-                    loadTransactions();
-                } else if (tabId === 'payments') {
-                    loadPendingPayments();
-                } else if (tabId === 'customers') {
-                    loadCustomers();
-                }
-                
-                // Close mobile sidebar if open
-                document.querySelector('.sidebar').classList.remove('active');
-                document.getElementById('overlay').classList.remove('active');
-            });
-        });
-
-        // Update Page Title Based on Active Tab
-        function updatePageTitle(tabId) {
-            const titles = {
-                'dashboard': { title: 'Dashboard', subtitle: 'Ringkasan aktivitas toko digital' },
-                'products': { title: 'Manajemen Produk', subtitle: 'Kelola produk digital di toko Anda' },
-                'transactions': { title: 'Manajemen Transaksi', subtitle: 'Lihat dan kelola semua transaksi' },
-                'payments': { title: 'Manajemen Pembayaran', subtitle: 'Kelola metode pembayaran dan konfirmasi' },
-                'customers': { title: 'Manajemen Pelanggan', subtitle: 'Data semua pelanggan VLDigital' },
-                'settings': { title: 'Pengaturan', subtitle: 'Kelola pengaturan toko digital Anda' }
-            };
-            
-            document.getElementById('pageTitle').textContent = titles[tabId].title;
-            document.getElementById('pageSubtitle').textContent = titles[tabId].subtitle;
-        }
-
-        // Add Product Modal
-        document.getElementById('addProductBtn').addEventListener('click', () => {
-            document.getElementById('addProductModal').classList.add('active');
-        });
-
-        document.getElementById('cancelAddProduct').addEventListener('click', () => {
-            document.getElementById('addProductModal').classList.remove('active');
-            document.getElementById('addProductForm').reset();
-        });
-
-        // Add Product Form Handler
-        document.getElementById('addProductForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const productData = {
-                name: document.getElementById('productName').value,
-                category: document.getElementById('productCategory').value,
-                description: document.getElementById('productDescription').value,
-                price: parseInt(document.getElementById('productPrice').value),
-                stock: parseInt(document.getElementById('productStock').value),
-                status: 'active',
-                sales: 0,
-                createdAt: new Date()
-            };
-            
-            // Add to Firestore
-            db.collection("products").add(productData)
-                .then(() => {
-                    showNotification('Produk berhasil ditambahkan!', 'success');
-                    document.getElementById('addProductModal').classList.remove('active');
-                    document.getElementById('addProductForm').reset();
-                })
-                .catch((error) => {
-                    console.error("Error adding product: ", error);
-                    showNotification('Gagal menambahkan produk!', 'error');
-                });
-        });
-
-        // Payment Configuration Modal
-        document.getElementById('configurePaymentBtn').addEventListener('click', () => {
-            document.getElementById('paymentConfigModal').classList.add('active');
-            // Load current settings to form
-            document.getElementById('adminFee').value = paymentSettings.adminFee;
-            document.getElementById('bankName').value = paymentSettings.bankName;
-            document.getElementById('accountNumber').value = paymentSettings.accountNumber;
-            document.getElementById('accountName').value = paymentSettings.accountName;
-            document.getElementById('qrisCode').value = paymentSettings.qrisCode;
-        });
-
-        document.getElementById('cancelPaymentConfig').addEventListener('click', () => {
-            document.getElementById('paymentConfigModal').classList.remove('active');
-        });
-
-        // Payment Configuration Form Handler
-        document.getElementById('paymentConfigForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            paymentSettings = {
-                adminFee: parseInt(document.getElementById('adminFee').value),
-                bankName: document.getElementById('bankName').value,
-                accountNumber: document.getElementById('accountNumber').value,
-                accountName: document.getElementById('accountName').value,
-                qrisCode: document.getElementById('qrisCode').value
-            };
-            
-            // Save to Firestore
-            db.collection("settings").doc("payment").set(paymentSettings)
-                .then(() => {
-                    showNotification('Konfigurasi pembayaran berhasil disimpan!', 'success');
-                    document.getElementById('paymentConfigModal').classList.remove('active');
-                })
-                .catch((error) => {
-                    console.error("Error saving payment settings: ", error);
-                    showNotification('Gagal menyimpan konfigurasi pembayaran!', 'error');
-                });
-        });
-
-        // Load Payment Settings
-        function loadPaymentSettings() {
-            // Already handled by the onSnapshot listener
-        }
-
-        // Transaction Filter
-        document.getElementById('transactionFilter').addEventListener('change', (e) => {
-            loadTransactions(e.target.value);
-        });
-
-        // Customer Search
-        document.getElementById('customerSearch').addEventListener('input', (e) => {
-            filterCustomers(e.target.value);
-        });
-
-        // Store Settings Form
-        document.getElementById('storeSettingsForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const storeSettings = {
-                storeName: document.getElementById('storeName').value,
-                storeEmail: document.getElementById('storeEmail').value,
-                storeDescription: document.getElementById('storeDescription').value,
-                storeAddress: document.getElementById('storeAddress').value,
-                storePhone: document.getElementById('storePhone').value,
-                storeWebsite: document.getElementById('storeWebsite').value
-            };
-            
-            // Save to Firestore
-            db.collection("settings").doc("store").set(storeSettings)
-                .then(() => {
-                    showNotification('Pengaturan toko berhasil disimpan!', 'success');
-                })
-                .catch((error) => {
-                    console.error("Error saving store settings: ", error);
-                    showNotification('Gagal menyimpan pengaturan toko!', 'error');
-                });
-        });
-
-        // Load Dashboard Data
-        function loadDashboardData() {
-            // Calculate stats from actual data
-            const totalRevenue = transactions
-                .filter(t => t.status === 'completed')
-                .reduce((sum, t) => sum + t.amount, 0);
-                
-            const totalProducts = products.length;
-            const totalTransactions = transactions.length;
-            const newCustomers = customers.filter(c => {
-                const oneWeekAgo = new Date();
-                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-                return new Date(c.registered) > oneWeekAgo;
-            }).length;
-            
-            // Update stats
-            document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
-            document.getElementById('totalProducts').textContent = totalProducts;
-            document.getElementById('totalTransactions').textContent = totalTransactions;
-            document.getElementById('newCustomers').textContent = newCustomers;
-            
-            // Update recent transactions
-            const recentTransactions = transactions
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5);
-                
-            const transactionsHTML = recentTransactions.length > 0 
-                ? recentTransactions.map(transaction => `
-                    <tr class="table-row border-b border-gray-100">
-                        <td class="py-4 px-6 font-medium">${transaction.id}</td>
-                        <td class="py-4 px-6">${transaction.customer}</td>
-                        <td class="py-4 px-6">${transaction.product}</td>
-                        <td class="py-4 px-6 font-medium">${formatCurrency(transaction.amount)}</td>
-                        <td class="py-4 px-6">
-                            <span class="px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(transaction.status)}">
-                                ${getStatusText(transaction.status)}
-                            </span>
-                        </td>
-                        <td class="py-4 px-6 text-gray-500">${formatDate(transaction.date)}</td>
-                    </tr>
-                `).join('')
-                : `<tr><td colspan="6" class="py-8 text-center text-gray-500">Tidak ada transaksi</td></tr>`;
-                
-            document.getElementById('recentTransactions').innerHTML = transactionsHTML;
-            
-            // Update popular products
-            const popularProducts = products
-                .sort((a, b) => (b.sales || 0) - (a.sales || 0))
-                .slice(0, 3);
-                
-            const productsHTML = popularProducts.length > 0
-                ? popularProducts.map(product => `
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="font-bold text-gray-800">${product.name}</h4>
-                        <div class="flex justify-between mt-2 text-sm">
-                            <span class="text-gray-600">${product.sales || 0} terjual</span>
-                            <span class="font-medium text-purple-600">${formatCurrency(product.price * (product.sales || 0))}</span>
+            // Build detail content
+            const detailContent = document.getElementById('detailContent');
+            detailContent.innerHTML = `
+                <div class="mb-6">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4">
+                    <h2 class="text-xl font-bold mb-2">${product.name}</h2>
+                    <div class="flex items-center mb-4">
+                        <div class="flex text-yellow-400">
+                            ${getStarRating(product.rating)}
                         </div>
+                        <span class="text-gray-500 text-sm ml-2">(${product.reviewCount} ulasan)</span>
                     </div>
-                `).join('')
-                : `<div class="col-span-full py-8 text-center text-gray-500">Tidak ada produk</div>`;
-                
-            document.getElementById('popularProducts').innerHTML = productsHTML;
-        }
-
-        // Load Products
-        function loadProducts() {
-            const productsHTML = products.length > 0 
-                ? products.map(product => `
-                    <tr class="table-row border-b border-gray-100">
-                        <td class="py-4 px-6 font-medium">${product.name}</td>
-                        <td class="py-4 px-6">
-                            <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">${product.category}</span>
-                        </td>
-                        <td class="py-4 px-6 font-medium">${formatCurrency(product.price)}</td>
-                        <td class="py-4 px-6">
-                            <span class="px-3 py-1 rounded-full text-xs font-medium ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                                ${product.status === 'active' ? 'Aktif' : 'Nonaktif'}
-                            </span>
-                        </td>
-                        <td class="py-4 px-6">${product.sales || 0}</td>
-                        <td class="py-4 px-6">
-                            <div class="flex space-x-2">
-                                <button class="text-blue-600 hover:text-blue-800 edit-product" data-id="${product.id}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-800 delete-product" data-id="${product.id}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('')
-                : `<tr><td colspan="6" class="py-8 text-center text-gray-500">Tidak ada produk</td></tr>`;
-                
-            document.getElementById('productsTable').innerHTML = productsHTML;
-            
-            // Add event listeners to edit and delete buttons
-            document.querySelectorAll('.edit-product').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const productId = e.target.closest('button').getAttribute('data-id');
-                    editProduct(productId);
-                });
-            });
-            
-            document.querySelectorAll('.delete-product').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const productId = e.target.closest('button').getAttribute('data-id');
-                    deleteProduct(productId);
-                });
-            });
-        }
-
-        // Edit Product
-        function editProduct(productId) {
-            const product = products.find(p => p.id === productId);
-            if (product) {
-                // Fill the form with product data
-                document.getElementById('productName').value = product.name;
-                document.getElementById('productCategory').value = product.category;
-                document.getElementById('productDescription').value = product.description;
-                document.getElementById('productPrice').value = product.price;
-                document.getElementById('productStock').value = product.stock;
-                
-                // Change modal title and button text
-                document.querySelector('#addProductModal .modal-content h3').textContent = 'Edit Produk';
-                document.querySelector('#addProductForm button[type="submit"]').textContent = 'Update Produk';
-                
-                // Set data-id to form for tracking which product is being edited
-                document.getElementById('addProductForm').setAttribute('data-edit-id', productId);
-                
-                // Show modal
-                document.getElementById('addProductModal').classList.add('active');
-            }
-        }
-
-        // Update the add product form to handle both add and edit
-        document.getElementById('addProductForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const productData = {
-                name: document.getElementById('productName').value,
-                category: document.getElementById('productCategory').value,
-                description: document.getElementById('productDescription').value,
-                price: parseInt(document.getElementById('productPrice').value),
-                stock: parseInt(document.getElementById('productStock').value),
-                updatedAt: new Date()
-            };
-            
-            const editId = this.getAttribute('data-edit-id');
-            
-            if (editId) {
-                // Update existing product
-                db.collection("products").doc(editId).update(productData)
-                    .then(() => {
-                        showNotification('Produk berhasil diupdate!', 'success');
-                        document.getElementById('addProductModal').classList.remove('active');
-                        this.reset();
-                        this.removeAttribute('data-edit-id');
-                        // Reset modal title and button
-                        document.querySelector('#addProductModal .modal-content h3').textContent = 'Tambah Produk Baru';
-                        document.querySelector('#addProductForm button[type="submit"]').textContent = 'Simpan Produk';
-                    })
-                    .catch((error) => {
-                        console.error("Error updating product: ", error);
-                        showNotification('Gagal mengupdate produk!', 'error');
-                    });
-            } else {
-                // Add new product
-                productData.status = 'active';
-                productData.sales = 0;
-                productData.createdAt = new Date();
-                
-                db.collection("products").add(productData)
-                    .then(() => {
-                        showNotification('Produk berhasil ditambahkan!', 'success');
-                        document.getElementById('addProductModal').classList.remove('active');
-                        this.reset();
-                    })
-                    .catch((error) => {
-                        console.error("Error adding product: ", error);
-                        showNotification('Gagal menambahkan produk!', 'error');
-                    });
-            }
-        });
-
-        // Reset form when cancel button is clicked
-        document.getElementById('cancelAddProduct').addEventListener('click', function() {
-            document.getElementById('addProductForm').reset();
-            document.getElementById('addProductForm').removeAttribute('data-edit-id');
-            document.querySelector('#addProductModal .modal-content h3').textContent = 'Tambah Produk Baru';
-            document.querySelector('#addProductForm button[type="submit"]').textContent = 'Simpan Produk';
-        });
-
-        // Delete Product
-        function deleteProduct(productId) {
-            if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-                db.collection("products").doc(productId).delete()
-                    .then(() => {
-                        showNotification('Produk berhasil dihapus!', 'success');
-                    })
-                    .catch((error) => {
-                        console.error("Error deleting product: ", error);
-                        showNotification('Gagal menghapus produk!', 'error');
-                    });
-            }
-        }
-
-        // Load Transactions
-        function loadTransactions(filter = 'all') {
-            let filteredTransactions = transactions;
-            
-            // Apply filter if not 'all'
-            if (filter !== 'all') {
-                filteredTransactions = transactions.filter(transaction => transaction.status === filter);
-            }
-            
-            const transactionsHTML = filteredTransactions.length > 0
-                ? filteredTransactions.map(transaction => `
-                    <tr class="table-row border-b border-gray-100">
-                        <td class="py-4 px-6 font-medium">${transaction.id}</td>
-                        <td class="py-4 px-6">${transaction.customer}</td>
-                        <td class="py-4 px-6">${transaction.product}</td>
-                        <td class="py-4 px-6 font-medium">${formatCurrency(transaction.amount)}</td>
-                        <td class="py-4 px-6">
-                            <span class="px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(transaction.status)}">
-                                ${getStatusText(transaction.status)}
-                            </span>
-                        </td>
-                        <td class="py-4 px-6 text-gray-500">${formatDate(transaction.date)}</td>
-                        <td class="py-4 px-6">
-                            <button class="text-purple-600 hover:text-purple-800 font-medium view-transaction" data-id="${transaction.id}">
-                                Lihat
-                            </button>
-                        </td>
-                    </tr>
-                `).join('')
-                : `<tr><td colspan="7" class="py-8 text-center text-gray-500">Tidak ada transaksi</td></tr>`;
-                
-            document.getElementById('transactionsTable').innerHTML = transactionsHTML;
-            
-            // Add event listeners to view transaction buttons
-            document.querySelectorAll('.view-transaction').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const transactionId = e.target.getAttribute('data-id');
-                    viewTransactionDetail(transactionId);
-                });
-            });
-        }
-
-        // Load Pending Payments
-        function loadPendingPayments() {
-            const pendingPayments = transactions.filter(t => t.status === 'pending');
-            
-            const paymentsHTML = pendingPayments.length > 0
-                ? pendingPayments.map(payment => `
-                    <tr class="border-b border-gray-100">
-                        <td class="py-4 px-6 font-medium">${payment.id}</td>
-                        <td class="py-4 px-6">${payment.paymentMethod || 'Transfer Bank'}</td>
-                        <td class="py-4 px-6 font-medium">${formatCurrency(payment.amount)}</td>
-                        <td class="py-4 px-6 text-gray-500">${formatDate(payment.date)}</td>
-                        <td class="py-4 px-6">
-                            <div class="flex space-x-2">
-                                <button class="text-green-600 hover:text-green-800 font-medium text-sm confirm-payment" data-id="${payment.id}">
-                                    Konfirmasi
-                                </button>
-                                <button class="text-red-600 hover:text-red-800 font-medium text-sm reject-payment" data-id="${payment.id}">
-                                    Tolak
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('')
-                : `<tr><td colspan="5" class="py-8 text-center text-gray-500">Tidak ada pembayaran menunggu konfirmasi</td></tr>`;
-                
-            document.getElementById('pendingPayments').innerHTML = paymentsHTML;
-            
-            // Add event listeners to payment action buttons
-            document.querySelectorAll('.confirm-payment').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const transactionId = e.target.getAttribute('data-id');
-                    confirmPayment(transactionId);
-                });
-            });
-            
-            document.querySelectorAll('.reject-payment').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const transactionId = e.target.getAttribute('data-id');
-                    rejectPayment(transactionId);
-                });
-            });
-        }
-
-        // Confirm Payment
-        function confirmPayment(transactionId) {
-            db.collection("transactions").doc(transactionId).update({
-                status: 'paid',
-                updatedAt: new Date()
-            })
-            .then(() => {
-                showNotification('Pembayaran berhasil dikonfirmasi!', 'success');
-            })
-            .catch((error) => {
-                console.error("Error confirming payment: ", error);
-                showNotification('Gagal mengonfirmasi pembayaran!', 'error');
-            });
-        }
-
-        // Reject Payment
-        function rejectPayment(transactionId) {
-            if (confirm('Apakah Anda yakin ingin menolak pembayaran ini?')) {
-                db.collection("transactions").doc(transactionId).update({
-                    status: 'cancelled',
-                    updatedAt: new Date()
-                })
-                .then(() => {
-                    showNotification('Pembayaran telah ditolak!', 'success');
-                })
-                .catch((error) => {
-                    console.error("Error rejecting payment: ", error);
-                    showNotification('Gagal menolak pembayaran!', 'error');
-                });
-            }
-        }
-
-        // Load Customers
-        function loadCustomers() {
-            const customersHTML = customers.length > 0
-                ? customers.map(customer => `
-                    <tr class="table-row border-b border-gray-100">
-                        <td class="py-4 px-6 font-medium">${customer.name}</td>
-                        <td class="py-4 px-6">${customer.email}</td>
-                        <td class="py-4 px-6">${customer.phone}</td>
-                        <td class="py-4 px-6">${customer.transactions}</td>
-                        <td class="py-4 px-6 font-medium">${formatCurrency(customer.total)}</td>
-                        <td class="py-4 px-6 text-gray-500">${formatDate(customer.registered)}</td>
-                    </tr>
-                `).join('')
-                : `<tr><td colspan="6" class="py-8 text-center text-gray-500">Tidak ada pelanggan</td></tr>`;
-                
-            document.getElementById('customersTable').innerHTML = customersHTML;
-        }
-
-        // Filter Customers
-        function filterCustomers(searchTerm) {
-            const filteredCustomers = customers.filter(customer => 
-                customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            
-            const customersHTML = filteredCustomers.length > 0
-                ? filteredCustomers.map(customer => `
-                    <tr class="table-row border-b border-gray-100">
-                        <td class="py-4 px-6 font-medium">${customer.name}</td>
-                        <td class="py-4 px-6">${customer.email}</td>
-                        <td class="py-4 px-6">${customer.phone}</td>
-                        <td class="py-4 px-6">${customer.transactions}</td>
-                        <td class="py-4 px-6 font-medium">${formatCurrency(customer.total)}</td>
-                        <td class="py-4 px-6 text-gray-500">${formatDate(customer.registered)}</td>
-                    </tr>
-                `).join('')
-                : `<tr><td colspan="6" class="py-8 text-center text-gray-500">Tidak ada pelanggan yang sesuai</td></tr>`;
-                
-            document.getElementById('customersTable').innerHTML = customersHTML;
-        }
-
-        // View Transaction Detail
-        function viewTransactionDetail(transactionId) {
-            const transaction = transactions.find(t => t.id === transactionId);
-            if (!transaction) {
-                showNotification('Transaksi tidak ditemukan!', 'error');
-                return;
-            }
-            
-            const detailHTML = `
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-gray-600">ID Transaksi</p>
-                            <p class="font-medium">${transaction.id}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600">Tanggal</p>
-                            <p class="font-medium">${formatDate(transaction.date)}</p>
-                        </div>
+                    <div class="flex items-center mb-4">
+                        <span class="text-primary font-bold text-xl">${product.price}</span>
+                        ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2">${product.originalPrice}</span>` : ''}
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-gray-600">Pelanggan</p>
-                            <p class="font-medium">${transaction.customerName || transaction.customer}</p>
-                            <p class="text-sm text-gray-500">${transaction.customer}</p>
-                            <p class="text-sm text-gray-500">${transaction.customerPhone || '-'}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600">Status</p>
-                            <span class="px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(transaction.status)}">
-                                ${getStatusText(transaction.status)}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <p class="text-gray-600">Produk</p>
-                        <p class="font-medium">${transaction.product}</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-gray-600">Total Pembayaran</p>
-                            <p class="font-medium text-lg">${formatCurrency(transaction.amount)}</p>
-                        </div>
-                        <div>
-                            <p class="text-gray-600">Metode Pembayaran</p>
-                            <p class="font-medium">${transaction.paymentMethod || 'Transfer Bank'}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="pt-4 border-t border-gray-200 flex justify-end space-x-3">
-                        <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-300 print-invoice" data-id="${transaction.id}">
-                            Cetak Invoice
-                        </button>
-                        ${transaction.status === 'paid' ? `
-                            <button class="bg-purple-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors duration-300 send-product" data-id="${transaction.id}">
-                                Kirim Produk
-                            </button>
-                        ` : ''}
-                    </div>
+                    <p class="text-gray-700 mb-4">${product.description}</p>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Fitur Utama:</h3>
+                    <ul class="list-disc pl-5 text-gray-700">
+                        ${product.features.map(feature => `<li class="mb-1">${feature}</li>`).join('')}
+                    </ul>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Kategori:</h3>
+                    <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${product.category}</span>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <button class="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-dark flex-1 flex items-center justify-center">
+                        <i class="fas fa-shopping-cart mr-2"></i> Tambah ke Keranjang
+                    </button>
+                    <button class="bg-secondary text-white px-6 py-3 rounded-lg font-medium hover:bg-red-600">
+                        <i class="fas fa-heart"></i>
+                    </button>
                 </div>
             `;
             
-            document.getElementById('transactionDetailContent').innerHTML = detailHTML;
-            document.getElementById('transactionDetailModal').classList.add('active');
+            // Show detail panel with animation
+            const panel = document.getElementById('productDetail');
+            const detailPanel = panel.querySelector('.detail-panel');
             
-            // Add event listeners to action buttons in modal
-            document.querySelector('.print-invoice').addEventListener('click', () => {
-                showNotification('Fitur cetak invoice akan segera tersedia!', 'info');
-            });
-            
-            const sendProductBtn = document.querySelector('.send-product');
-            if (sendProductBtn) {
-                sendProductBtn.addEventListener('click', (e) => {
-                    const id = e.target.getAttribute('data-id');
-                    sendProduct(id);
-                });
-            }
-        }
-
-        // Send Product
-        function sendProduct(transactionId) {
-            db.collection("transactions").doc(transactionId).update({
-                status: 'completed',
-                updatedAt: new Date()
-            })
-            .then(() => {
-                showNotification('Produk berhasil dikirim ke pelanggan!', 'success');
-                document.getElementById('transactionDetailModal').classList.remove('active');
-            })
-            .catch((error) => {
-                console.error("Error sending product: ", error);
-                showNotification('Gagal mengirim produk!', 'error');
-            });
-        }
-
-        // Close Transaction Detail Modal
-        document.getElementById('closeTransactionDetail').addEventListener('click', () => {
-            document.getElementById('transactionDetailModal').classList.remove('active');
-        });
-
-        // Helper Functions
-        function getStatusClass(status) {
-            const statusClasses = {
-                'pending': 'bg-yellow-100 text-yellow-800',
-                'paid': 'bg-blue-100 text-blue-800',
-                'completed': 'bg-green-100 text-green-800',
-                'cancelled': 'bg-red-100 text-red-800'
-            };
-            return statusClasses[status] || 'bg-gray-100 text-gray-800';
-        }
-
-        function getStatusText(status) {
-            const statusTexts = {
-                'pending': 'Menunggu',
-                'paid': 'Dibayar',
-                'completed': 'Selesai',
-                'cancelled': 'Dibatalkan'
-            };
-            return statusTexts[status] || status;
-        }
-
-        function formatCurrency(amount) {
-            return 'Rp ' + amount.toLocaleString('id-ID');
-        }
-
-        function formatDate(dateString) {
-            const options = { day: 'numeric', month: 'short', year: 'numeric' };
-            return new Date(dateString).toLocaleDateString('id-ID', options);
-        }
-
-        // Notification Function
-        function showNotification(message, type = 'info') {
-            const notification = document.getElementById('notification');
-            const notificationIcon = document.getElementById('notificationIcon');
-            const notificationMessage = document.getElementById('notificationMessage');
-            
-            // Set notification content and style
-            notificationMessage.textContent = message;
-            notification.className = 'notification';
-            notification.classList.add(type);
-            
-            // Set icon based on type
-            if (type === 'success') {
-                notificationIcon.className = 'fas fa-check-circle mr-2';
-            } else if (type === 'error') {
-                notificationIcon.className = 'fas fa-exclamation-circle mr-2';
-            } else {
-                notificationIcon.className = 'fas fa-info-circle mr-2';
-            }
-            
-            // Show notification
-            notification.classList.add('show');
-            
-            // Hide after 5 seconds
+            panel.classList.remove('hidden');
             setTimeout(() => {
-                notification.classList.remove('show');
-            }, 5000);
+                detailPanel.classList.remove('translate-x-full');
+            }, 10);
         }
 
-        // Initialize the dashboard when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize with sample data if collections are empty
-            initializeSampleData();
+        // Hide product detail
+        function hideProductDetail() {
+            const panel = document.getElementById('productDetail');
+            const detailPanel = panel.querySelector('.detail-panel');
             
-            // Check if user is already logged in
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    document.getElementById('loginModal').classList.add('hidden');
-                    document.getElementById('adminPanel').classList.remove('hidden');
-                    document.getElementById('adminName').textContent = user.email;
-                    setupFirestoreListeners();
-                }
-            });
+            detailPanel.classList.add('translate-x-full');
+            setTimeout(() => {
+                panel.classList.add('hidden');
+                // Reset URL to home
+                history.pushState({}, '', '/');
+            }, 300);
+        }
+
+        // Helper function to generate star rating
+        function getStarRating(rating) {
+            let stars = '';
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 !== 0;
+            
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+            
+            if (hasHalfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+            
+            const emptyStars = 5 - Math.ceil(rating);
+            for (let i = 0; i < emptyStars; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+            
+            return stars;
+        }
+
+        // Handle browser back button
+        window.addEventListener('popstate', function(event) {
+            if (!event.state || !event.state.productId) {
+                hideProductDetail();
+            }
         });
-
-        // Initialize Sample Data
-        function initializeSampleData() {
-            // Check if products collection is empty and add sample data
-            db.collection("products").get().then((snapshot) => {
-                if (snapshot.empty) {
-                    const sampleProducts = [
-                        {
-                            name: "Template Website Portfolio",
-                            category: "template",
-                            description: "Template website portfolio modern dengan desain responsif",
-                            price: 150000,
-                            stock: 9999,
-                            status: "active",
-                            sales: 12,
-                            createdAt: new Date()
-                        },
-                        {
-                            name: "E-Book Panduan Digital Marketing",
-                            category: "ebook",
-                            description: "Panduan lengkap digital marketing untuk pemula",
-                            price: 75000,
-                            stock: 9999,
-                            status: "active",
-                            sales: 8,
-                            createdAt: new Date()
-                        },
-                        {
-                            name: "Kursus JavaScript Modern",
-                            category: "course",
-                            description: "Kursus online JavaScript dari dasar hingga mahir",
-                            price: 300000,
-                            stock: 9999,
-                            status: "active",
-                            sales: 5,
-                            createdAt: new Date()
-                        }
-                    ];
-                    
-                    sampleProducts.forEach(product => {
-                        db.collection("products").add(product);
-                    });
-                }
-            });
-            
-            // Check if transactions collection is empty and add sample data
-            db.collection("transactions").get().then((snapshot) => {
-                if (snapshot.empty) {
-                    const sampleTransactions = [
-                        {
-                            id: "TRX001",
-                            customer: "Budi Santoso",
-                            customerEmail: "budi@email.com",
-                            product: "Template Website Portfolio",
-                            amount: 150000,
-                            status: "completed",
-                            date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-                            paymentMethod: "Transfer Bank",
-                            createdAt: new Date()
-                        },
-                        {
-                            id: "TRX002",
-                            customer: "Sari Indah",
-                            customerEmail: "sari@email.com",
-                            product: "E-Book Panduan Digital Marketing",
-                            amount: 75000,
-                            status: "paid",
-                            date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-                            paymentMethod: "E-Wallet",
-                            createdAt: new Date()
-                        },
-                        {
-                            id: "TRX003",
-                            customer: "Ahmad Rizki",
-                            customerEmail: "ahmad@email.com",
-                            product: "Kursus JavaScript Modern",
-                            amount: 300000,
-                            status: "pending",
-                            date: new Date(),
-                            paymentMethod: "Transfer Bank",
-                            createdAt: new Date()
-                        }
-                    ];
-                    
-                    sampleTransactions.forEach(transaction => {
-                        db.collection("transactions").add(transaction);
-                    });
-                }
-            });
-            
-            // Check if customers collection is empty and add sample data
-            db.collection("customers").get().then((snapshot) => {
-                if (snapshot.empty) {
-                    const sampleCustomers = [
-                        {
-                            name: "Budi Santoso",
-                            email: "budi@email.com",
-                            phone: "081234567890",
-                            transactions: 3,
-                            total: 450000,
-                            registered: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-                        },
-                        {
-                            name: "Sari Indah",
-                            email: "sari@email.com",
-                            phone: "081234567891",
-                            transactions: 2,
-                            total: 150000,
-                            registered: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
-                        },
-                        {
-                            name: "Ahmad Rizki",
-                            email: "ahmad@email.com",
-                            phone: "081234567892",
-                            transactions: 1,
-                            total: 300000,
-                            registered: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-                        }
-                    ];
-                    
-                    sampleCustomers.forEach(customer => {
-                        db.collection("customers").add(customer);
-                    });
-                }
-            });
-        }
     </script>
 </body>
 </html>
