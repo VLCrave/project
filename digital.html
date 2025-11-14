@@ -3,74 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLDigital - Toko Produk Digital</title>
+    <title>VLDigital - Premium Digital Products</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#3b82f6',
-                        'primary-dark': '#1d4ed8',
-                        secondary: '#ef4444',
-                        dark: '#1f2937',
-                        light: '#f9fafb',
-                        gray: '#6b7280',
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                        },
+                        secondary: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                        },
+                        dark: {
+                            50: '#f9fafb',
+                            100: '#f3f4f6',
+                            800: '#1f2937',
+                            900: '#111827',
+                        },
+                        accent: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                        },
+                        gold: '#fbbf24',
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.6s ease-in-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'slide-in-right': 'slideInRight 0.4s ease-out',
+                        'bounce-slow': 'bounce 3s infinite',
+                        'pulse-slow': 'pulse 4s infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'shimmer': 'shimmer 2s infinite linear',
+                    },
+                    boxShadow: {
+                        'glow': '0 0 20px rgba(99, 102, 241, 0.3)',
+                        'glow-lg': '0 0 30px rgba(99, 102, 241, 0.4)',
                     }
                 }
             }
         }
     </script>
-    <style>
-        .product-card {
-            transition: all 0.3s ease;
+    <style type="text/tailwindcss">
+        @layer utilities {
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes slideUp {
+                from { transform: translateY(30px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes float {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+            @keyframes shimmer {
+                0% { background-position: -1000px 0; }
+                100% { background-position: 1000px 0; }
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .shimmer-effect {
+                background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+                background-size: 1000px 100%;
+                animation: shimmer 2s infinite linear;
+            }
+            .glass-effect {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
         }
-        .product-card:hover {
-            transform: translateY(-5px);
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
-        .detail-panel {
-            transition: transform 0.4s ease;
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
         }
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
+        ::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 10px;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
-        .category-active {
-            background-color: #3b82f6 !important;
-            color: white !important;
+        
+        /* Selection color */
+        ::selection {
+            background-color: rgba(99, 102, 241, 0.2);
         }
+        
+        /* Hide scrollbar for category container */
         .hide-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
         .hide-scrollbar::-webkit-scrollbar {
-            display: none; /* Chrome, Safari and Opera */
+            display: none;
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="font-inter bg-gradient-to-br from-dark-50 via-white to-primary-50 min-h-screen">
     <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-10">
+    <header class="sticky top-0 z-50 glass-effect border-b border-white/20">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center py-4">
-                <div class="flex items-center">
-                    <i class="fas fa-cube text-primary text-2xl mr-2"></i>
-                    <h1 class="text-xl font-bold text-dark">VLDigital</h1>
-                </div>
+                <!-- Logo -->
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="bg-gradient-to-r from-primary-500 to-primary-700 p-2 rounded-xl shadow-glow group-hover:shadow-glow-lg transition-all duration-300">
+                        <i class="fas fa-cube text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">VLDigital</h1>
+                        <p class="text-xs text-gray-500 -mt-1">Premium Digital Products</p>
+                    </div>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#" class="text-dark-800 font-medium hover:text-primary-600 transition-all duration-300 relative group">
+                        Beranda
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-500 group-hover:w-full transition-all duration-300"></span>
+                    </a>
+                    <a href="#" class="text-dark-800 font-medium hover:text-primary-600 transition-all duration-300 relative group">
+                        Produk
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-500 group-hover:w-full transition-all duration-300"></span>
+                    </a>
+                    <a href="#" class="text-dark-800 font-medium hover:text-primary-600 transition-all duration-300 relative group">
+                        Kategori
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-500 group-hover:w-full transition-all duration-300"></span>
+                    </a>
+                    <a href="#" class="text-dark-800 font-medium hover:text-primary-600 transition-all duration-300 relative group">
+                        Testimoni
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-primary-500 group-hover:w-full transition-all duration-300"></span>
+                    </a>
+                </nav>
+
+                <!-- Icons & CTA -->
                 <div class="flex items-center space-x-4">
-                    <button class="text-gray-600 hover:text-primary">
-                        <i class="fas fa-search"></i>
+                    <button class="hidden md:flex items-center text-dark-600 hover:text-primary-600 transition-colors duration-300">
+                        <i class="fas fa-search mr-2"></i>
                     </button>
-                    <button class="text-gray-600 hover:text-primary relative">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="absolute -top-2 -right-2 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                    <button class="hidden md:flex items-center text-dark-600 hover:text-primary-600 transition-colors duration-300 relative">
+                        <i class="fas fa-heart mr-2"></i>
+                        <span class="absolute -top-2 -right-2 bg-secondary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">3</span>
                     </button>
-                    <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark">
-                        <i class="fas fa-user mr-1"></i> Masuk
+                    <a href="#contact" class="bg-gradient-to-r from-primary-500 to-primary-700 text-white px-5 py-2.5 rounded-xl font-medium hover:shadow-glow transition-all duration-300 flex items-center">
+                        <i class="fas fa-paper-plane mr-2"></i> Hubungi Kami
+                    </a>
+                    <button class="md:hidden text-dark-800 text-xl">
+                        <i class="fas fa-bars"></i>
                     </button>
                 </div>
             </div>
@@ -78,66 +186,349 @@
     </header>
 
     <!-- Hero Section -->
-    <section class="bg-gradient-to-r from-primary to-blue-700 text-white py-12">
-        <div class="container mx-auto px-4 text-center">
-            <h2 class="text-3xl font-bold mb-4">Produk Digital Berkualitas</h2>
-            <p class="text-lg mb-6 max-w-2xl mx-auto">Temukan berbagai produk digital terbaik dengan harga terjangkau. Download instan setelah pembayaran.</p>
-            <div class="flex justify-center space-x-4">
-                <button class="bg-white text-primary px-6 py-2 rounded-lg font-medium hover:bg-gray-100">
-                    <i class="fas fa-shopping-bag mr-2"></i> Beli Sekarang
-                </button>
-                <button class="bg-transparent border border-white text-white px-6 py-2 rounded-lg font-medium hover:bg-white hover:text-primary">
-                    <i class="fas fa-play-circle mr-2"></i> Lihat Demo
-                </button>
+    <section class="gradient-bg text-white py-16 md:py-24 overflow-hidden relative">
+        <!-- Animated Background Elements -->
+        <div class="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full animate-float"></div>
+        <div class="absolute bottom-20 right-20 w-16 h-16 bg-white/10 rounded-full animate-float" style="animation-delay: 2s;"></div>
+        <div class="absolute top-1/3 right-1/4 w-12 h-12 bg-white/10 rounded-full animate-float" style="animation-delay: 4s;"></div>
+        
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="md:w-1/2 mb-10 md:mb-0 animate-slide-up">
+                    <div class="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
+                        <span class="w-2 h-2 bg-accent-500 rounded-full mr-2 animate-pulse"></span>
+                        <span class="text-sm">Produk Digital Terlengkap & Berkualitas</span>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                        Tingkatkan 
+                        <span class="bg-gradient-to-r from-accent-400 to-gold bg-clip-text text-transparent">Kreativitas</span> 
+                        Anda dengan Produk Digital Premium
+                    </h1>
+                    <p class="text-lg md:text-xl mb-8 text-white/90 max-w-2xl">
+                        Dapatkan akses ke koleksi produk digital terbaik untuk kebutuhan bisnis, kreativitas, dan pengembangan skill Anda. Download instan setelah pembayaran.
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="#products" class="bg-white text-primary-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex items-center">
+                            <i class="fas fa-rocket mr-2"></i> Jelajahi Produk
+                        </a>
+                        <a href="#how-to-buy" class="bg-transparent border-2 border-white text-white px-6 py-3 rounded-xl font-semibold hover:bg-white hover:text-primary-600 transition-all duration-300 flex items-center">
+                            <i class="fas fa-play-circle mr-2"></i> Cara Pembelian
+                        </a>
+                    </div>
+                    
+                    <div class="flex items-center mt-10 space-x-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">500+</div>
+                            <div class="text-sm text-white/80">Produk Digital</div>
+                        </div>
+                        <div class="h-10 w-px bg-white/30"></div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">10K+</div>
+                            <div class="text-sm text-white/80">Pelanggan</div>
+                        </div>
+                        <div class="h-10 w-px bg-white/30"></div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold">4.9/5</div>
+                            <div class="text-sm text-white/80">Rating</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center animate-fade-in">
+                    <div class="relative">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-3xl p-6 shadow-2xl transform rotate-3 transition-transform duration-500 hover:rotate-0">
+                            <div class="bg-white rounded-2xl p-4 shadow-xl overflow-hidden">
+                                <img src="https://cdn.pixabay.com/photo/2021/08/04/13/06/software-development-6521720_1280.jpg" alt="Digital Product" class="rounded-xl w-full h-64 object-cover transform transition-transform duration-700 hover:scale-105">
+                            </div>
+                        </div>
+                        <!-- Floating Elements -->
+                        <div class="absolute -top-4 -left-4 bg-accent-500 text-white p-4 rounded-xl shadow-lg animate-bounce-slow">
+                            <div class="text-center">
+                                <p class="font-bold text-sm">Diskon 50%</p>
+                                <p class="text-xs">Hari Ini!</p>
+                            </div>
+                        </div>
+                        <div class="absolute -bottom-4 -right-4 bg-secondary-500 text-white p-4 rounded-xl shadow-lg animate-pulse-slow">
+                            <div class="text-center">
+                                <p class="font-bold text-sm">Bestseller</p>
+                                <p class="text-xs">2023</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Categories -->
-    <section class="py-8 bg-white">
+    <section class="py-16 bg-white">
         <div class="container mx-auto px-4">
-            <div class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar" id="categoryContainer">
-                <button class="category-active bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap" data-category="all">Semua Produk</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="template">Template Website</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="asset">Aset Kreatif</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="plugin">Plugin & Script</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="course">Kursus Online</button>
-                <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-300" data-category="ebook">E-Book</button>
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-dark-800 mb-4">Kategori Produk</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Jelajahi berbagai kategori produk digital premium yang kami tawarkan untuk semua kebutuhan kreatif dan profesional Anda.</p>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                <!-- Category 1 -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 cursor-pointer group border border-white">
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 transform group-hover:scale-110 transition-transform duration-300 shadow-md">
+                        <i class="fas fa-palette text-white text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-dark-800 mb-2 group-hover:text-primary-600 transition-colors">Template</h3>
+                    <p class="text-gray-600 text-sm">Website, Presentasi & UI/UX</p>
+                </div>
+                
+                <!-- Category 2 -->
+                <div class="bg-gradient-to-br from-purple-50 to-pink-100 rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 cursor-pointer group border border-white">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 transform group-hover:scale-110 transition-transform duration-300 shadow-md">
+                        <i class="fas fa-photo-video text-white text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-dark-800 mb-2 group-hover:text-primary-600 transition-colors">Aset Kreatif</h3>
+                    <p class="text-gray-600 text-sm">Foto, Video & Grafis</p>
+                </div>
+                
+                <!-- Category 3 -->
+                <div class="bg-gradient-to-br from-green-50 to-teal-100 rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 cursor-pointer group border border-white">
+                    <div class="bg-gradient-to-r from-green-500 to-teal-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 transform group-hover:scale-110 transition-transform duration-300 shadow-md">
+                        <i class="fas fa-code text-white text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-dark-800 mb-2 group-hover:text-primary-600 transition-colors">Plugin & Script</h3>
+                    <p class="text-gray-600 text-sm">WordPress, JavaScript & PHP</p>
+                </div>
+                
+                <!-- Category 4 -->
+                <div class="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 cursor-pointer group border border-white">
+                    <div class="bg-gradient-to-r from-yellow-500 to-orange-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 transform group-hover:scale-110 transition-transform duration-300 shadow-md">
+                        <i class="fas fa-graduation-cap text-white text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-dark-800 mb-2 group-hover:text-primary-600 transition-colors">Kursus Online</h3>
+                    <p class="text-gray-600 text-sm">Video Tutorial & E-Book</p>
+                </div>
+                
+                <!-- Category 5 -->
+                <div class="bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 cursor-pointer group border border-white">
+                    <div class="bg-gradient-to-r from-red-500 to-pink-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 transform group-hover:scale-110 transition-transform duration-300 shadow-md">
+                        <i class="fas fa-music text-white text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-dark-800 mb-2 group-hover:text-primary-600 transition-colors">Musik & SFX</h3>
+                    <p class="text-gray-600 text-sm">Royalty Free Music</p>
+                </div>
+                
+                <!-- Category 6 -->
+                <div class="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-2xl p-6 text-center hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 cursor-pointer group border border-white">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 transform group-hover:scale-110 transition-transform duration-300 shadow-md">
+                        <i class="fas fa-font text-white text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-dark-800 mb-2 group-hover:text-primary-600 transition-colors">Font & Tipografi</h3>
+                    <p class="text-gray-600 text-sm">Font Premium</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Products Grid -->
-    <section class="py-8">
+    <!-- Featured Products -->
+    <section id="products" class="py-16 bg-gradient-to-b from-white to-primary-50">
         <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold text-dark">Produk Terbaru</h2>
-                <div class="flex items-center space-x-4">
-                    <div class="text-sm text-gray-600" id="productCount">Menampilkan 6 produk</div>
-                    <button class="text-primary font-medium flex items-center">
-                        Lihat Semua <i class="fas fa-arrow-right ml-2"></i>
-                    </button>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12">
+                <div>
+                    <h2 class="text-3xl font-bold text-dark-800 mb-2">Produk Unggulan</h2>
+                    <p class="text-gray-600">Koleksi produk digital terbaik dengan kualitas premium dan harga terjangkau</p>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <div class="flex overflow-x-auto space-x-4 pb-2 hide-scrollbar" id="categoryContainer">
+                        <button class="bg-primary-500 text-white px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 shadow-md" data-category="all">Semua Produk</button>
+                        <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-all duration-300" data-category="template">Template</button>
+                        <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-all duration-300" data-category="asset">Aset Kreatif</button>
+                        <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-all duration-300" data-category="plugin">Plugin</button>
+                        <button class="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap hover:bg-gray-300 transition-all duration-300" data-category="course">Kursus</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="productsGrid">
-                <!-- Products will be dynamically loaded here -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="productsGrid">
+                <!-- Products will be loaded dynamically -->
+            </div>
+            
+            <div class="text-center mt-12">
+                <a href="#" class="inline-flex items-center bg-white text-primary-600 border border-primary-200 px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 hover:bg-primary-50">
+                    <span>Lihat Semua Produk</span>
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </a>
             </div>
         </div>
     </section>
 
+    <!-- How to Buy Section -->
+    <section id="how-to-buy" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-dark-800 mb-4">Cara Pembelian Mudah</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Hanya dalam 3 langkah sederhana, Anda sudah bisa mendapatkan produk digital premium dari VLDigital</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Step 1 -->
+                <div class="text-center p-6 rounded-2xl hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100">
+                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white text-xl font-bold shadow-md">1</div>
+                    <h3 class="font-bold text-xl text-dark-800 mb-3">Pilih Produk</h3>
+                    <p class="text-gray-600">Jelajahi katalog produk kami dan pilih produk digital yang sesuai dengan kebutuhan Anda</p>
+                </div>
+                
+                <!-- Step 2 -->
+                <div class="text-center p-6 rounded-2xl hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white text-xl font-bold shadow-md">2</div>
+                    <h3 class="font-bold text-xl text-dark-800 mb-3">Klik Link Pembelian</h3>
+                    <p class="text-gray-600">Klik tombol "Beli Sekarang" yang akan mengarahkan Anda ke halaman pembayaran yang aman</p>
+                </div>
+                
+                <!-- Step 3 -->
+                <div class="text-center p-6 rounded-2xl hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 bg-gradient-to-br from-green-50 to-teal-50 border border-green-100">
+                    <div class="bg-gradient-to-r from-green-500 to-teal-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white text-xl font-bold shadow-md">3</div>
+                    <h3 class="font-bold text-xl text-dark-800 mb-3">Download Instan</h3>
+                    <p class="text-gray-600">Setelah pembayaran berhasil, Anda akan mendapatkan akses instan untuk mendownload produk</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-16 bg-gradient-to-r from-primary-500 to-primary-700 text-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-3xl font-bold mb-4">Butuh Bantuan atau Informasi Lebih Lanjut?</h2>
+                <p class="text-lg mb-8 opacity-90 max-w-2xl mx-auto">Tim support kami siap membantu Anda 24/7 melalui berbagai channel yang tersedia</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <a href="https://wa.me/6281234567890" target="_blank" class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-1 border border-white/20">
+                        <div class="bg-green-500 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fab fa-whatsapp text-white text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">WhatsApp</h3>
+                        <p class="opacity-80">+62 812-3456-7890</p>
+                    </a>
+                    
+                    <a href="https://t.me/vldigital" target="_blank" class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-1 border border-white/20">
+                        <div class="bg-blue-500 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fab fa-telegram text-white text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">Telegram</h3>
+                        <p class="opacity-80">@vldigital</p>
+                    </a>
+                    
+                    <a href="mailto:info@vldigital.com" class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 transform hover:-translate-y-1 border border-white/20">
+                        <div class="bg-red-500 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-envelope text-white text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-lg mb-2">Email</h3>
+                        <p class="opacity-80">info@vldigital.com</p>
+                    </a>
+                </div>
+                
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+                    <h3 class="text-xl font-bold mb-4">Follow Kami di Media Sosial</h3>
+                    <div class="flex justify-center space-x-6">
+                        <a href="#" class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors">
+                            <i class="fab fa-facebook-f text-xl"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-colors">
+                            <i class="fab fa-youtube text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="bg-primary-500 p-2 rounded-xl mr-3">
+                            <i class="fas fa-cube text-white"></i>
+                        </div>
+                        <h2 class="text-xl font-bold">VLDigital</h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">Platform terpercaya untuk produk digital berkualitas dengan harga terjangkau.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-lg mb-4">Kategori</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Template Website</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Aset Kreatif</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Plugin & Script</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Kursus Online</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">E-Book</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-lg mb-4">Bantuan</h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Cara Beli</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Pusat Bantuan</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Hubungi Kami</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-bold text-lg mb-4">Berlangganan Newsletter</h3>
+                    <p class="text-gray-400 mb-4">Dapatkan informasi promo dan produk terbaru langsung di email Anda.</p>
+                    <form class="flex">
+                        <input type="email" placeholder="Email Anda" class="bg-dark-700 text-white px-4 py-3 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-primary-500 w-full">
+                        <button type="submit" class="bg-primary-500 hover:bg-primary-600 px-4 py-3 rounded-r-xl transition-colors">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 text-sm mb-4 md:mb-0">© 2023 VLDigital. All rights reserved.</p>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Kebijakan Privasi</a>
+                    <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Syarat & Ketentuan</a>
+                    <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Bantuan</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <!-- Product Detail Panel -->
-    <div id="productDetail" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden fade-in">
-        <div class="absolute right-0 top-0 h-full w-full md:w-1/2 lg:w-1/3 bg-white detail-panel transform translate-x-full">
-            <div class="h-full overflow-y-auto">
-                <div class="p-4 border-b flex justify-between items-center">
-                    <h3 class="text-lg font-bold">Detail Produk</h3>
-                    <button onclick="hideProductDetail()" class="text-gray-500 hover:text-dark">
+    <div id="productDetail" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden fade-in">
+        <div class="absolute right-0 top-0 h-full w-full md:w-1/2 lg:w-1/3 bg-white detail-panel transform translate-x-full overflow-y-auto">
+            <div class="h-full">
+                <div class="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+                    <h3 class="text-xl font-bold text-dark-800">Detail Produk</h3>
+                    <button onclick="hideProductDetail()" class="text-gray-500 hover:text-dark-800 transition-colors">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
                 
-                <div class="p-4">
+                <div class="p-6">
                     <div id="detailContent">
                         <!-- Content will be loaded here by JavaScript -->
                     </div>
@@ -146,212 +537,176 @@
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-8 mt-12">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <div class="flex items-center mb-4">
-                        <i class="fas fa-cube text-primary text-2xl mr-2"></i>
-                        <h2 class="text-xl font-bold">VLDigital</h2>
-                    </div>
-                    <p class="text-gray-400 mb-4">Platform terpercaya untuk produk digital berkualitas dengan harga terjangkau.</p>
-                    <div class="flex space-x-4">
-                        <a href="#" class="text-gray-400 hover:text-white">
-                            <i class="fab fa-facebook-f"></i>
-                        </a>
-                        <a href="#" class="text-gray-400 hover:text-white">
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" class="text-gray-400 hover:text-white">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                    </div>
-                </div>
-                
-                <div>
-                    <h3 class="font-bold mb-4">Kategori</h3>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white">Template Website</a></li>
-                        <li><a href="#" class="hover:text-white">Aset Kreatif</a></li>
-                        <li><a href="#" class="hover:text-white">Plugin & Script</a></li>
-                        <li><a href="#" class="hover:text-white">Kursus Online</a></li>
-                        <li><a href="#" class="hover:text-white">E-Book</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h3 class="font-bold mb-4">Bantuan</h3>
-                    <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white">Cara Beli</a></li>
-                        <li><a href="#" class="hover:text-white">Pusat Bantuan</a></li>
-                        <li><a href="#" class="hover:text-white">Kebijakan Privasi</a></li>
-                        <li><a href="#" class="hover:text-white">Syarat & Ketentuan</a></li>
-                        <li><a href="#" class="hover:text-white">Hubungi Kami</a></li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
-                <p>© 2023 VLDigital. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
     <script>
         // Product data
         const products = {
             p1: {
                 id: 'p1',
-                name: 'Template Website Portfolio',
+                name: 'Template Website Portfolio Premium',
                 price: 'Rp 299.000',
                 originalPrice: 'Rp 499.000',
                 rating: 4.5,
                 reviewCount: 128,
                 image: 'https://cdn.pixabay.com/photo/2020/05/18/19/44/website-5186965_1280.jpg',
-                description: 'Template website portfolio modern yang cocok untuk freelancer, desainer, atau developer. Dilengkapi dengan halaman tentang, portfolio, layanan, dan kontak.',
+                description: 'Template website portfolio modern yang cocok untuk freelancer, desainer, atau developer. Dilengkapi dengan halaman tentang, portfolio, layanan, dan kontak. Desain responsif dan SEO friendly.',
                 features: [
                     'Desain responsif untuk semua perangkat',
-                    'Optimasi SEO',
+                    'Optimasi SEO terintegrasi',
                     'Integrasi media sosial',
                     'Form kontak yang berfungsi',
-                    'Dokumentasi lengkap'
+                    'Dokumentasi lengkap dan support',
+                    'Fast loading performance'
                 ],
                 category: 'template',
-                tags: ['template', 'website', 'portfolio', 'responsive']
+                tags: ['template', 'website', 'portfolio', 'responsive'],
+                purchaseLink: 'https://linktree.vldigital.com/template-portfolio'
             },
             p2: {
                 id: 'p2',
-                name: 'Koleksi Vector Space',
+                name: 'Koleksi Vector Space Premium',
                 price: 'Rp 149.000',
                 originalPrice: null,
-                rating: 4,
+                rating: 4.2,
                 reviewCount: 64,
                 image: 'https://cdn.pixabay.com/photo/2017/08/30/01/05/milky-way-2695569_1280.jpg',
-                description: 'Koleksi 50+ vector premium bertema luar angkasa dengan kualitas tinggi. Cocok untuk desain grafis, ilustrasi, dan proyek kreatif lainnya.',
+                description: 'Koleksi 50+ vector premium bertema luar angkasa dengan kualitas tinggi. Cocok untuk desain grafis, ilustrasi, dan proyek kreatif lainnya. Format file lengkap dan mudah dikustomisasi.',
                 features: [
                     '50+ vector berkualitas tinggi',
                     'Format AI, EPS, SVG, dan PNG',
                     'Resolusi tinggi untuk cetak',
                     'Komersial dan penggunaan pribadi',
-                    'Mudah dikustomisasi'
+                    'Mudah dikustomisasi',
+                    'Unlimited projects'
                 ],
                 category: 'asset',
-                tags: ['asset', 'vector', 'graphic', 'design']
+                tags: ['asset', 'vector', 'graphic', 'design'],
+                purchaseLink: 'https://linktree.vldigital.com/vector-space'
             },
             p3: {
                 id: 'p3',
-                name: 'Kursus UI/UX Design',
+                name: 'Kursus UI/UX Design Masterclass',
                 price: 'Rp 799.000',
                 originalPrice: 'Rp 1.200.000',
-                rating: 5,
+                rating: 4.9,
                 reviewCount: 89,
                 image: 'https://cdn.pixabay.com/photo/2020/05/31/09/40/online-course-5242018_1280.jpg',
-                description: 'Kursus lengkap untuk mempelajari desain UI/UX dari dasar hingga mahir. Dilengkapi dengan studi kasus nyata dan project akhir.',
+                description: 'Kursus lengkap untuk mempelajari desain UI/UX dari dasar hingga mahir. Dilengkapi dengan studi kasus nyata dan project akhir. Akses seumur hidup dan update materi gratis.',
                 features: [
                     '30+ jam video pembelajaran',
-                    'Studi kasus nyata',
-                    'Project akhir dengan review',
+                    'Studi kasus nyata dari industri',
+                    'Project akhir dengan review mentor',
                     'Akses seumur hidup',
-                    'Sertifikat penyelesaian'
+                    'Sertifikat penyelesaian',
+                    'Update materi gratis'
                 ],
                 category: 'course',
-                tags: ['course', 'ui/ux', 'design', 'tutorial']
+                tags: ['course', 'ui/ux', 'design', 'tutorial'],
+                purchaseLink: 'https://linktree.vldigital.com/ui-ux-course'
             },
             p4: {
                 id: 'p4',
-                name: 'E-Book Panduan Coding',
+                name: 'E-Book Panduan Coding Lengkap',
                 price: 'Rp 99.000',
                 originalPrice: null,
                 rating: 4.5,
                 reviewCount: 42,
                 image: 'https://cdn.pixabay.com/photo/2015/07/17/22/43/student-849825_1280.jpg',
-                description: 'Panduan lengkap untuk belajar coding dari nol. Cocok untuk pemula yang ingin memulai karir di bidang pemrograman.',
+                description: 'Panduan lengkap untuk belajar coding dari nol. Cocok untuk pemula yang ingin memulai karir di bidang pemrograman. Dilengkapi dengan contoh kode dan latihan praktis.',
                 features: [
-                    '300+ halaman konten',
-                    'Contoh kode langsung',
-                    'Latihan dan tantangan',
+                    '300+ halaman konten berkualitas',
+                    'Contoh kode langsung dapat digunakan',
+                    'Latihan dan tantangan coding',
                     'Tips karir di bidang IT',
-                    'Update gratis untuk versi berikutnya'
+                    'Update gratis untuk versi berikutnya',
+                    'Format PDF, EPUB, MOBI'
                 ],
-                category: 'ebook',
-                tags: ['ebook', 'coding', 'programming', 'tutorial']
+                category: 'course',
+                tags: ['ebook', 'coding', 'programming', 'tutorial'],
+                purchaseLink: 'https://linktree.vldigital.com/coding-ebook'
             },
             p5: {
                 id: 'p5',
-                name: 'Plugin WordPress Premium',
+                name: 'Plugin WordPress E-Commerce',
                 price: 'Rp 450.000',
                 originalPrice: null,
-                rating: 4,
+                rating: 4.3,
                 reviewCount: 56,
                 image: 'https://cdn.pixabay.com/photo/2016/11/19/14/00/code-1839406_1280.jpg',
-                description: 'Plugin WordPress premium dengan fitur lengkap untuk mengoptimasi website Anda. Mendukung berbagai tipe konten dan memiliki antarmuka yang user-friendly.',
+                description: 'Plugin WordPress premium dengan fitur lengkap untuk toko online. Mendukung berbagai payment gateway, manajemen inventori, dan dashboard analytics yang powerful.',
                 features: [
                     'Optimasi performa website',
                     'Keamanan tingkat tinggi',
                     'Dukungan multisite',
-                    'Update rutin dan support',
-                    'Dokumentasi lengkap'
+                    'Update rutin dan support 24/7',
+                    'Dokumentasi lengkap',
+                    'Integrasi payment gateway'
                 ],
                 category: 'plugin',
-                tags: ['plugin', 'wordpress', 'script', 'website']
+                tags: ['plugin', 'wordpress', 'ecommerce', 'website'],
+                purchaseLink: 'https://linktree.vldigital.com/wp-plugin'
             },
             p6: {
                 id: 'p6',
                 name: 'Paket Logo Profesional',
                 price: 'Rp 199.000',
                 originalPrice: 'Rp 350.000',
-                rating: 5,
+                rating: 4.8,
                 reviewCount: 73,
                 image: 'https://cdn.pixabay.com/photo/2017/08/05/11/16/logo-2582748_1280.png',
-                description: 'Paket logo profesional dengan berbagai variasi dan format file. Cocok untuk bisnis, startup, atau brand pribadi.',
+                description: 'Paket logo profesional dengan berbagai variasi dan format file. Cocok untuk bisnis, startup, atau brand pribadi. Revisi gratis hingga puas dengan hasilnya.',
                 features: [
                     '3 konsep logo berbeda',
                     'File AI, EPS, PNG, dan JPG',
                     'Variasi warna dan layout',
                     'Pedoman penggunaan brand',
-                    'Revisi hingga puas'
+                    'Revisi hingga puas',
+                    'Komersial dan pribadi'
                 ],
                 category: 'asset',
-                tags: ['asset', 'logo', 'branding', 'design']
+                tags: ['asset', 'logo', 'branding', 'design'],
+                purchaseLink: 'https://linktree.vldigital.com/logo-pack'
             },
             p7: {
                 id: 'p7',
-                name: 'Template E-Commerce',
+                name: 'Template E-Commerce Modern',
                 price: 'Rp 399.000',
                 originalPrice: 'Rp 599.000',
-                rating: 4.5,
+                rating: 4.6,
                 reviewCount: 95,
                 image: 'https://cdn.pixabay.com/photo/2016/11/19/15/32/laptop-1839876_1280.jpg',
-                description: 'Template website e-commerce dengan desain modern dan fitur lengkap untuk toko online.',
+                description: 'Template website e-commerce dengan desain modern dan fitur lengkap untuk toko online. Dilengkapi dengan halaman produk, keranjang belanja, dan integrasi payment.',
                 features: [
                     'Halaman produk dan kategori',
                     'Keranjang belanja dan checkout',
                     'Integrasi payment gateway',
                     'Manajemen inventori',
-                    'Dashboard admin'
+                    'Dashboard admin lengkap',
+                    'SEO optimized'
                 ],
                 category: 'template',
-                tags: ['template', 'e-commerce', 'website', 'responsive']
+                tags: ['template', 'e-commerce', 'website', 'responsive'],
+                purchaseLink: 'https://linktree.vldigital.com/ecommerce-template'
             },
             p8: {
                 id: 'p8',
-                name: 'Kursus Digital Marketing',
+                name: 'Kursus Digital Marketing Pro',
                 price: 'Rp 699.000',
                 originalPrice: 'Rp 999.000',
                 rating: 4.7,
                 reviewCount: 112,
                 image: 'https://cdn.pixabay.com/photo/2018/05/18/15/30/web-design-3411373_1280.jpg',
-                description: 'Kursus lengkap digital marketing dari dasar hingga strategi lanjutan untuk meningkatkan penjualan online.',
+                description: 'Kursus lengkap digital marketing dari dasar hingga strategi lanjutan untuk meningkatkan penjualan online. Dilengkapi dengan studi kasus dan tools praktis.',
                 features: [
                     'SEO dan konten marketing',
                     'Media sosial dan iklan online',
-                    'Analisis dan optimasi',
-                    'Studi kasus nyata',
-                    'Sertifikat penyelesaian'
+                    'Analisis dan optimasi campaign',
+                    'Studi kasus nyata dari industri',
+                    'Sertifikat penyelesaian',
+                    'Akses grup komunitas eksklusif'
                 ],
                 category: 'course',
-                tags: ['course', 'digital marketing', 'seo', 'social media']
+                tags: ['course', 'digital marketing', 'seo', 'social media'],
+                purchaseLink: 'https://linktree.vldigital.com/digital-marketing'
             }
         };
 
@@ -368,10 +723,6 @@
         // Render products to the grid
         function renderProducts(productsToRender) {
             const productsGrid = document.getElementById('productsGrid');
-            const productCount = document.getElementById('productCount');
-            
-            // Update product count
-            productCount.textContent = `Menampilkan ${productsToRender.length} produk`;
             
             // Clear existing products
             productsGrid.innerHTML = '';
@@ -386,30 +737,37 @@
         // Create product HTML element
         function createProductElement(product) {
             const productDiv = document.createElement('div');
-            productDiv.className = 'product-card bg-white rounded-lg shadow-md overflow-hidden';
+            productDiv.className = 'bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100';
             productDiv.setAttribute('data-category', product.category);
             
             productDiv.innerHTML = `
-                <div class="relative">
-                    <img src="${product.image}" alt="${product.name}" class="w-full h-40 object-cover">
-                    ${product.originalPrice ? '<div class="absolute top-2 right-2 bg-secondary text-white text-xs font-bold px-2 py-1 rounded">DISKON</div>' : ''}
+                <div class="relative overflow-hidden">
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover transform transition-transform duration-700 hover:scale-110">
+                    <div class="absolute top-4 right-4">
+                        ${product.originalPrice ? '<span class="bg-secondary-500 text-white text-xs font-bold px-2 py-1 rounded-lg shadow-md">DISKON</span>' : ''}
+                    </div>
                 </div>
-                <div class="p-4">
-                    <h3 class="font-semibold text-dark mb-1 text-sm">${product.name}</h3>
-                    <div class="flex items-center mb-2">
-                        <div class="flex text-yellow-400 text-xs">
+                <div class="p-5">
+                    <h3 class="font-semibold text-dark-800 mb-2 text-lg leading-tight">${product.name}</h3>
+                    <div class="flex items-center mb-3">
+                        <div class="flex text-yellow-400 text-sm">
                             ${getStarRating(product.rating)}
                         </div>
-                        <span class="text-gray-500 text-xs ml-1">(${product.reviewCount})</span>
+                        <span class="text-gray-500 text-sm ml-2">(${product.reviewCount})</span>
                     </div>
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center mb-4">
                         <div>
-                            <span class="text-primary font-bold">${product.price}</span>
-                            ${product.originalPrice ? `<span class="text-gray-500 text-sm line-through ml-1">${product.originalPrice}</span>` : ''}
+                            <span class="text-primary-600 font-bold text-xl">${product.price}</span>
+                            ${product.originalPrice ? `<span class="text-gray-500 text-sm line-through ml-2">${product.originalPrice}</span>` : ''}
                         </div>
-                        <button class="text-primary hover:text-primary-dark" onclick="showProductDetail('${product.id}')">
-                            <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="showProductDetail('${product.id}')" class="flex-1 bg-primary-50 text-primary-600 hover:bg-primary-100 py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center justify-center">
+                            <i class="fas fa-eye mr-2"></i> Detail
                         </button>
+                        <a href="${product.purchaseLink}" target="_blank" class="flex-1 bg-gradient-to-r from-primary-500 to-primary-700 hover:from-primary-600 hover:to-primary-800 text-white py-2.5 rounded-xl font-medium transition-all duration-300 flex items-center justify-center shadow-md hover:shadow-lg">
+                            <i class="fas fa-shopping-cart mr-2"></i> Beli
+                        </a>
                     </div>
                 </div>
             `;
@@ -425,12 +783,12 @@
                 button.addEventListener('click', function() {
                     // Remove active class from all buttons
                     categoryButtons.forEach(btn => {
-                        btn.classList.remove('category-active', 'bg-primary', 'text-white');
+                        btn.classList.remove('bg-primary-500', 'text-white', 'shadow-md');
                         btn.classList.add('bg-gray-200', 'text-gray-700');
                     });
                     
                     // Add active class to clicked button
-                    this.classList.add('category-active', 'bg-primary', 'text-white');
+                    this.classList.add('bg-primary-500', 'text-white', 'shadow-md');
                     this.classList.remove('bg-gray-200', 'text-gray-700');
                     
                     // Get category from data attribute
@@ -468,8 +826,8 @@
             const detailContent = document.getElementById('detailContent');
             detailContent.innerHTML = `
                 <div class="mb-6">
-                    <img src="${product.image}" alt="${product.name}" class="w-full h-48 object-cover rounded-lg mb-4">
-                    <h2 class="text-xl font-bold mb-2">${product.name}</h2>
+                    <img src="${product.image}" alt="${product.name}" class="w-full h-56 object-cover rounded-2xl mb-4 shadow-md">
+                    <h2 class="text-2xl font-bold text-dark-800 mb-2">${product.name}</h2>
                     <div class="flex items-center mb-4">
                         <div class="flex text-yellow-400">
                             ${getStarRating(product.rating)}
@@ -477,30 +835,35 @@
                         <span class="text-gray-500 text-sm ml-2">(${product.reviewCount} ulasan)</span>
                     </div>
                     <div class="flex items-center mb-4">
-                        <span class="text-primary font-bold text-xl">${product.price}</span>
-                        ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2">${product.originalPrice}</span>` : ''}
+                        <span class="text-primary-600 font-bold text-2xl">${product.price}</span>
+                        ${product.originalPrice ? `<span class="text-gray-500 line-through ml-2 text-lg">${product.originalPrice}</span>` : ''}
                     </div>
-                    <p class="text-gray-700 mb-4">${product.description}</p>
+                    <p class="text-gray-700 mb-6 leading-relaxed">${product.description}</p>
                 </div>
                 
                 <div class="mb-6">
-                    <h3 class="font-bold mb-2">Fitur Utama:</h3>
-                    <ul class="list-disc pl-5 text-gray-700">
-                        ${product.features.map(feature => `<li class="mb-1">${feature}</li>`).join('')}
+                    <h3 class="font-bold text-lg text-dark-800 mb-3">Fitur Utama:</h3>
+                    <ul class="space-y-3">
+                        ${product.features.map(feature => `
+                            <li class="flex items-start">
+                                <i class="fas fa-check text-accent-500 mt-1 mr-3"></i>
+                                <span class="text-gray-700">${feature}</span>
+                            </li>
+                        `).join('')}
                     </ul>
                 </div>
                 
-                <div class="mb-6">
-                    <h3 class="font-bold mb-2">Kategori:</h3>
-                    <span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm">${getCategoryName(product.category)}</span>
+                <div class="mb-8">
+                    <h3 class="font-bold text-lg text-dark-800 mb-3">Kategori:</h3>
+                    <span class="bg-primary-100 text-primary-700 px-3 py-1.5 rounded-lg text-sm font-medium">${getCategoryName(product.category)}</span>
                 </div>
                 
-                <div class="flex space-x-4">
-                    <button class="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-dark flex-1 flex items-center justify-center">
-                        <i class="fas fa-shopping-cart mr-2"></i> Tambah ke Keranjang
-                    </button>
-                    <button class="bg-secondary text-white px-6 py-3 rounded-lg font-medium hover:bg-red-600">
-                        <i class="fas fa-heart"></i>
+                <div class="space-y-4">
+                    <a href="${product.purchaseLink}" target="_blank" class="block w-full bg-gradient-to-r from-primary-500 to-primary-700 hover:from-primary-600 hover:to-primary-800 text-white py-4 rounded-xl font-semibold text-center transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center">
+                        <i class="fas fa-shopping-cart mr-3"></i> Beli Sekarang
+                    </a>
+                    <button class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center">
+                        <i class="fas fa-heart mr-3"></i> Tambah ke Wishlist
                     </button>
                 </div>
             `;
