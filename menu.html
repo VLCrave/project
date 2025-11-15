@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Menu AI - VLCrave Express</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'pulse-slow': 'pulse 2s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px) scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .text-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .modal-overlay {
+            display: none;
+        }
+        
+        .modal-overlay:not(.hidden) {
+            display: flex;
+        }
+        
+        .menu-item-card {
+            transition: all 0.3s ease;
+        }
+        
+        .menu-item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #f97316;
+            background-color: #fff7ed;
+        }
+        
+        .ai-processing {
+            background: linear-gradient(90deg, #f97316, #ea580c, #f97316);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .menu-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 500px;
+        }
+        
+        .store-header {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        }
+        
+        .high-quality-canvas {
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+        
+        .saved-menu-item {
+            border-left: 4px solid #10b981;
+        }
+        
+        /* Style untuk preview container yang akan di-share */
+        .share-preview-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        /* Grid layout untuk 2 kolom */
+        .menu-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        @media (max-width: 480px) {
+            .menu-grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Category badges */
+        .category-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .category-food {
+            background-color: #fef3c7;
+            color: #d97706;
+            border: 1px solid #f59e0b;
+        }
+        
+        .category-drink {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #3b82f6;
+        }
+        
+        .category-other {
+            background-color: #f3e8ff;
+            color: #7c3aed;
+            border: 1px solid #8b5cf6;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans antialiased">
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Store Header -->
+        <div class="store-header text-white py-4 text-center">
+            <div class="container mx-auto px-4 max-w-md">
+                <h1 class="text-2xl font-bold mb-1">VLCrave Express</h1>
+                <p class="text-orange-100 text-sm">All-in-One Business Solution</p>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+            <div class="container mx-auto px-4 py-4 max-w-md">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-utensils text-white"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-gray-800">Generator Menu AI</h1>
+                            <p class="text-xs text-gray-500">Upload foto, AI ekstrak otomatis</p>
+                        </div>
+                    </div>
+                    <button onclick="menuApp.showSavedMenus()" class="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-history text-blue-600"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 pb-6 safe-area-bottom">
+            <div class="container mx-auto px-4 py-6 max-w-md">
+                <!-- Store Name Input -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-store text-blue-500"></i>
+                        Nama Tempat
+                    </h2>
+                    <div class="mb-4">
+                        <input type="text" id="storeName" placeholder="Contoh: Martabak Mas Ruri" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500" value="VLCrave Express">
+                        <p class="text-xs text-gray-500 mt-1">Nama toko/restoran Anda</p>
+                    </div>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-upload text-blue-500"></i>
+                        Upload Foto Menu
+                    </h2>
+                    
+                    <div class="drop-zone rounded-2xl p-6 text-center mb-4" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                        <p class="font-medium text-gray-700 mb-1">Seret & Lepas foto menu di sini</p>
+                        <p class="text-sm text-gray-500 mb-4">atau</p>
+                        <input type="file" id="fileInput" accept="image/*" class="hidden">
+                        <button onclick="document.getElementById('fileInput').click()" class="bg-orange-500 hover:bg-orange-600 py-3 px-6 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors mx-auto">
+                            <i class="fas fa-folder-open"></i>
+                            Pilih File
+                        </button>
+                        <p class="text-xs text-gray-500 mt-3">Format: JPG, PNG, JPEG (Maks. 5MB)</p>
+                    </div>
+                    
+                    <div id="imagePreview" class="hidden mb-4">
+                        <div class="relative rounded-2xl overflow-hidden border border-gray-200">
+                            <img id="previewImage" class="w-full h-48 object-cover">
+                            <button onclick="menuApp.removeImage()" class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="menuApp.processImage()" id="processButton" class="w-full bg-green-500 hover:bg-green-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-robot"></i>
+                        Proses dengan AI
+                    </button>
+                </div>
+
+                <!-- AI Processing Section -->
+                <div id="aiProcessing" class="hidden bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+                    <div class="text-center py-6">
+                        <div class="ai-processing w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-robot text-white text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-2">AI Sedang Menganalisis Menu</h3>
+                        <p class="text-gray-600 text-sm">Tunggu sebentar, AI sedang mengekstrak dan mengkategorikan menu...</p>
+                        <div class="mt-4 flex justify-center">
+                            <div class="flex space-x-1">
+                                <div class="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
+                                <div class="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                <div class="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extracted Menu Section -->
+                <div id="extractedMenu" class="hidden bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-list-alt text-green-500"></i>
+                            Menu yang Diekstrak
+                        </h2>
+                        <button onclick="menuApp.editMenu()" class="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 transition-colors">
+                            <i class="fas fa-edit text-blue-600"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Category Tabs -->
+                    <div class="flex gap-2 mb-4 overflow-x-auto">
+                        <button onclick="menuApp.showCategory('all')" class="category-tab active px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-semibold whitespace-nowrap">
+                            Semua Menu
+                        </button>
+                        <button onclick="menuApp.showCategory('food')" class="category-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-semibold whitespace-nowrap">
+                            <i class="fas fa-utensils mr-1"></i>Makanan
+                        </button>
+                        <button onclick="menuApp.showCategory('drink')" class="category-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-semibold whitespace-nowrap">
+                            <i class="fas fa-glass-whiskey mr-1"></i>Minuman
+                        </button>
+                        <button onclick="menuApp.showCategory('other')" class="category-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-semibold whitespace-nowrap">
+                            <i class="fas fa-ellipsis-h mr-1"></i>Lainnya
+                        </button>
+                    </div>
+                    
+                    <!-- Menu Items Grid -->
+                    <div id="menuItemsList" class="menu-grid-2col max-h-80 overflow-y-auto custom-scrollbar">
+                        <!-- Menu items will be populated here -->
+                    </div>
+                    
+                    <!-- Category Summary -->
+                    <div id="categorySummary" class="mt-4 p-3 bg-gray-50 rounded-xl text-sm text-gray-600">
+                        <!-- Summary will be populated here -->
+                    </div>
+                    
+                    <div class="mt-4 flex gap-3">
+                        <button onclick="menuApp.saveMenuToFirebase()" class="flex-1 bg-orange-500 hover:bg-orange-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                            <i class="fas fa-save"></i>
+                            Simpan ke Cloud
+                        </button>
+                        <button onclick="menuApp.shareMenu()" class="flex-1 bg-green-500 hover:bg-green-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                            <i class="fas fa-share"></i>
+                            Share Menu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Menu Preview -->
+                <div id="menuPreview" class="hidden bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="fas fa-eye text-purple-500"></i>
+                        Preview Menu
+                        <span id="previewStoreName" class="text-orange-600"></span>
+                    </h2>
+                    
+                    <div class="menu-preview rounded-2xl p-6 text-white" id="previewContainer">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-utensils text-white text-2xl"></i>
+                            </div>
+                            <h1 class="text-3xl font-bold mb-2" id="previewTitle">VLCrave Express</h1>
+                            <p class="text-orange-200 text-lg">Menu Terbaru</p>
+                            <div class="w-20 h-1 bg-orange-400 mx-auto mt-2 rounded-full"></div>
+                        </div>
+                        
+                        <!-- Food Section -->
+                        <div id="previewFoodSection" class="mb-6">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fas fa-utensils text-orange-300"></i>
+                                <h2 class="text-xl font-bold text-white">Makanan</h2>
+                            </div>
+                            <div id="previewFoodItems" class="space-y-3">
+                                <!-- Food items will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Drink Section -->
+                        <div id="previewDrinkSection" class="mb-6">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fas fa-glass-whiskey text-blue-300"></i>
+                                <h2 class="text-xl font-bold text-white">Minuman</h2>
+                            </div>
+                            <div id="previewDrinkItems" class="space-y-3">
+                                <!-- Drink items will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Other Section -->
+                        <div id="previewOtherSection" class="mb-6">
+                            <div class="flex items-center gap-2 mb-4">
+                                <i class="fas fa-ellipsis-h text-purple-300"></i>
+                                <h2 class="text-xl font-bold text-white">Lainnya</h2>
+                            </div>
+                            <div id="previewOtherItems" class="space-y-3">
+                                <!-- Other items will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <div class="mt-8 text-center border-t border-orange-200 border-opacity-30 pt-4">
+                            <p class="text-orange-200 text-sm mb-1">
+                                <i class="fas fa-phone mr-2"></i>0857-1234-5678
+                            </p>
+                            <p class="text-orange-200 text-sm">
+                                <i class="fas fa-clock mr-2"></i>Buka: 08:00 - 22:00 WIB
+                            </p>
+                            <p class="text-orange-200 text-xs mt-2">www.vlcrave-express.com</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 grid grid-cols-2 gap-3">
+                        <button onclick="menuApp.downloadAsPNG()" class="bg-blue-500 hover:bg-blue-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                            <i class="fas fa-download"></i>
+                            Download PNG
+                        </button>
+                        <button onclick="menuApp.shareMenuIOS()" class="bg-purple-500 hover:bg-purple-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                            <i class="fas fa-share-alt"></i>
+                            Share Gambar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Saved Menus Section -->
+                <div id="savedMenusSection" class="hidden bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-history text-blue-500"></i>
+                            Menu Tersimpan
+                        </h2>
+                        <button onclick="menuApp.hideSavedMenus()" class="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-times text-gray-600"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="savedMenusList" class="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+                        <!-- Saved menus will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Menu Modal -->
+    <div id="editMenuModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-orange-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-edit"></i>
+                    Edit Menu
+                    <span id="editStoreName" class="text-orange-200"></span>
+                </h2>
+                <button onclick="menuApp.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div id="editMenuItems">
+                    <!-- Editable menu items will be populated here -->
+                </div>
+                
+                <button onclick="menuApp.addMenuItem()" class="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 flex items-center justify-center gap-2 transition-colors mt-4">
+                    <i class="fas fa-plus"></i>
+                    Tambah Item Menu
+                </button>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="menuApp.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="menuApp.saveEditedMenu()" class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-colors">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Options Modal -->
+    <div id="shareOptionsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden animate-fade-in">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-slide-up">
+            <div class="modal-header bg-green-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-share-alt"></i>
+                    Bagikan Menu
+                    <span id="shareStoreName" class="text-green-200"></span>
+                </h2>
+                <button onclick="menuApp.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="menuApp.shareAsText()" class="bg-blue-500 hover:bg-blue-600 p-4 rounded-xl text-white font-bold flex flex-col items-center justify-center gap-2 transition-colors">
+                        <i class="fas fa-text-height text-2xl"></i>
+                        <span>Share Teks</span>
+                    </button>
+                    <button onclick="menuApp.shareMenuIOS()" class="bg-purple-500 hover:bg-purple-600 p-4 rounded-xl text-white font-bold flex flex-col items-center justify-center gap-2 transition-colors">
+                        <i class="fas fa-image text-2xl"></i>
+                        <span>Share Gambar</span>
+                    </button>
+                    <button onclick="menuApp.shareToWhatsApp()" class="bg-green-500 hover:bg-green-600 p-4 rounded-xl text-white font-bold flex flex-col items-center justify-center gap-2 transition-colors">
+                        <i class="fab fa-whatsapp text-2xl"></i>
+                        <span>WhatsApp</span>
+                    </button>
+                    <button onclick="menuApp.copyMenuLink()" class="bg-orange-500 hover:bg-orange-600 p-4 rounded-xl text-white font-bold flex flex-col items-center justify-center gap-2 transition-colors">
+                        <i class="fas fa-link text-2xl"></i>
+                        <span>Copy Link</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer p-4 border-t border-gray-200">
+                <button onclick="menuApp.closeModal()" class="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notificationContainer" class="fixed top-4 right-4 left-4 z-50 space-y-2"></div>
+
+    <!-- Hidden Canvas for High Quality Export -->
+    <canvas id="highQualityCanvas" class="hidden high-quality-canvas"></canvas>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Menu Generator Application
+        const menuApp = {
+            // AI Configuration
+            API_URL: "https://mucuans-ai-proxy.qalam.workers.dev",
+            MODEL: "google/gemini-2.0-flash-001",
+            
+            currentImage: null,
+            extractedMenu: [],
+            categorizedMenu: {
+                food: [],
+                drink: [],
+                other: []
+            },
+            currentMenuId: null,
+            storeName: "VLCrave Express",
+            savedMenus: [],
+            currentCategory: 'all',
+            
+            // Keywords untuk kategorisasi
+            foodKeywords: ['nasi', 'mie', 'ayam', 'sapi', 'ikan', 'bakso', 'soto', 'rawon', 'gado', 'gado-gado', 'sate', 'martabak', 'roti', 'kue', 'goreng', 'rebus', 'bakar', 'panggang', 'steak', 'burger', 'pizza', 'pasta', 'sushi', 'dimsum', 'snack', 'cemilan', 'appetizer', 'main course'],
+            drinkKeywords: ['teh', 'kopi', 'jus', 'soda', 'susu', 'es', 'hangat', 'dingin', 'smoothie', 'milkshake', 'mocktail', 'cocktail', 'bir', 'wine', 'air', 'mineral', 'soft drink', 'minuman'],
+            
+            // Initialize App
+            async init() {
+                console.log("Menu Generator AI App Initialized");
+                
+                // Setup event listeners
+                this.setupEventListeners();
+                
+                // Load store name from input
+                this.storeName = document.getElementById('storeName').value;
+                
+                // Load saved menus from Firebase
+                await this.loadSavedMenus();
+            },
+
+            // Setup event listeners
+            setupEventListeners() {
+                const fileInput = document.getElementById('fileInput');
+                const dropZone = document.getElementById('dropZone');
+                const storeNameInput = document.getElementById('storeName');
+                
+                // File input change
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.handleFileSelect(e.target.files[0]);
+                    }
+                });
+                
+                // Store name change
+                storeNameInput.addEventListener('input', (e) => {
+                    this.storeName = e.target.value;
+                    this.updateStoreNameInUI();
+                });
+                
+                // Drag and drop events
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('dragover');
+                });
+                
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.classList.remove('dragover');
+                });
+                
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('dragover');
+                    if (e.dataTransfer.files.length > 0) {
+                        this.handleFileSelect(e.dataTransfer.files[0]);
+                    }
+                });
+            },
+
+            // Update store name in UI
+            updateStoreNameInUI() {
+                document.getElementById('previewTitle').textContent = this.storeName;
+                document.getElementById('previewStoreName').textContent = this.storeName;
+                document.getElementById('editStoreName').textContent = this.storeName;
+                document.getElementById('shareStoreName').textContent = this.storeName;
+            },
+
+            // Handle file selection
+            handleFileSelect(file) {
+                if (!file.type.match('image.*')) {
+                    this.showNotification('Harap pilih file gambar', 'error');
+                    return;
+                }
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    this.showNotification('Ukuran file maksimal 5MB', 'error');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.currentImage = e.target.result;
+                    document.getElementById('previewImage').src = this.currentImage;
+                    document.getElementById('imagePreview').classList.remove('hidden');
+                    document.getElementById('processButton').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            },
+
+            // Remove selected image
+            removeImage() {
+                this.currentImage = null;
+                document.getElementById('imagePreview').classList.add('hidden');
+                document.getElementById('fileInput').value = '';
+                document.getElementById('processButton').disabled = true;
+            },
+
+            // Process image with AI
+            async processImage() {
+                if (!this.currentImage) return;
+                
+                document.getElementById('aiProcessing').classList.remove('hidden');
+                document.getElementById('processButton').disabled = true;
+                
+                try {
+                    // Prepare the request for AI processing
+                    const aiResponse = await fetch(`${this.API_URL}/?model=${this.MODEL}`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            model: this.MODEL,
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: `Analisis gambar menu ini dan ekstrak:
+1. Nama tempat (jika ada)
+2. Semua item menu dengan format JSON: {storeName: "nama tempat", items: [{name: "nama menu", price: harga, description: "deskripsi", category: "food/drink/other"}]}
+Kategorikan setiap item sebagai "food", "drink", atau "other" berdasarkan jenisnya.
+Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
+                                        },
+                                        {
+                                            type: "image_url",
+                                            image_url: {
+                                                url: this.currentImage
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            max_tokens: 1000
+                        }),
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!aiResponse.ok) {
+                        throw new Error('AI service error');
+                    }
+                    
+                    const data = await aiResponse.json();
+                    const content = data.choices[0].message.content;
+                    
+                    // Extract JSON from response
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        const menuData = JSON.parse(jsonMatch[0]);
+                        
+                        // Update store name if detected by AI
+                        if (menuData.storeName && menuData.storeName !== this.storeName) {
+                            this.storeName = menuData.storeName;
+                            document.getElementById('storeName').value = this.storeName;
+                            this.updateStoreNameInUI();
+                            this.showNotification(`Nama tempat terdeteksi: ${this.storeName}`, 'info');
+                        }
+                        
+                        this.extractedMenu = menuData.items || [];
+                        this.categorizeMenuItems();
+                        this.displayExtractedMenu();
+                    } else {
+                        throw new Error('Tidak dapat mengekstrak data menu');
+                    }
+                    
+                } catch (error) {
+                    console.error('AI Processing Error:', error);
+                    this.showNotification('Error memproses gambar dengan AI', 'error');
+                    
+                    // Fallback: Show manual input
+                    this.extractedMenu = [
+                        { name: 'Teh Tarik Spesial', price: 10000, description: 'Teh susu khas dengan rasa premium', category: 'drink' },
+                        { name: 'Kopi Susu Arabica', price: 15000, description: 'Kopi arabica dengan susu fresh', category: 'drink' },
+                        { name: 'Mie Goreng Jawa', price: 18000, description: 'Mie goreng dengan bumbu rahasia', category: 'food' },
+                        { name: 'Nasi Campur Komplit', price: 22000, description: 'Nasi dengan lauk pilihan lengkap', category: 'food' },
+                        { name: 'Es Jeruk Segar', price: 8000, description: 'Jeruk peras asli', category: 'drink' },
+                        { name: 'Ayam Bakar Madu', price: 25000, description: 'Ayam bakar dengan bumbu madu', category: 'food' }
+                    ];
+                    this.categorizeMenuItems();
+                    this.displayExtractedMenu();
+                }
+                
+                document.getElementById('aiProcessing').classList.add('hidden');
+            },
+
+            // Categorize menu items
+            categorizeMenuItems() {
+                // Reset categories
+                this.categorizedMenu = {
+                    food: [],
+                    drink: [],
+                    other: []
+                };
+                
+                this.extractedMenu.forEach(item => {
+                    // Jika AI sudah memberikan kategori, gunakan itu
+                    if (item.category && ['food', 'drink', 'other'].includes(item.category)) {
+                        this.categorizedMenu[item.category].push(item);
+                        return;
+                    }
+                    
+                    // Jika tidak, kategorikan otomatis berdasarkan keywords
+                    const name = item.name.toLowerCase();
+                    const description = (item.description || '').toLowerCase();
+                    
+                    const isFood = this.foodKeywords.some(keyword => 
+                        name.includes(keyword) || description.includes(keyword)
+                    );
+                    
+                    const isDrink = this.drinkKeywords.some(keyword => 
+                        name.includes(keyword) || description.includes(keyword)
+                    );
+                    
+                    if (isFood) {
+                        item.category = 'food';
+                        this.categorizedMenu.food.push(item);
+                    } else if (isDrink) {
+                        item.category = 'drink';
+                        this.categorizedMenu.drink.push(item);
+                    } else {
+                        item.category = 'other';
+                        this.categorizedMenu.other.push(item);
+                    }
+                });
+            },
+
+            // Display extracted menu dengan kategori
+            displayExtractedMenu() {
+                this.showCategory('all');
+                this.updateCategorySummary();
+                document.getElementById('extractedMenu').classList.remove('hidden');
+                this.updatePreview();
+            },
+
+            // Show specific category
+            showCategory(category) {
+                this.currentCategory = category;
+                
+                // Update active tab
+                document.querySelectorAll('.category-tab').forEach(tab => {
+                    tab.classList.remove('bg-orange-500', 'text-white');
+                    tab.classList.add('bg-gray-200', 'text-gray-700');
+                });
+                
+                document.querySelector(`.category-tab:nth-child(${category === 'all' ? 1 : category === 'food' ? 2 : category === 'drink' ? 3 : 4})`).classList.remove('bg-gray-200', 'text-gray-700');
+                document.querySelector(`.category-tab:nth-child(${category === 'all' ? 1 : category === 'food' ? 2 : category === 'drink' ? 3 : 4})`).classList.add('bg-orange-500', 'text-white');
+                
+                const menuItemsList = document.getElementById('menuItemsList');
+                menuItemsList.innerHTML = '';
+                
+                let itemsToShow = [];
+                if (category === 'all') {
+                    itemsToShow = this.extractedMenu;
+                } else {
+                    itemsToShow = this.categorizedMenu[category];
+                }
+                
+                if (itemsToShow.length === 0) {
+                    menuItemsList.innerHTML = `
+                        <div class="col-span-2 text-center py-8 text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>Tidak ada item menu</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                itemsToShow.forEach((item, index) => {
+                    const categoryClass = item.category === 'food' ? 'category-food' : 
+                                       item.category === 'drink' ? 'category-drink' : 'category-other';
+                    
+                    const categoryIcon = item.category === 'food' ? 'fa-utensils' : 
+                                       item.category === 'drink' ? 'fa-glass-whiskey' : 'fa-ellipsis-h';
+                    
+                    const menuItemCard = document.createElement('div');
+                    menuItemCard.className = 'menu-item-card bg-white rounded-xl p-3 border border-gray-200';
+                    menuItemCard.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="category-badge ${categoryClass} flex items-center gap-1">
+                                <i class="fas ${categoryIcon}"></i>
+                                ${item.category === 'food' ? 'Makanan' : item.category === 'drink' ? 'Minuman' : 'Lainnya'}
+                            </span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-sm mb-1">${item.name}</h3>
+                        <p class="text-xs text-gray-600 mb-2 line-clamp-2">${item.description || 'Tidak ada deskripsi'}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-orange-600 font-bold">Rp ${this.formatPrice(item.price || 0)}</span>
+                        </div>
+                    `;
+                    menuItemsList.appendChild(menuItemCard);
+                });
+            },
+
+            // Update category summary
+            updateCategorySummary() {
+                const summary = document.getElementById('categorySummary');
+                const totalItems = this.extractedMenu.length;
+                const foodCount = this.categorizedMenu.food.length;
+                const drinkCount = this.categorizedMenu.drink.length;
+                const otherCount = this.categorizedMenu.other.length;
+                
+                summary.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium">Total Item:</span>
+                        <span class="font-bold">${totalItems}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mt-2 text-xs">
+                        <div class="text-center">
+                            <div class="flex items-center justify-center gap-1 mb-1">
+                                <i class="fas fa-utensils text-orange-500"></i>
+                                <span class="font-medium">Makanan</span>
+                            </div>
+                            <span class="font-bold">${foodCount}</span>
+                        </div>
+                        <div class="text-center">
+                            <div class="flex items-center justify-center gap-1 mb-1">
+                                <i class="fas fa-glass-whiskey text-blue-500"></i>
+                                <span class="font-medium">Minuman</span>
+                            </div>
+                            <span class="font-bold">${drinkCount}</span>
+                        </div>
+                        <div class="text-center">
+                            <div class="flex items-center justify-center gap-1 mb-1">
+                                <i class="fas fa-ellipsis-h text-purple-500"></i>
+                                <span class="font-medium">Lainnya</span>
+                            </div>
+                            <span class="font-bold">${otherCount}</span>
+                        </div>
+                    </div>
+                `;
+            },
+
+            // Format price
+            formatPrice(price) {
+                return new Intl.NumberFormat('id-ID').format(price);
+            },
+
+            // Edit menu
+            editMenu() {
+                const editMenuItems = document.getElementById('editMenuItems');
+                editMenuItems.innerHTML = '';
+                
+                this.extractedMenu.forEach((item, index) => {
+                    const categoryOptions = [
+                        { value: 'food', label: 'Makanan', icon: 'fa-utensils' },
+                        { value: 'drink', label: 'Minuman', icon: 'fa-glass-whiskey' },
+                        { value: 'other', label: 'Lainnya', icon: 'fa-ellipsis-h' }
+                    ];
+                    
+                    const menuItemEditor = document.createElement('div');
+                    menuItemEditor.className = 'bg-gray-50 rounded-xl p-4 mb-3';
+                    menuItemEditor.innerHTML = `
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-medium text-gray-700">Item ${index + 1}</span>
+                            <button onclick="menuApp.removeMenuItem(${index})" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Menu</label>
+                                <input type="text" value="${item.name}" onchange="menuApp.updateMenuItem(${index}, 'name', this.value)" 
+                                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Harga (Rp)</label>
+                                <input type="number" value="${item.price}" onchange="menuApp.updateMenuItem(${index}, 'price', this.value)" 
+                                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                                <textarea onchange="menuApp.updateMenuItem(${index}, 'description', this.value)" 
+                                          class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none" 
+                                          rows="2">${item.description || ''}</textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                                <div class="flex gap-2">
+                                    ${categoryOptions.map(opt => `
+                                        <button onclick="menuApp.updateMenuItem(${index}, 'category', '${opt.value}')" 
+                                                class="flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
+                                                    item.category === opt.value 
+                                                    ? 'bg-orange-500 text-white' 
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                }">
+                                            <i class="fas ${opt.icon}"></i>
+                                            ${opt.label}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    editMenuItems.appendChild(menuItemEditor);
+                });
+                
+                document.getElementById('editMenuModal').classList.remove('hidden');
+            },
+
+            // Update menu item
+            updateMenuItem(index, field, value) {
+                if (field === 'price') {
+                    value = parseInt(value) || 0;
+                }
+                
+                this.extractedMenu[index][field] = value;
+                
+                // Update category jika field name/description berubah
+                if (field === 'name' || field === 'description') {
+                    this.categorizeMenuItems();
+                }
+            },
+
+            // Remove menu item
+            removeMenuItem(index) {
+                this.extractedMenu.splice(index, 1);
+                this.categorizeMenuItems();
+                this.editMenu(); // Refresh edit view
+            },
+
+            // Add new menu item
+            addMenuItem() {
+                this.extractedMenu.push({
+                    name: 'Menu Baru',
+                    price: 0,
+                    description: '',
+                    category: 'food'
+                });
+                this.categorizeMenuItems();
+                this.editMenu(); // Refresh edit view
+            },
+
+            // Close modal
+            closeModal() {
+                document.getElementById('editMenuModal').classList.add('hidden');
+                document.getElementById('shareOptionsModal').classList.add('hidden');
+            },
+
+            // Save edited menu
+            saveEditedMenu() {
+                this.categorizeMenuItems();
+                this.displayExtractedMenu();
+                this.updatePreview();
+                this.closeModal();
+                this.showNotification('Menu berhasil diperbarui', 'success');
+            },
+
+            // Update preview
+            updatePreview() {
+                // Update store name
+                document.getElementById('previewTitle').textContent = this.storeName;
+                
+                // Update food items
+                const foodItemsContainer = document.getElementById('previewFoodItems');
+                foodItemsContainer.innerHTML = '';
+                
+                if (this.categorizedMenu.food.length > 0) {
+                    this.categorizedMenu.food.forEach(item => {
+                        const foodItem = document.createElement('div');
+                        foodItem.className = 'flex justify-between items-start';
+                        foodItem.innerHTML = `
+                            <div class="flex-1">
+                                <h3 class="font-bold text-white">${item.name}</h3>
+                                <p class="text-orange-200 text-sm">${item.description || ''}</p>
+                            </div>
+                            <span class="font-bold text-white ml-2">Rp ${this.formatPrice(item.price)}</span>
+                        `;
+                        foodItemsContainer.appendChild(foodItem);
+                    });
+                    document.getElementById('previewFoodSection').classList.remove('hidden');
+                } else {
+                    document.getElementById('previewFoodSection').classList.add('hidden');
+                }
+                
+                // Update drink items
+                const drinkItemsContainer = document.getElementById('previewDrinkItems');
+                drinkItemsContainer.innerHTML = '';
+                
+                if (this.categorizedMenu.drink.length > 0) {
+                    this.categorizedMenu.drink.forEach(item => {
+                        const drinkItem = document.createElement('div');
+                        drinkItem.className = 'flex justify-between items-start';
+                        drinkItem.innerHTML = `
+                            <div class="flex-1">
+                                <h3 class="font-bold text-white">${item.name}</h3>
+                                <p class="text-orange-200 text-sm">${item.description || ''}</p>
+                            </div>
+                            <span class="font-bold text-white ml-2">Rp ${this.formatPrice(item.price)}</span>
+                        `;
+                        drinkItemsContainer.appendChild(drinkItem);
+                    });
+                    document.getElementById('previewDrinkSection').classList.remove('hidden');
+                } else {
+                    document.getElementById('previewDrinkSection').classList.add('hidden');
+                }
+                
+                // Update other items
+                const otherItemsContainer = document.getElementById('previewOtherItems');
+                otherItemsContainer.innerHTML = '';
+                
+                if (this.categorizedMenu.other.length > 0) {
+                    this.categorizedMenu.other.forEach(item => {
+                        const otherItem = document.createElement('div');
+                        otherItem.className = 'flex justify-between items-start';
+                        otherItem.innerHTML = `
+                            <div class="flex-1">
+                                <h3 class="font-bold text-white">${item.name}</h3>
+                                <p class="text-orange-200 text-sm">${item.description || ''}</p>
+                            </div>
+                            <span class="font-bold text-white ml-2">Rp ${this.formatPrice(item.price)}</span>
+                        `;
+                        otherItemsContainer.appendChild(otherItem);
+                    });
+                    document.getElementById('previewOtherSection').classList.remove('hidden');
+                } else {
+                    document.getElementById('previewOtherSection').classList.add('hidden');
+                }
+                
+                document.getElementById('menuPreview').classList.remove('hidden');
+            },
+
+            // Save menu to Firebase
+            async saveMenuToFirebase() {
+                if (this.extractedMenu.length === 0) {
+                    this.showNotification('Tidak ada menu untuk disimpan', 'error');
+                    return;
+                }
+                
+                try {
+                    const menuData = {
+                        storeName: this.storeName,
+                        items: this.extractedMenu,
+                        categorizedItems: this.categorizedMenu,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    let docRef;
+                    if (this.currentMenuId) {
+                        // Update existing menu
+                        docRef = await db.collection('menus').doc(this.currentMenuId).update({
+                            ...menuData,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        // Create new menu
+                        docRef = await db.collection('menus').add(menuData);
+                        this.currentMenuId = docRef.id;
+                    }
+                    
+                    this.showNotification('Menu berhasil disimpan ke cloud', 'success');
+                    await this.loadSavedMenus();
+                    
+                } catch (error) {
+                    console.error('Error saving menu:', error);
+                    this.showNotification('Error menyimpan menu ke cloud', 'error');
+                }
+            },
+
+            // Load saved menus from Firebase
+            async loadSavedMenus() {
+                try {
+                    const snapshot = await db.collection('menus')
+                        .orderBy('createdAt', 'desc')
+                        .limit(10)
+                        .get();
+                    
+                    this.savedMenus = [];
+                    snapshot.forEach(doc => {
+                        this.savedMenus.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                } catch (error) {
+                    console.error('Error loading saved menus:', error);
+                }
+            },
+
+            // Show saved menus
+            showSavedMenus() {
+                const savedMenusList = document.getElementById('savedMenusList');
+                savedMenusList.innerHTML = '';
+                
+                if (this.savedMenus.length === 0) {
+                    savedMenusList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>Belum ada menu tersimpan</p>
+                        </div>
+                    `;
+                } else {
+                    this.savedMenus.forEach(menu => {
+                        const menuDate = menu.createdAt ? menu.createdAt.toDate().toLocaleDateString('id-ID') : 'Tanggal tidak tersedia';
+                        const totalItems = menu.items ? menu.items.length : 0;
+                        
+                        const menuCard = document.createElement('div');
+                        menuCard.className = 'saved-menu-item bg-white rounded-xl p-4 border border-gray-200';
+                        menuCard.innerHTML = `
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-gray-800">${menu.storeName}</h3>
+                                <span class="text-xs text-gray-500">${menuDate}</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-3">${totalItems} item menu</p>
+                            <div class="flex gap-2">
+                                <button onclick="menuApp.loadSavedMenu('${menu.id}')" class="flex-1 bg-blue-500 hover:bg-blue-600 py-2 px-3 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-1 transition-colors">
+                                    <i class="fas fa-eye"></i>
+                                    Lihat
+                                </button>
+                                <button onclick="menuApp.deleteSavedMenu('${menu.id}')" class="flex-1 bg-red-500 hover:bg-red-600 py-2 px-3 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-1 transition-colors">
+                                    <i class="fas fa-trash"></i>
+                                    Hapus
+                                </button>
+                            </div>
+                        `;
+                        savedMenusList.appendChild(menuCard);
+                    });
+                }
+                
+                document.getElementById('savedMenusSection').classList.remove('hidden');
+                document.getElementById('extractedMenu').classList.add('hidden');
+                document.getElementById('menuPreview').classList.add('hidden');
+            },
+
+            // Hide saved menus
+            hideSavedMenus() {
+                document.getElementById('savedMenusSection').classList.add('hidden');
+                if (this.extractedMenu.length > 0) {
+                    document.getElementById('extractedMenu').classList.remove('hidden');
+                }
+            },
+
+            // Load saved menu
+            async loadSavedMenu(menuId) {
+                try {
+                    const doc = await db.collection('menus').doc(menuId).get();
+                    if (doc.exists) {
+                        const menuData = doc.data();
+                        this.storeName = menuData.storeName;
+                        this.extractedMenu = menuData.items || [];
+                        this.categorizedMenu = menuData.categorizedItems || {
+                            food: [],
+                            drink: [],
+                            other: []
+                        };
+                        this.currentMenuId = menuId;
+                        
+                        document.getElementById('storeName').value = this.storeName;
+                        this.updateStoreNameInUI();
+                        this.displayExtractedMenu();
+                        this.hideSavedMenus();
+                        
+                        this.showNotification('Menu berhasil dimuat', 'success');
+                    }
+                } catch (error) {
+                    console.error('Error loading menu:', error);
+                    this.showNotification('Error memuat menu', 'error');
+                }
+            },
+
+            // Delete saved menu
+            async deleteSavedMenu(menuId) {
+                if (confirm('Apakah Anda yakin ingin menghapus menu ini?')) {
+                    try {
+                        await db.collection('menus').doc(menuId).delete();
+                        this.showNotification('Menu berhasil dihapus', 'success');
+                        await this.loadSavedMenus();
+                        
+                        // Jika menu yang dihapus adalah yang sedang aktif
+                        if (this.currentMenuId === menuId) {
+                            this.currentMenuId = null;
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error deleting menu:', error);
+                        this.showNotification('Error menghapus menu', 'error');
+                    }
+                }
+            },
+
+            // Share menu
+            shareMenu() {
+                document.getElementById('shareOptionsModal').classList.remove('hidden');
+            },
+
+            // Share as text
+            shareAsText() {
+                let shareText = `🍽️ *${this.storeName}* 🍽️\n\n`;
+                
+                if (this.categorizedMenu.food.length > 0) {
+                    shareText += `*🍕 MAKANAN:*\n`;
+                    this.categorizedMenu.food.forEach(item => {
+                        shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                        if (item.description) {
+                            shareText += `  ${item.description}\n`;
+                        }
+                    });
+                    shareText += '\n';
+                }
+                
+                if (this.categorizedMenu.drink.length > 0) {
+                    shareText += `*🥤 MINUMAN:*\n`;
+                    this.categorizedMenu.drink.forEach(item => {
+                        shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                        if (item.description) {
+                            shareText += `  ${item.description}\n`;
+                        }
+                    });
+                    shareText += '\n';
+                }
+                
+                if (this.categorizedMenu.other.length > 0) {
+                    shareText += `*📦 LAINNYA:*\n`;
+                    this.categorizedMenu.other.forEach(item => {
+                        shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                        if (item.description) {
+                            shareText += `  ${item.description}\n`;
+                        }
+                    });
+                }
+                
+                shareText += `\n📞 *Hubungi:* 0857-1234-5678\n⏰ *Buka:* 08:00 - 22:00 WIB\n🌐 *Website:* www.vlcrave-express.com`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: `Menu ${this.storeName}`,
+                        text: shareText
+                    });
+                } else {
+                    this.copyToClipboard(shareText);
+                    this.showNotification('Teks menu berhasil disalin ke clipboard', 'success');
+                }
+                
+                this.closeModal();
+            },
+
+            // Share to WhatsApp
+            shareToWhatsApp() {
+                let shareText = `🍽️ *${this.storeName}* 🍽️\n\n`;
+                
+                // Tambahkan item menu
+                const allItems = [...this.categorizedMenu.food, ...this.categorizedMenu.drink, ...this.categorizedMenu.other];
+                allItems.forEach(item => {
+                    shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                });
+                
+                shareText += `\n📞 Hubungi: 0857-1234-5678`;
+                
+                const encodedText = encodeURIComponent(shareText);
+                const whatsappUrl = `https://wa.me/?text=${encodedText}`;
+                
+                window.open(whatsappUrl, '_blank');
+                this.closeModal();
+            },
+
+            // Copy menu link
+            copyMenuLink() {
+                // Untuk demo, kita buat URL sederhana
+                const menuData = {
+                    storeName: this.storeName,
+                    items: this.extractedMenu
+                };
+                
+                const encodedData = btoa(JSON.stringify(menuData));
+                const menuUrl = `${window.location.origin}${window.location.pathname}?menu=${encodedData}`;
+                
+                this.copyToClipboard(menuUrl);
+                this.showNotification('Link menu berhasil disalin', 'success');
+                this.closeModal();
+            },
+
+            // Share menu for iOS
+            async shareMenuIOS() {
+                try {
+                    const canvas = document.getElementById('highQualityCanvas');
+                    const previewContainer = document.getElementById('previewContainer');
+                    
+                    // Set canvas size untuk kualitas tinggi
+                    canvas.width = previewContainer.offsetWidth * 2;
+                    canvas.height = previewContainer.offsetHeight * 2;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(2, 2);
+                    
+                    // Convert preview container to image
+                    const dataUrl = await html2canvas(previewContainer, {
+                        canvas: canvas,
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: null
+                    }).then(canvas => canvas.toDataURL('image/png'));
+                    
+                    if (navigator.share) {
+                        // Convert data URL to blob
+                        const response = await fetch(dataUrl);
+                        const blob = await response.blob();
+                        const file = new File([blob], `menu-${this.storeName}.png`, { type: 'image/png' });
+                        
+                        await navigator.share({
+                            files: [file],
+                            title: `Menu ${this.storeName}`,
+                            text: `Lihat menu ${this.storeName}`
+                        });
+                    } else {
+                        // Fallback: download image
+                        this.downloadImage(dataUrl, `menu-${this.storeName}.png`);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error sharing menu:', error);
+                    this.showNotification('Error membagikan menu', 'error');
+                }
+                
+                this.closeModal();
+            },
+
+            // Download as PNG
+            async downloadAsPNG() {
+                try {
+                    const canvas = document.getElementById('highQualityCanvas');
+                    const previewContainer = document.getElementById('previewContainer');
+                    
+                    // Set canvas size untuk kualitas tinggi
+                    canvas.width = previewContainer.offsetWidth * 3;
+                    canvas.height = previewContainer.offsetHeight * 3;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(3, 3);
+                    
+                    const dataUrl = await html2canvas(previewContainer, {
+                        canvas: canvas,
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: null
+                    }).then(canvas => canvas.toDataURL('image/png'));
+                    
+                    this.downloadImage(dataUrl, `menu-${this.storeName}.png`);
+                    this.showNotification('Menu berhasil diunduh sebagai PNG', 'success');
+                    
+                } catch (error) {
+                    console.error('Error downloading PNG:', error);
+                    this.showNotification('Error mengunduh menu', 'error');
+                }
+            },
+
+            // Download image
+            downloadImage(dataUrl, filename) {
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            },
+
+            // Copy to clipboard
+            async copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (error) {
+                    // Fallback untuk browser lama
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    return true;
+                }
+            },
+
+            // Show notification
+            showNotification(message, type = 'info') {
+                const container = document.getElementById('notificationContainer');
+                const notification = document.createElement('div');
+                
+                const bgColor = type === 'success' ? 'bg-green-500' : 
+                               type === 'error' ? 'bg-red-500' : 
+                               type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+                
+                const icon = type === 'success' ? 'fa-check-circle' : 
+                            type === 'error' ? 'fa-exclamation-circle' : 
+                            type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+                
+                notification.className = `${bgColor} text-white p-4 rounded-xl shadow-lg flex items-center gap-3 animate-fade-in`;
+                notification.innerHTML = `
+                    <i class="fas ${icon} text-xl"></i>
+                    <span class="flex-1">${message}</span>
+                    <button onclick="this.parentElement.remove()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                container.appendChild(notification);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+            }
+        };
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            menuApp.init();
+        });
+    </script>
+</body>
+</html>
