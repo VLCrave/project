@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLCrave Express - Laporan Keuangan</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .text-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .modal-overlay {
+            display: none;
+        }
+        
+        .modal-overlay:not(.hidden) {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #f97316;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans antialiased">
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Main Content -->
+        <main class="flex-1 pb-20 safe-area-bottom">
+            <div class="container mx-auto px-4 py-6 max-w-md">
+                
+                <!-- Header -->
+                <header class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-sm mb-4 border border-orange-200">
+                        <i class="fas fa-chart-line text-orange-500 text-2xl"></i>
+                    </div>
+                    <h1 class="text-3xl font-black text-gray-800 mb-2 text-gradient">Laporan Keuangan</h1>
+                    <p class="text-gray-600 text-sm font-medium">VLCrave Express - All-in-One Business Solution</p>
+                </header>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+                    <div class="loading-spinner mb-4"></div>
+                    <p class="text-gray-600 font-medium">Memuat data keuangan...</p>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboardTab" class="tab-content">
+                    <!-- Quick Stats -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="incomeToday">Rp 0</div>
+                            <div class="text-xs text-gray-500">Pendapatan Hari Ini</div>
+                            <i class="fas fa-money-bill-wave absolute top-4 right-4 text-green-500 text-xl"></i>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="expenseToday">Rp 0</div>
+                            <div class="text-xs text-gray-500">Pengeluaran Hari Ini</div>
+                            <i class="fas fa-shopping-cart absolute top-4 right-4 text-red-500 text-xl"></i>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="profitToday">Rp 0</div>
+                            <div class="text-xs text-gray-500">Profit Hari Ini</div>
+                            <i class="fas fa-chart-line absolute top-4 right-4 text-blue-500 text-xl"></i>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                            <div class="text-2xl font-bold text-gray-800 mb-1" id="totalBalance">Rp 0</div>
+                            <div class="text-xs text-gray-500">Total Saldo</div>
+                            <i class="fas fa-wallet absolute top-4 right-4 text-purple-500 text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Date Filter -->
+                    <div class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-calendar-alt text-orange-500"></i>
+                            Filter Periode
+                        </h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Dari Tanggal</label>
+                                <input type="date" id="startDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Sampai Tanggal</label>
+                                <input type="date" id="endDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                            </div>
+                        </div>
+                        <button onclick="financeReport.filterData()" class="w-full mt-4 bg-orange-500 hover:bg-orange-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                            <i class="fas fa-filter"></i>
+                            Terapkan Filter
+                        </button>
+                    </div>
+
+                    <!-- Financial Summary -->
+                    <div class="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-green-500"></i>
+                            Ringkasan Keuangan
+                        </h2>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Total Pendapatan:</span>
+                                <span class="font-bold text-green-600" id="totalIncome">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Total Pengeluaran:</span>
+                                <span class="font-bold text-red-600" id="totalExpense">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between items-center border-t border-gray-200 pt-2">
+                                <span class="text-gray-800 font-bold">Profit Bersih:</span>
+                                <span class="font-bold text-blue-600" id="netProfit">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Balance Comparison -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-balance-scale text-purple-500"></i>
+                            Perbandingan Saldo Harian
+                        </h2>
+                        <div class="h-64">
+                            <canvas id="dailyBalanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Income Tab -->
+                <div id="incomeTab" class="tab-content">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-money-bill-wave text-green-500"></i>
+                            Data Pemasukan
+                        </h2>
+                        
+                        <!-- Income Chart -->
+                        <div class="h-64 mb-6">
+                            <canvas id="incomeChart"></canvas>
+                        </div>
+                        
+                        <!-- Income Details -->
+                        <div class="mt-4">
+                            <h3 class="font-bold text-gray-800 mb-3">Detail Pemasukan</h3>
+                            <div id="incomeDetails" class="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+                                <!-- Income details will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense Tab -->
+                <div id="expenseTab" class="tab-content">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-shopping-cart text-red-500"></i>
+                            Data Pengeluaran
+                        </h2>
+                        
+                        <!-- Expense Chart -->
+                        <div class="h-64 mb-6">
+                            <canvas id="expenseChart"></canvas>
+                        </div>
+                        
+                        <!-- Expense Details -->
+                        <div class="mt-4">
+                            <h3 class="font-bold text-gray-800 mb-3">Detail Pengeluaran</h3>
+                            <div id="expenseDetails" class="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
+                                <!-- Expense details will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profit Tab -->
+                <div id="profitTab" class="tab-content">
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-chart-line text-blue-500"></i>
+                            Analisis Profit
+                        </h2>
+                        
+                        <!-- Profit Chart -->
+                        <div class="h-64 mb-6">
+                            <canvas id="profitChart"></canvas>
+                        </div>
+                        
+                        <!-- Profit Analysis -->
+                        <div class="mt-4">
+                            <h3 class="font-bold text-gray-800 mb-3">Analisis Profit</h3>
+                            <div id="profitAnalysis" class="space-y-4">
+                                <!-- Profit analysis will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex p-2 z-40 safe-area-bottom shadow-sm">
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financeReport.showTab('dashboard')">
+                <i class="fas fa-home text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Dashboard</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financeReport.showTab('income')">
+                <i class="fas fa-money-bill-wave text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Pemasukan</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financeReport.showTab('expense')">
+                <i class="fas fa-shopping-cart text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Pengeluaran</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financeReport.showTab('profit')">
+                <i class="fas fa-chart-line text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Profit</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="modal-header bg-orange-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-file-export"></i>
+                    Ekspor Laporan
+                </h2>
+                <button onclick="financeReport.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Format Ekspor</label>
+                    <select id="exportFormat" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="pdf">PDF</option>
+                        <option value="excel">Excel</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Data yang Diekspor</label>
+                    <select id="exportData" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="all">Semua Data</option>
+                        <option value="income">Hanya Pemasukan</option>
+                        <option value="expense">Hanya Pengeluaran</option>
+                        <option value="profit">Hanya Profit</option>
+                    </select>
+                </div>
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Periode</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Dari</label>
+                            <input type="date" id="exportStartDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Sampai</label>
+                            <input type="date" id="exportEndDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="financeReport.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="financeReport.exportReport()" class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors">
+                    <i class="fas fa-download"></i>
+                    Ekspor
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notificationContainer" class="fixed top-4 right-4 left-4 z-50 space-y-2"></div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Finance Report Application
+        const financeReport = {
+            currentTab: 'dashboard',
+            data: {
+                transactions: [],
+                invoices: [],
+                accounts: []
+            },
+            filteredData: {
+                transactions: [],
+                invoices: []
+            },
+            charts: {},
+            
+            // Initialize App
+            async init() {
+                console.log("Finance Report App Initialized");
+                
+                // Set default dates
+                this.setDefaultDates();
+                
+                // Setup real-time listeners
+                this.setupRealtimeListeners();
+                
+                // Initialize charts
+                this.initCharts();
+            },
+            
+            // Setup real-time Firestore listeners
+            setupRealtimeListeners() {
+                // Transactions listener
+                db.collection("finance_transactions")
+                    .orderBy("createdAt", "desc")
+                    .limit(1000)
+                    .onSnapshot((snapshot) => {
+                        this.data.transactions = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.data.transactions.push(data);
+                        });
+                        
+                        console.log("Transactions loaded:", this.data.transactions.length);
+                        this.hideLoading();
+                        this.filterData();
+                    }, error => {
+                        console.error("Error loading transactions:", error);
+                        this.hideLoading();
+                        this.showNotification('Error memuat data transaksi', 'error');
+                    });
+
+                // Invoices listener
+                db.collection("invoices")
+                    .orderBy("createdAt", "desc")
+                    .limit(1000)
+                    .onSnapshot((snapshot) => {
+                        this.data.invoices = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.data.invoices.push(data);
+                        });
+                        
+                        console.log("Invoices loaded:", this.data.invoices.length);
+                        this.filterData();
+                    }, error => {
+                        console.error("Error loading invoices:", error);
+                        this.showNotification('Error memuat data invoice', 'error');
+                    });
+
+                // Accounts listener
+                db.collection("finance_accounts")
+                    .onSnapshot((snapshot) => {
+                        this.data.accounts = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.data.accounts.push(data);
+                        });
+                        
+                        console.log("Accounts loaded:", this.data.accounts.length);
+                        this.filterData();
+                    }, error => {
+                        console.error("Error loading accounts:", error);
+                        this.showNotification('Error memuat data rekening', 'error');
+                    });
+            },
+            
+            // Hide loading state
+            hideLoading() {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('dashboardTab').classList.add('active');
+            },
+            
+            // Set default date range (last 30 days)
+            setDefaultDates() {
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 30);
+                
+                document.getElementById('startDate').value = this.formatDateForInput(startDate);
+                document.getElementById('endDate').value = this.formatDateForInput(endDate);
+                
+                // Set export dates to match
+                document.getElementById('exportStartDate').value = this.formatDateForInput(startDate);
+                document.getElementById('exportEndDate').value = this.formatDateForInput(endDate);
+            },
+            
+            // Filter data based on date range
+            filterData() {
+                const startDate = new Date(document.getElementById('startDate').value);
+                const endDate = new Date(document.getElementById('endDate').value);
+                endDate.setHours(23, 59, 59, 999); // Include the entire end date
+                
+                console.log("Filtering data from", startDate, "to", endDate);
+                
+                // Filter transactions
+                this.filteredData.transactions = this.data.transactions.filter(transaction => {
+                    const transactionDate = transaction.createdAt?.toDate ? transaction.createdAt.toDate() : new Date(transaction.createdAt);
+                    return transactionDate >= startDate && transactionDate <= endDate;
+                });
+                
+                // Filter invoices
+                this.filteredData.invoices = this.data.invoices.filter(invoice => {
+                    const invoiceDate = invoice.createdAt?.toDate ? invoice.createdAt.toDate() : new Date(invoice.createdAt);
+                    return invoiceDate >= startDate && invoiceDate <= endDate;
+                });
+                
+                console.log("Filtered transactions:", this.filteredData.transactions.length);
+                console.log("Filtered invoices:", this.filteredData.invoices.length);
+                
+                // Update dashboard
+                this.updateDashboard();
+                
+                // Update charts
+                this.updateCharts();
+                
+                this.showNotification('Data berhasil difilter', 'success');
+            },
+            
+            // Update dashboard with filtered data
+            updateDashboard() {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                // Today's data - HANYA ONGKOS KIRIM dari invoice yang dihitung sebagai pendapatan
+                const todayShippingIncome = this.filteredData.invoices
+                    .filter(invoice => {
+                        const invoiceDate = invoice.createdAt?.toDate ? invoice.createdAt.toDate() : new Date(invoice.createdAt);
+                        return invoiceDate >= today && invoiceDate < tomorrow;
+                    })
+                    .reduce((sum, invoice) => sum + (invoice.shippingCost || 0), 0);
+                
+                const todayIncomeTransactions = this.filteredData.transactions
+                    .filter(t => t.type === 'income' && 
+                        new Date(t.createdAt?.toDate ? t.createdAt.toDate() : t.createdAt) >= today && 
+                        new Date(t.createdAt?.toDate ? t.createdAt.toDate() : t.createdAt) < tomorrow
+                    )
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const todayIncome = todayShippingIncome + todayIncomeTransactions;
+                
+                const todayExpense = this.filteredData.transactions
+                    .filter(t => t.type === 'expense' && 
+                        new Date(t.createdAt?.toDate ? t.createdAt.toDate() : t.createdAt) >= today && 
+                        new Date(t.createdAt?.toDate ? t.createdAt.toDate() : t.createdAt) < tomorrow
+                    )
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const todayProfit = todayIncome - todayExpense;
+                
+                // Total data for the period
+                const totalShippingIncome = this.filteredData.invoices
+                    .reduce((sum, invoice) => sum + (invoice.shippingCost || 0), 0);
+                
+                const totalIncomeTransactions = this.filteredData.transactions
+                    .filter(t => t.type === 'income')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const totalIncome = totalShippingIncome + totalIncomeTransactions;
+                
+                const totalExpense = this.filteredData.transactions
+                    .filter(t => t.type === 'expense')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const netProfit = totalIncome - totalExpense;
+                
+                // Total balance from accounts
+                const totalBalance = this.data.accounts.reduce((sum, account) => sum + account.balance, 0);
+                
+                // Update DOM
+                document.getElementById('incomeToday').textContent = this.formatCurrency(todayIncome);
+                document.getElementById('expenseToday').textContent = this.formatCurrency(todayExpense);
+                document.getElementById('profitToday').textContent = this.formatCurrency(todayProfit);
+                document.getElementById('totalBalance').textContent = this.formatCurrency(totalBalance);
+                document.getElementById('totalIncome').textContent = this.formatCurrency(totalIncome);
+                document.getElementById('totalExpense').textContent = this.formatCurrency(totalExpense);
+                document.getElementById('netProfit').textContent = this.formatCurrency(netProfit);
+            },
+            
+            // Initialize charts
+            initCharts() {
+                // Daily Balance Chart
+                const dailyBalanceCtx = document.getElementById('dailyBalanceChart').getContext('2d');
+                this.charts.dailyBalance = new Chart(dailyBalanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Saldo Harian',
+                                data: [],
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + value.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Income Chart
+                const incomeCtx = document.getElementById('incomeChart').getContext('2d');
+                this.charts.income = new Chart(incomeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Pemasukan',
+                                data: [],
+                                backgroundColor: '#10b981',
+                                borderRadius: 8
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + value.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Expense Chart
+                const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+                this.charts.expense = new Chart(expenseCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Pengeluaran',
+                                data: [],
+                                backgroundColor: '#ef4444',
+                                borderRadius: 8
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + value.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Profit Chart
+                const profitCtx = document.getElementById('profitChart').getContext('2d');
+                this.charts.profit = new Chart(profitCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Profit',
+                                data: [],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + value.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+            
+            // Update all charts with filtered data
+            updateCharts() {
+                this.updateDailyBalanceChart();
+                this.updateIncomeChart();
+                this.updateExpenseChart();
+                this.updateProfitChart();
+                this.updateIncomeDetails();
+                this.updateExpenseDetails();
+                this.updateProfitAnalysis();
+            },
+            
+            // Update daily balance chart
+            updateDailyBalanceChart() {
+                // Group transactions by date
+                const transactionsByDate = {};
+                
+                // Add income from invoices (shipping cost)
+                this.filteredData.invoices.forEach(invoice => {
+                    const date = invoice.createdAt?.toDate ? invoice.createdAt.toDate() : new Date(invoice.createdAt);
+                    const dateStr = this.formatDate(date);
+                    if (!transactionsByDate[dateStr]) {
+                        transactionsByDate[dateStr] = { income: 0, expense: 0 };
+                    }
+                    transactionsByDate[dateStr].income += invoice.shippingCost || 0;
+                });
+                
+                // Add transactions
+                this.filteredData.transactions.forEach(transaction => {
+                    const date = transaction.createdAt?.toDate ? transaction.createdAt.toDate() : new Date(transaction.createdAt);
+                    const dateStr = this.formatDate(date);
+                    if (!transactionsByDate[dateStr]) {
+                        transactionsByDate[dateStr] = { income: 0, expense: 0 };
+                    }
+                    
+                    if (transaction.type === 'income') {
+                        transactionsByDate[dateStr].income += transaction.amount;
+                    } else {
+                        transactionsByDate[dateStr].expense += transaction.amount;
+                    }
+                });
+                
+                // Calculate daily balance
+                const dates = Object.keys(transactionsByDate).sort();
+                let runningBalance = 0;
+                const dailyBalances = [];
+                
+                dates.forEach(date => {
+                    const dayData = transactionsByDate[date];
+                    runningBalance += dayData.income - dayData.expense;
+                    dailyBalances.push(runningBalance);
+                });
+                
+                // Update chart
+                this.charts.dailyBalance.data.labels = dates;
+                this.charts.dailyBalance.data.datasets[0].data = dailyBalances;
+                this.charts.dailyBalance.update();
+            },
+            
+            // Update income chart
+            updateIncomeChart() {
+                // Group income by date
+                const incomeByDate = {};
+                
+                // Add income from invoices (shipping cost)
+                this.filteredData.invoices.forEach(invoice => {
+                    const date = invoice.createdAt?.toDate ? invoice.createdAt.toDate() : new Date(invoice.createdAt);
+                    const dateStr = this.formatDate(date);
+                    incomeByDate[dateStr] = (incomeByDate[dateStr] || 0) + (invoice.shippingCost || 0);
+                });
+                
+                // Add income from transactions
+                this.filteredData.transactions
+                    .filter(t => t.type === 'income')
+                    .forEach(transaction => {
+                        const date = transaction.createdAt?.toDate ? transaction.createdAt.toDate() : new Date(transaction.createdAt);
+                        const dateStr = this.formatDate(date);
+                        incomeByDate[dateStr] = (incomeByDate[dateStr] || 0) + transaction.amount;
+                    });
+                
+                const dates = Object.keys(incomeByDate).sort();
+                const incomeAmounts = dates.map(date => incomeByDate[date]);
+                
+                // Update chart
+                this.charts.income.data.labels = dates;
+                this.charts.income.data.datasets[0].data = incomeAmounts;
+                this.charts.income.update();
+            },
+            
+            // Update expense chart
+            updateExpenseChart() {
+                // Group expense by date
+                const expenseByDate = {};
+                
+                this.filteredData.transactions
+                    .filter(t => t.type === 'expense')
+                    .forEach(transaction => {
+                        const date = transaction.createdAt?.toDate ? transaction.createdAt.toDate() : new Date(transaction.createdAt);
+                        const dateStr = this.formatDate(date);
+                        expenseByDate[dateStr] = (expenseByDate[dateStr] || 0) + transaction.amount;
+                    });
+                
+                const dates = Object.keys(expenseByDate).sort();
+                const expenseAmounts = dates.map(date => expenseByDate[date]);
+                
+                // Update chart
+                this.charts.expense.data.labels = dates;
+                this.charts.expense.data.datasets[0].data = expenseAmounts;
+                this.charts.expense.update();
+            },
+            
+            // Update profit chart
+            updateProfitChart() {
+                // Group transactions by date and calculate daily profit
+                const profitByDate = {};
+                
+                // Add income from invoices (shipping cost)
+                this.filteredData.invoices.forEach(invoice => {
+                    const date = invoice.createdAt?.toDate ? invoice.createdAt.toDate() : new Date(invoice.createdAt);
+                    const dateStr = this.formatDate(date);
+                    if (!profitByDate[dateStr]) {
+                        profitByDate[dateStr] = 0;
+                    }
+                    profitByDate[dateStr] += invoice.shippingCost || 0;
+                });
+                
+                // Add transactions
+                this.filteredData.transactions.forEach(transaction => {
+                    const date = transaction.createdAt?.toDate ? transaction.createdAt.toDate() : new Date(transaction.createdAt);
+                    const dateStr = this.formatDate(date);
+                    if (!profitByDate[dateStr]) {
+                        profitByDate[dateStr] = 0;
+                    }
+                    
+                    if (transaction.type === 'income') {
+                        profitByDate[dateStr] += transaction.amount;
+                    } else {
+                        profitByDate[dateStr] -= transaction.amount;
+                    }
+                });
+                
+                const dates = Object.keys(profitByDate).sort();
+                const profitAmounts = dates.map(date => profitByDate[date]);
+                
+                // Update chart
+                this.charts.profit.data.labels = dates;
+                this.charts.profit.data.datasets[0].data = profitAmounts;
+                this.charts.profit.update();
+            },
+            
+            // Update income details
+            updateIncomeDetails() {
+                const container = document.getElementById('incomeDetails');
+                
+                // Combine income from invoices and transactions
+                const incomeItems = [];
+                
+                // Add income from invoices (shipping cost)
+                this.filteredData.invoices.forEach(invoice => {
+                    if (invoice.shippingCost && invoice.shippingCost > 0) {
+                        incomeItems.push({
+                            description: `Ongkos kirim - ${invoice.invoiceNumber || 'Invoice'}`,
+                            amount: invoice.shippingCost,
+                            date: invoice.createdAt,
+                            type: 'shipping'
+                        });
+                    }
+                });
+                
+                // Add income from transactions
+                const incomeTransactions = this.filteredData.transactions.filter(t => t.type === 'income');
+                incomeTransactions.forEach(transaction => {
+                    incomeItems.push({
+                        description: transaction.description,
+                        amount: transaction.amount,
+                        date: transaction.createdAt,
+                        type: 'transaction'
+                    });
+                });
+                
+                // Sort by date
+                incomeItems.sort((a, b) => {
+                    const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                    const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                    return dateB - dateA;
+                });
+                
+                if (incomeItems.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-gray-500">
+                            <i class="fas fa-money-bill-wave text-4xl mb-3 opacity-50"></i>
+                            <p class="text-sm font-medium">Tidak ada data pemasukan</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = incomeItems.map(item => `
+                    <div class="flex justify-between items-center p-3 rounded-xl bg-green-50 border border-green-200">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800 text-sm">${item.description}</div>
+                            <div class="text-xs text-gray-500">${this.formatDate(item.date)}</div>
+                        </div>
+                        <div class="font-semibold text-green-600 text-sm">
+                            ${this.formatCurrency(item.amount)}
+                        </div>
+                    </div>
+                `).join('');
+            },
+            
+            // Update expense details
+            updateExpenseDetails() {
+                const container = document.getElementById('expenseDetails');
+                const expenseTransactions = this.filteredData.transactions.filter(t => t.type === 'expense');
+                
+                // Sort by date
+                expenseTransactions.sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+                    return dateB - dateA;
+                });
+                
+                if (expenseTransactions.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-6 text-gray-500">
+                            <i class="fas fa-shopping-cart text-4xl mb-3 opacity-50"></i>
+                            <p class="text-sm font-medium">Tidak ada data pengeluaran</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = expenseTransactions.map(transaction => `
+                    <div class="flex justify-between items-center p-3 rounded-xl bg-red-50 border border-red-200">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-800 text-sm">${transaction.description}</div>
+                            <div class="text-xs text-gray-500">${this.formatDate(transaction.createdAt)} • ${this.getCategoryName(transaction.category)}</div>
+                        </div>
+                        <div class="font-semibold text-red-600 text-sm">
+                            ${this.formatCurrency(transaction.amount)}
+                        </div>
+                    </div>
+                `).join('');
+            },
+            
+            // Update profit analysis
+            updateProfitAnalysis() {
+                const container = document.getElementById('profitAnalysis');
+                
+                const totalShippingIncome = this.filteredData.invoices
+                    .reduce((sum, invoice) => sum + (invoice.shippingCost || 0), 0);
+                
+                const totalIncomeTransactions = this.filteredData.transactions
+                    .filter(t => t.type === 'income')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const totalIncome = totalShippingIncome + totalIncomeTransactions;
+                
+                const totalExpense = this.filteredData.transactions
+                    .filter(t => t.type === 'expense')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                
+                const netProfit = totalIncome - totalExpense;
+                const profitMargin = totalIncome > 0 ? (netProfit / totalIncome) * 100 : 0;
+                
+                container.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                            <div class="text-2xl font-bold text-blue-600 mb-1">${profitMargin.toFixed(1)}%</div>
+                            <div class="text-xs text-gray-600">Margin Profit</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-xl border border-green-200">
+                            <div class="text-2xl font-bold text-green-600 mb-1">${this.filteredData.invoices.length + this.filteredData.transactions.filter(t => t.type === 'income').length}</div>
+                            <div class="text-xs text-gray-600">Transaksi Pemasukan</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                            <div class="text-2xl font-bold text-red-600 mb-1">${this.filteredData.transactions.filter(t => t.type === 'expense').length}</div>
+                            <div class="text-xs text-gray-600">Transaksi Pengeluaran</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                            <div class="text-2xl font-bold text-purple-600 mb-1">${this.filteredData.invoices.length}</div>
+                            <div class="text-xs text-gray-600">Total Invoice</div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4">
+                        <h4 class="font-bold text-gray-800 mb-2">Analisis Profit</h4>
+                        <p class="text-sm text-gray-600">
+                            ${netProfit > 0 ? 
+                                `Performa keuangan Anda baik dengan profit sebesar ${this.formatCurrency(netProfit)}.` : 
+                                `Periode ini mengalami kerugian sebesar ${this.formatCurrency(Math.abs(netProfit))}. Perlu evaluasi pengeluaran.`
+                            }
+                        </p>
+                    </div>
+                `;
+            },
+            
+            // Get category name
+            getCategoryName(category) {
+                const categories = {
+                    'operasional': 'Operasional',
+                    'bahan_baku': 'Bahan Baku',
+                    'transportasi': 'Transportasi',
+                    'gaji': 'Gaji Karyawan',
+                    'listrik': 'Listrik & Air',
+                    'internet': 'Internet',
+                    'pemeliharaan': 'Pemeliharaan',
+                    'penyesuaian': 'Penyesuaian',
+                    'transfer': 'Transfer Antar Rekening',
+                    'lainnya': 'Lainnya'
+                };
+                
+                return categories[category] || 'Lainnya';
+            },
+            
+            // Tab Navigation
+            showTab(tabName) {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                document.getElementById(tabName + 'Tab').classList.add('active');
+                this.currentTab = tabName;
+            },
+            
+            // Modal Management
+            showExportModal() {
+                document.getElementById('exportModal').classList.remove('hidden');
+            },
+            
+            closeModal() {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.classList.add('hidden');
+                });
+            },
+            
+            // Export report
+            exportReport() {
+                const format = document.getElementById('exportFormat').value;
+                const dataType = document.getElementById('exportData').value;
+                
+                this.showNotification(`Laporan ${dataType} berhasil diekspor dalam format ${format.toUpperCase()}`, 'success');
+                this.closeModal();
+            },
+            
+            // Utility Functions
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(amount);
+            },
+            
+            formatDate(date) {
+                if (!date) return '';
+                try {
+                    const d = date.toDate ? date.toDate() : new Date(date);
+                    return d.toLocaleDateString('id-ID', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric' 
+                    });
+                } catch (error) {
+                    return '';
+                }
+            },
+            
+            formatDateForInput(date) {
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            },
+            
+            showNotification(message, type = 'info') {
+                const container = document.getElementById('notificationContainer');
+                const notification = document.createElement('div');
+                
+                const typeClasses = {
+                    success: 'bg-green-500 text-white',
+                    error: 'bg-red-500 text-white',
+                    info: 'bg-blue-500 text-white',
+                    warning: 'bg-yellow-500 text-white'
+                };
+                
+                notification.className = `p-4 rounded-xl shadow-lg font-bold text-sm transform -translate-y-2 opacity-0 transition-all duration-300 ${typeClasses[type]}`;
+                notification.textContent = message;
+                
+                container.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.classList.remove('-translate-y-2', 'opacity-0');
+                    notification.classList.add('translate-y-0', 'opacity-100');
+                }, 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('translate-y-0', 'opacity-100');
+                    notification.classList.add('-translate-y-2', 'opacity-0');
+                    
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+        };
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            financeReport.init();
+        });
+    </script>
+</body>
+</html>
