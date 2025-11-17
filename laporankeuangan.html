@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLCrave Express - Laporan Keuangan Lengkap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .text-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .modal-overlay {
+            display: none;
+        }
+        
+        .modal-overlay:not(.hidden) {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #f97316;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .financial-card {
+            transition: all 0.3s ease;
+        }
+        
+        .financial-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .positive {
+            color: #10b981;
+        }
+        
+        .negative {
+            color: #ef4444;
+        }
+        
+        .neutral {
+            color: #6b7280;
+        }
+        
+        .trend-up {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+        }
+        
+        .trend-down {
+            background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+        }
+        
+        .trend-neutral {
+            background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+        }
+        
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .metric-change {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .report-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .data-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .print-only {
+            display: none;
+        }
+        
+        @keyframes slide-in-right {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .animate-slide-in-right {
+            animation: slide-in-right 0.3s ease-out;
+        }
+        
+        .nav-item.active {
+            color: #ea580c;
+            background-color: #ffedd5;
+        }
+        
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .chart-container,
+            .report-section,
+            .kpi-card {
+                box-shadow: none;
+                border: 1px solid #d1d5db;
+                break-inside: avoid;
+            }
+            body {
+                background: white !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            .grid-cols-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .modal-content {
+                margin: 1rem;
+                width: calc(100% - 2rem);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans antialiased">
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 no-print">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-black text-gray-800 text-gradient">Laporan Keuangan</h1>
+                            <p class="text-gray-600 text-sm">VLCrave Express - Comprehensive Financial Reports</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="financialReport.showDateRangeModal()" class="bg-orange-500 hover:bg-orange-600 py-2 px-4 rounded-xl text-white font-bold flex items-center gap-2 transition-colors">
+                            <i class="fas fa-calendar-alt"></i>
+                            Periode
+                        </button>
+                        <button onclick="financialReport.exportToPDF()" class="bg-green-500 hover:bg-green-600 py-2 px-4 rounded-xl text-white font-bold flex items-center gap-2 transition-colors">
+                            <i class="fas fa-file-pdf"></i>
+                            Export PDF
+                        </button>
+                        <button onclick="window.print()" class="bg-blue-500 hover:bg-blue-600 py-2 px-4 rounded-xl text-white font-bold flex items-center gap-2 transition-colors">
+                            <i class="fas fa-print"></i>
+                            Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Print Header -->
+        <div class="print-only bg-white p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-black text-gray-800">Laporan Keuangan VLCrave Express</h1>
+                        <p class="text-gray-600 text-sm" id="printPeriod">Periode: -</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-gray-600 text-sm">Dibuat pada: <span id="printDate">-</span></p>
+                    <p class="text-gray-600 text-sm">Oleh: System Administrator</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 pb-20 safe-area-bottom no-print">
+            <div class="container mx-auto px-4 py-6 max-w-7xl">
+                
+                <!-- Loading State -->
+                <div id="loadingState" class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+                    <div class="loading-spinner mb-4"></div>
+                    <p class="text-gray-600 font-medium">Memuat data keuangan...</p>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboardTab" class="tab-content active">
+                    <!-- Period Summary -->
+                    <div class="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-calendar-week text-orange-500"></i>
+                                Ringkasan Periode
+                            </h2>
+                            <div class="flex items-center gap-2 text-sm text-gray-600">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span id="currentPeriod">Memuat periode...</span>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="kpi-card">
+                                <div class="metric-label">Total Pendapatan</div>
+                                <div class="metric-value positive" id="totalRevenue">Rp 0</div>
+                                <div class="metric-change positive" id="revenueChange">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>0% vs periode sebelumnya</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="metric-label">Total Pengeluaran</div>
+                                <div class="metric-value negative" id="totalExpenses">Rp 0</div>
+                                <div class="metric-change negative" id="expensesChange">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>0% vs periode sebelumnya</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="metric-label">Laba Bersih</div>
+                                <div class="metric-value positive" id="netProfit">Rp 0</div>
+                                <div class="metric-change positive" id="profitChange">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>0% vs periode sebelumnya</span>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="metric-label">Margin Laba</div>
+                                <div class="metric-value positive" id="profitMargin">0%</div>
+                                <div class="metric-change positive" id="marginChange">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>0% vs periode sebelumnya</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Overview Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <!-- Revenue vs Expenses Trend -->
+                        <div class="chart-container">
+                            <h3 class="font-bold text-gray-800 mb-4">Trend Pendapatan vs Pengeluaran</h3>
+                            <div class="h-80">
+                                <canvas id="revenueExpenseTrend"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Profit Margin Trend -->
+                        <div class="chart-container">
+                            <h3 class="font-bold text-gray-800 mb-4">Trend Margin Laba</h3>
+                            <div class="h-80">
+                                <canvas id="profitMarginTrend"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category Breakdown -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <!-- Income Categories -->
+                        <div class="chart-container">
+                            <h3 class="font-bold text-gray-800 mb-4">Sumber Pendapatan</h3>
+                            <div class="h-80">
+                                <canvas id="incomeCategories"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Expense Categories -->
+                        <div class="chart-container">
+                            <h3 class="font-bold text-gray-800 mb-4">Kategori Pengeluaran</h3>
+                            <div class="h-80">
+                                <canvas id="expenseCategories"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cash Flow Summary -->
+                    <div class="chart-container mb-6">
+                        <h3 class="font-bold text-gray-800 mb-4">Ringkasan Arus Kas</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="text-center p-4 rounded-lg bg-green-50 border border-green-200">
+                                <div class="text-2xl font-bold text-green-600" id="cashInflow">Rp 0</div>
+                                <div class="text-sm text-green-700">Arus Kas Masuk</div>
+                            </div>
+                            <div class="text-center p-4 rounded-lg bg-red-50 border border-red-200">
+                                <div class="text-2xl font-bold text-red-600" id="cashOutflow">Rp 0</div>
+                                <div class="text-sm text-red-700">Arus Kas Keluar</div>
+                            </div>
+                            <div class="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
+                                <div class="text-2xl font-bold text-blue-600" id="netCashFlow">Rp 0</div>
+                                <div class="text-sm text-blue-700">Arus Kas Bersih</div>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="cashFlowChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Reports Tab -->
+                <div id="reportsTab" class="tab-content">
+                    <!-- Income Statement -->
+                    <div class="report-section">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-file-invoice-dollar text-green-500"></i>
+                            Laporan Laba Rugi
+                        </h2>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kategori</th>
+                                        <th>Jumlah</th>
+                                        <th>% dari Pendapatan</th>
+                                        <th>Vs Periode Sebelumnya</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="incomeStatementBody">
+                                    <!-- Income statement data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Balance Sheet -->
+                    <div class="report-section">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-balance-scale text-blue-500"></i>
+                            Neraca Keuangan
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Assets -->
+                            <div>
+                                <h3 class="font-bold text-gray-800 mb-4">Aset</h3>
+                                <div class="space-y-3" id="assetsList">
+                                    <!-- Assets will be loaded here -->
+                                </div>
+                                <div class="border-t border-gray-200 mt-4 pt-4">
+                                    <div class="flex justify-between items-center font-bold text-gray-800">
+                                        <span>Total Aset</span>
+                                        <span id="totalAssets">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Liabilities & Equity -->
+                            <div>
+                                <h3 class="font-bold text-gray-800 mb-4">Kewajiban & Ekuitas</h3>
+                                <div class="space-y-3" id="liabilitiesList">
+                                    <!-- Liabilities will be loaded here -->
+                                </div>
+                                <div class="border-t border-gray-200 mt-4 pt-4">
+                                    <div class="flex justify-between items-center font-bold text-gray-800">
+                                        <span>Total Kewajiban & Ekuitas</span>
+                                        <span id="totalLiabilities">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cash Flow Statement -->
+                    <div class="report-section">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-money-bill-wave text-purple-500"></i>
+                            Laporan Arus Kas
+                        </h2>
+                        
+                        <div class="space-y-4" id="cashFlowStatement">
+                            <!-- Cash flow statement will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analyticsTab" class="tab-content">
+                    <!-- Financial Ratios -->
+                    <div class="report-section">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-calculator text-orange-500"></i>
+                            Rasio Keuangan
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="kpi-card text-center">
+                                <div class="metric-label">ROI (Return on Investment)</div>
+                                <div class="metric-value positive" id="roiRatio">0%</div>
+                                <div class="text-sm text-gray-500">Efisiensi Investasi</div>
+                            </div>
+                            <div class="kpi-card text-center">
+                                <div class="metric-label">Current Ratio</div>
+                                <div class="metric-value positive" id="currentRatio">0.0</div>
+                                <div class="text-sm text-gray-500">Likuiditas</div>
+                            </div>
+                            <div class="kpi-card text-center">
+                                <div class="metric-label">Debt to Equity</div>
+                                <div class="metric-value neutral" id="debtEquityRatio">0.0</div>
+                                <div class="text-sm text-gray-500">Leverage</div>
+                            </div>
+                            <div class="kpi-card text-center">
+                                <div class="metric-label">Gross Margin</div>
+                                <div class="metric-value positive" id="grossMargin">0%</div>
+                                <div class="text-sm text-gray-500">Profitabilitas</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Trends -->
+                    <div class="report-section">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6">Trend Kinerja</h2>
+                        <div class="h-96">
+                            <canvas id="performanceTrend"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Comparative Analysis -->
+                    <div class="report-section">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6">Analisis Komparatif</h2>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="h-80">
+                                <canvas id="monthlyComparison"></canvas>
+                            </div>
+                            <div class="h-80">
+                                <canvas id="categoryComparison"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Tab -->
+                <div id="exportTab" class="tab-content">
+                    <div class="report-section">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-file-export text-green-500"></i>
+                            Ekspor Laporan
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- PDF Export -->
+                            <div class="financial-card bg-white rounded-xl p-6 border border-gray-200 text-center">
+                                <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-file-pdf text-white text-2xl"></i>
+                                </div>
+                                <h3 class="font-bold text-gray-800 mb-2">Export PDF</h3>
+                                <p class="text-gray-600 text-sm mb-4">Laporan lengkap dalam format PDF</p>
+                                <button onclick="financialReport.exportToPDF()" class="w-full bg-red-500 hover:bg-red-600 py-2 px-4 rounded-lg text-white font-bold transition-colors">
+                                    Download PDF
+                                </button>
+                            </div>
+                            
+                            <!-- Excel Export -->
+                            <div class="financial-card bg-white rounded-xl p-6 border border-gray-200 text-center">
+                                <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-file-excel text-white text-2xl"></i>
+                                </div>
+                                <h3 class="font-bold text-gray-800 mb-2">Export Excel</h3>
+                                <p class="text-gray-600 text-sm mb-4">Data mentah dalam format Excel</p>
+                                <button onclick="financialReport.exportToExcel()" class="w-full bg-green-500 hover:bg-green-600 py-2 px-4 rounded-lg text-white font-bold transition-colors">
+                                    Download Excel
+                                </button>
+                            </div>
+                            
+                            <!-- Custom Report -->
+                            <div class="financial-card bg-white rounded-xl p-6 border border-gray-200 text-center">
+                                <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-cog text-white text-2xl"></i>
+                                </div>
+                                <h3 class="font-bold text-gray-800 mb-2">Laporan Kustom</h3>
+                                <p class="text-gray-600 text-sm mb-4">Buat laporan sesuai kebutuhan</p>
+                                <button onclick="financialReport.showCustomReportModal()" class="w-full bg-blue-500 hover:bg-blue-600 py-2 px-4 rounded-lg text-white font-bold transition-colors">
+                                    Buat Laporan
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Export Options -->
+                        <div class="mt-8">
+                            <h3 class="font-bold text-gray-800 mb-4">Ekspor Cepat</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <button onclick="financialReport.exportIncomeStatement()" class="bg-green-500 hover:bg-green-600 py-2 px-3 rounded-lg text-white text-sm font-bold transition-colors">
+                                    Laba Rugi
+                                </button>
+                                <button onclick="financialReport.exportBalanceSheet()" class="bg-blue-500 hover:bg-blue-600 py-2 px-3 rounded-lg text-white text-sm font-bold transition-colors">
+                                    Neraca
+                                </button>
+                                <button onclick="financialReport.exportCashFlow()" class="bg-purple-500 hover:bg-purple-600 py-2 px-3 rounded-lg text-white text-sm font-bold transition-colors">
+                                    Arus Kas
+                                </button>
+                                <button onclick="financialReport.exportAll()" class="bg-orange-500 hover:bg-orange-600 py-2 px-3 rounded-lg text-white text-sm font-bold transition-colors">
+                                    Semua Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Print Content -->
+        <div class="print-only">
+            <div class="container mx-auto px-4 py-6">
+                <!-- Executive Summary -->
+                <div class="report-section mb-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Ringkasan Eksekutif</h2>
+                    <div id="executiveSummary">
+                        <!-- Executive summary will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Financial Highlights -->
+                <div class="report-section mb-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Highlight Keuangan</h2>
+                    <div id="financialHighlights">
+                        <!-- Financial highlights will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Detailed Reports -->
+                <div id="printReports">
+                    <!-- Reports will be loaded here for printing -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex p-2 z-40 safe-area-bottom shadow-sm no-print">
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financialReport.showTab('dashboard')">
+                <i class="fas fa-chart-pie text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Dashboard</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financialReport.showTab('reports')">
+                <i class="fas fa-file-alt text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Laporan</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financialReport.showTab('analytics')">
+                <i class="fas fa-chart-line text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Analisis</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="financialReport.showTab('export')">
+                <i class="fas fa-download text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Export</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Date Range Modal -->
+    <div id="dateRangeModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="modal-header bg-orange-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-calendar-alt"></i>
+                    Pilih Periode Laporan
+                </h2>
+                <button onclick="financialReport.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Tipe Periode</label>
+                    <select id="periodType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="monthly">Bulanan</option>
+                        <option value="quarterly">Kuartalan</option>
+                        <option value="yearly">Tahunan</option>
+                        <option value="custom">Kustom</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Dari Tanggal</label>
+                        <input type="date" id="startDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Sampai Tanggal</label>
+                        <input type="date" id="endDate" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Bandingkan Dengan</label>
+                    <select id="compareWith" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <option value="previous_period">Periode Sebelumnya</option>
+                        <option value="same_period_last_year">Periode yang Sama Tahun Lalu</option>
+                        <option value="none">Tidak Ada Perbandingan</option>
+                    </select>
+                </div>
+                
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <h4 class="font-bold text-gray-800 text-sm mb-2">Preset Periode</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="financialReport.setPresetPeriod('this_month')" class="text-xs bg-orange-500 hover:bg-orange-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            Bulan Ini
+                        </button>
+                        <button onclick="financialReport.setPresetPeriod('last_month')" class="text-xs bg-gray-500 hover:bg-gray-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            Bulan Lalu
+                        </button>
+                        <button onclick="financialReport.setPresetPeriod('this_quarter')" class="text-xs bg-orange-500 hover:bg-orange-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            Kuartal Ini
+                        </button>
+                        <button onclick="financialReport.setPresetPeriod('this_year')" class="text-xs bg-gray-500 hover:bg-gray-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            Tahun Ini
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="financialReport.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="financialReport.applyDateRange()" class="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold transition-colors">
+                    Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Report Modal -->
+    <div id="customReportModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="modal-header bg-blue-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-cog"></i>
+                    Buat Laporan Kustom
+                </h2>
+                <button onclick="financialReport.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Report Sections -->
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-3">Bagian Laporan</h3>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500" checked>
+                                <span class="text-sm text-gray-700">Ringkasan Eksekutif</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500" checked>
+                                <span class="text-sm text-gray-700">Laporan Laba Rugi</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500" checked>
+                                <span class="text-sm text-gray-700">Neraca Keuangan</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500" checked>
+                                <span class="text-sm text-gray-700">Laporan Arus Kas</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500">
+                                <span class="text-sm text-gray-700">Analisis Rasio</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500">
+                                <span class="text-sm text-gray-700">Trend Analysis</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Export Options -->
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-3">Opsi Ekspor</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+                                <select class="w-full p-2 border border-gray-300 rounded-lg">
+                                    <option value="pdf">PDF</option>
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Level Detail</label>
+                                <select class="w-full p-2 border border-gray-300 rounded-lg">
+                                    <option value="summary">Ringkasan</option>
+                                    <option value="detailed">Detail</option>
+                                    <option value="comprehensive">Komprehensif</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Include Charts</label>
+                                <select class="w-full p-2 border border-gray-300 rounded-lg">
+                                    <option value="yes">Ya</option>
+                                    <option value="no">Tidak</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Settings -->
+                <div class="mt-6">
+                    <h3 class="font-bold text-gray-800 mb-3">Pengaturan Tambahan</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500" checked>
+                            <span class="text-sm text-gray-700">Include Executive Summary</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500" checked>
+                            <span class="text-sm text-gray-700">Include Recommendations</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2 rounded border-gray-300 text-blue-500 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Include Raw Data</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="financialReport.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="financialReport.generateCustomReport()" class="flex-1 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold transition-colors">
+                    Generate Laporan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notificationContainer" class="fixed top-4 right-4 left-4 z-50 space-y-2"></div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Financial Report Application
+        const financialReport = {
+            currentTab: 'dashboard',
+            charts: {},
+            currentPeriod: {
+                start: null,
+                end: null,
+                type: 'monthly'
+            },
+            comparisonPeriod: {
+                start: null,
+                end: null
+            },
+            data: {
+                transactions: [],
+                invoices: [],
+                accounts: [],
+                current: {},
+                previous: {}
+            },
+            
+            // Initialize App
+            async init() {
+                console.log("Financial Report App Initialized");
+                
+                // Set default period (current month)
+                this.setDefaultPeriod();
+                
+                // Setup real-time listeners
+                this.setupRealtimeListeners();
+                
+                // Initialize charts
+                this.initCharts();
+                
+                // Update print information
+                this.updatePrintInfo();
+                
+                // Show dashboard by default
+                this.showTab('dashboard');
+            },
+            
+            // Set default period
+            setDefaultPeriod() {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                
+                this.currentPeriod.start = startOfMonth;
+                this.currentPeriod.end = endOfMonth;
+                
+                // Set previous period (last month)
+                const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                
+                this.comparisonPeriod.start = startOfLastMonth;
+                this.comparisonPeriod.end = endOfLastMonth;
+                
+                this.updatePeriodDisplay();
+            },
+            
+            // Setup real-time Firestore listeners
+            setupRealtimeListeners() {
+                // Transactions listener
+                db.collection("finance_transactions")
+                    .orderBy("createdAt", "desc")
+                    .limit(5000)
+                    .onSnapshot((snapshot) => {
+                        this.data.transactions = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            // Convert Firestore timestamp to Date if needed
+                            if (data.createdAt && data.createdAt.toDate) {
+                                data.createdAt = data.createdAt.toDate();
+                            }
+                            this.data.transactions.push(data);
+                        });
+                        
+                        console.log("Transactions loaded:", this.data.transactions.length);
+                        this.processFinancialData();
+                        this.hideLoading();
+                    }, error => {
+                        console.error("Error loading transactions:", error);
+                        this.hideLoading();
+                        this.showNotification('Error memuat data transaksi', 'error');
+                    });
+
+                // Invoices listener
+                db.collection("invoices")
+                    .orderBy("createdAt", "desc")
+                    .limit(1000)
+                    .onSnapshot((snapshot) => {
+                        this.data.invoices = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            if (data.createdAt && data.createdAt.toDate) {
+                                data.createdAt = data.createdAt.toDate();
+                            }
+                            this.data.invoices.push(data);
+                        });
+                        
+                        console.log("Invoices loaded:", this.data.invoices.length);
+                        this.processFinancialData();
+                    }, error => {
+                        console.error("Error loading invoices:", error);
+                        this.showNotification('Error memuat data invoice', 'error');
+                    });
+
+                // Accounts listener
+                db.collection("finance_accounts")
+                    .onSnapshot((snapshot) => {
+                        this.data.accounts = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            this.data.accounts.push(data);
+                        });
+                        
+                        console.log("Accounts loaded:", this.data.accounts.length);
+                        this.processFinancialData();
+                    }, error => {
+                        console.error("Error loading accounts:", error);
+                        this.showNotification('Error memuat data rekening', 'error');
+                    });
+            },
+            
+            // Hide loading state
+            hideLoading() {
+                document.getElementById('loadingState').classList.add('hidden');
+            },
+            
+            // Process financial data for reporting
+            processFinancialData() {
+                if (this.data.transactions.length === 0) return;
+                
+                // Process current period data
+                this.data.current = this.calculatePeriodData(this.currentPeriod.start, this.currentPeriod.end);
+                
+                // Process comparison period data
+                this.data.previous = this.calculatePeriodData(this.comparisonPeriod.start, this.comparisonPeriod.end);
+                
+                // Update dashboard
+                this.updateDashboard();
+                
+                // Update reports
+                this.updateReports();
+                
+                // Update analytics
+                this.updateAnalytics();
+                
+                // Update charts
+                this.updateCharts();
+            },
+            
+            // Calculate data for a specific period
+            calculatePeriodData(startDate, endDate) {
+                const periodData = {
+                    income: 0,
+                    expenses: 0,
+                    netProfit: 0,
+                    profitMargin: 0,
+                    incomeByCategory: {},
+                    expensesByCategory: {},
+                    cashInflow: 0,
+                    cashOutflow: 0,
+                    netCashFlow: 0,
+                    assets: 0,
+                    liabilities: 0,
+                    equity: 0
+                };
+                
+                // Filter transactions for the period
+                const periodTransactions = this.data.transactions.filter(transaction => {
+                    const transactionDate = new Date(transaction.createdAt);
+                    return transactionDate >= startDate && transactionDate <= endDate;
+                });
+                
+                // Calculate income and expenses
+                periodTransactions.forEach(transaction => {
+                    if (transaction.type === 'income') {
+                        periodData.income += transaction.amount || 0;
+                        periodData.cashInflow += transaction.amount || 0;
+                        
+                        // Categorize income
+                        const category = transaction.category || 'lainnya';
+                        periodData.incomeByCategory[category] = (periodData.incomeByCategory[category] || 0) + (transaction.amount || 0);
+                    } else if (transaction.type === 'expense') {
+                        periodData.expenses += transaction.amount || 0;
+                        periodData.cashOutflow += transaction.amount || 0;
+                        
+                        // Categorize expenses
+                        const category = transaction.category || 'lainnya';
+                        periodData.expensesByCategory[category] = (periodData.expensesByCategory[category] || 0) + (transaction.amount || 0);
+                    }
+                });
+                
+                // Add income from invoices (shipping costs)
+                const periodInvoices = this.data.invoices.filter(invoice => {
+                    const invoiceDate = new Date(invoice.createdAt);
+                    return invoiceDate >= startDate && invoiceDate <= endDate;
+                });
+                
+                periodInvoices.forEach(invoice => {
+                    const shippingIncome = invoice.shippingCost || 0;
+                    periodData.income += shippingIncome;
+                    periodData.cashInflow += shippingIncome;
+                    periodData.incomeByCategory['ongkos_kirim'] = (periodData.incomeByCategory['ongkos_kirim'] || 0) + shippingIncome;
+                });
+                
+                // Calculate net profit and margin
+                periodData.netProfit = periodData.income - periodData.expenses;
+                periodData.profitMargin = periodData.income > 0 ? (periodData.netProfit / periodData.income) * 100 : 0;
+                periodData.netCashFlow = periodData.cashInflow - periodData.cashOutflow;
+                
+                // Calculate assets (account balances)
+                periodData.assets = this.data.accounts.reduce((sum, account) => sum + (account.balance || 0), 0);
+                
+                return periodData;
+            },
+            
+            // Update dashboard with current data
+            updateDashboard() {
+                const current = this.data.current;
+                const previous = this.data.previous;
+                
+                // Update KPI cards
+                document.getElementById('totalRevenue').textContent = this.formatCurrency(current.income);
+                document.getElementById('totalExpenses').textContent = this.formatCurrency(current.expenses);
+                document.getElementById('netProfit').textContent = this.formatCurrency(current.netProfit);
+                document.getElementById('profitMargin').textContent = current.profitMargin.toFixed(1) + '%';
+                
+                // Calculate changes
+                const revenueChange = previous.income > 0 ? ((current.income - previous.income) / previous.income) * 100 : 0;
+                const expensesChange = previous.expenses > 0 ? ((current.expenses - previous.expenses) / previous.expenses) * 100 : 0;
+                const profitChange = previous.netProfit !== 0 ? ((current.netProfit - previous.netProfit) / Math.abs(previous.netProfit)) * 100 : 0;
+                const marginChange = previous.profitMargin !== 0 ? (current.profitMargin - previous.profitMargin) : 0;
+                
+                // Update change indicators
+                this.updateChangeIndicator('revenueChange', revenueChange);
+                this.updateChangeIndicator('expensesChange', expensesChange);
+                this.updateChangeIndicator('profitChange', profitChange);
+                this.updateChangeIndicator('marginChange', marginChange);
+                
+                // Update cash flow
+                document.getElementById('cashInflow').textContent = this.formatCurrency(current.cashInflow);
+                document.getElementById('cashOutflow').textContent = this.formatCurrency(current.cashOutflow);
+                document.getElementById('netCashFlow').textContent = this.formatCurrency(current.netCashFlow);
+            },
+            
+            // Update change indicator
+            updateChangeIndicator(elementId, change) {
+                const element = document.getElementById(elementId);
+                const isPositive = change >= 0;
+                const arrow = isPositive ? 'fa-arrow-up' : 'fa-arrow-down';
+                const textClass = isPositive ? 'positive' : 'negative';
+                
+                element.className = `metric-change ${textClass}`;
+                element.innerHTML = `<i class="fas ${arrow}"></i><span>${Math.abs(change).toFixed(1)}% vs periode sebelumnya</span>`;
+            },
+            
+            // Initialize charts
+            initCharts() {
+                // Revenue vs Expenses Trend
+                const revenueExpenseCtx = document.getElementById('revenueExpenseTrend').getContext('2d');
+                this.charts.revenueExpenseTrend = new Chart(revenueExpenseCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Pendapatan',
+                                data: [],
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: 'Pengeluaran',
+                                data: [],
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + value.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Profit Margin Trend
+                const profitMarginCtx = document.getElementById('profitMarginTrend').getContext('2d');
+                this.charts.profitMarginTrend = new Chart(profitMarginCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Margin Laba (%)',
+                                data: [],
+                                borderColor: '#f59e0b',
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Income Categories
+                const incomeCategoriesCtx = document.getElementById('incomeCategories').getContext('2d');
+                this.charts.incomeCategories = new Chart(incomeCategoriesCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                data: [],
+                                backgroundColor: [
+                                    '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6'
+                                ]
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+                // Expense Categories
+                const expenseCategoriesCtx = document.getElementById('expenseCategories').getContext('2d');
+                this.charts.expenseCategories = new Chart(expenseCategoriesCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                data: [],
+                                backgroundColor: [
+                                    '#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'
+                                ]
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+                // Cash Flow Chart
+                const cashFlowCtx = document.getElementById('cashFlowChart').getContext('2d');
+                this.charts.cashFlow = new Chart(cashFlowCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Arus Kas Masuk',
+                                data: [],
+                                backgroundColor: '#10b981'
+                            },
+                            {
+                                label: 'Arus Kas Keluar',
+                                data: [],
+                                backgroundColor: '#ef4444'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + value.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Performance Trend
+                const performanceCtx = document.getElementById('performanceTrend').getContext('2d');
+                this.charts.performanceTrend = new Chart(performanceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Pendapatan',
+                                data: [],
+                                borderColor: '#10b981',
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Pengeluaran',
+                                data: [],
+                                borderColor: '#ef4444',
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Laba Bersih',
+                                data: [],
+                                borderColor: '#3b82f6',
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'Rp ' + value.toLocaleString('id-ID');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // Monthly Comparison
+                const monthlyComparisonCtx = document.getElementById('monthlyComparison').getContext('2d');
+                this.charts.monthlyComparison = new Chart(monthlyComparisonCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Periode Ini',
+                                data: [],
+                                backgroundColor: '#f97316'
+                            },
+                            {
+                                label: 'Periode Sebelumnya',
+                                data: [],
+                                backgroundColor: '#6b7280'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+                // Category Comparison
+                const categoryComparisonCtx = document.getElementById('categoryComparison').getContext('2d');
+                this.charts.categoryComparison = new Chart(categoryComparisonCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: [],
+                        datasets: [
+                            {
+                                label: 'Periode Ini',
+                                data: [],
+                                backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                                borderColor: '#f97316'
+                            },
+                            {
+                                label: 'Periode Sebelumnya',
+                                data: [],
+                                backgroundColor: 'rgba(107, 114, 128, 0.2)',
+                                borderColor: '#6b7280'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            },
+            
+            // Update charts with current data
+            updateCharts() {
+                // Sample monthly data for charts
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'];
+                const revenueData = [5000000, 7500000, 6000000, 9000000, 8500000, 9500000];
+                const expenseData = [3000000, 4500000, 3500000, 5500000, 5000000, 6000000];
+                const profitData = [2000000, 3000000, 2500000, 3500000, 3500000, 3500000];
+                const marginData = [40, 40, 42, 39, 41, 37];
+                
+                // Update Revenue vs Expenses Trend
+                this.charts.revenueExpenseTrend.data.labels = months;
+                this.charts.revenueExpenseTrend.data.datasets[0].data = revenueData;
+                this.charts.revenueExpenseTrend.data.datasets[1].data = expenseData;
+                this.charts.revenueExpenseTrend.update();
+                
+                // Update Profit Margin Trend
+                this.charts.profitMarginTrend.data.labels = months;
+                this.charts.profitMarginTrend.data.datasets[0].data = marginData;
+                this.charts.profitMarginTrend.update();
+                
+                // Update Income Categories
+                const incomeCategories = Object.entries(this.data.current.incomeByCategory)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+                
+                this.charts.incomeCategories.data.labels = incomeCategories.map(item => this.formatCategoryName(item[0]));
+                this.charts.incomeCategories.data.datasets[0].data = incomeCategories.map(item => item[1]);
+                this.charts.incomeCategories.update();
+                
+                // Update Expense Categories
+                const expenseCategories = Object.entries(this.data.current.expensesByCategory)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+                
+                this.charts.expenseCategories.data.labels = expenseCategories.map(item => this.formatCategoryName(item[0]));
+                this.charts.expenseCategories.data.datasets[0].data = expenseCategories.map(item => item[1]);
+                this.charts.expenseCategories.update();
+                
+                // Update Cash Flow Chart
+                this.charts.cashFlow.data.labels = months;
+                this.charts.cashFlow.data.datasets[0].data = revenueData;
+                this.charts.cashFlow.data.datasets[1].data = expenseData;
+                this.charts.cashFlow.update();
+                
+                // Update Performance Trend
+                this.charts.performanceTrend.data.labels = months;
+                this.charts.performanceTrend.data.datasets[0].data = revenueData;
+                this.charts.performanceTrend.data.datasets[1].data = expenseData;
+                this.charts.performanceTrend.data.datasets[2].data = profitData;
+                this.charts.performanceTrend.update();
+                
+                // Update Monthly Comparison
+                this.charts.monthlyComparison.data.labels = ['Pendapatan', 'Pengeluaran', 'Laba Bersih'];
+                this.charts.monthlyComparison.data.datasets[0].data = [
+                    this.data.current.income,
+                    this.data.current.expenses,
+                    this.data.current.netProfit
+                ];
+                this.charts.monthlyComparison.data.datasets[1].data = [
+                    this.data.previous.income,
+                    this.data.previous.expenses,
+                    this.data.previous.netProfit
+                ];
+                this.charts.monthlyComparison.update();
+                
+                // Update Category Comparison
+                const allCategories = [...new Set([
+                    ...Object.keys(this.data.current.incomeByCategory),
+                    ...Object.keys(this.data.current.expensesByCategory),
+                    ...Object.keys(this.data.previous.incomeByCategory),
+                    ...Object.keys(this.data.previous.expensesByCategory)
+                ])].slice(0, 6);
+                
+                this.charts.categoryComparison.data.labels = allCategories.map(cat => this.formatCategoryName(cat));
+                this.charts.categoryComparison.data.datasets[0].data = allCategories.map(cat => 
+                    (this.data.current.incomeByCategory[cat] || 0) + (this.data.current.expensesByCategory[cat] || 0)
+                );
+                this.charts.categoryComparison.data.datasets[1].data = allCategories.map(cat => 
+                    (this.data.previous.incomeByCategory[cat] || 0) + (this.data.previous.expensesByCategory[cat] || 0)
+                );
+                this.charts.categoryComparison.update();
+            },
+            
+            // Format category name for display
+            formatCategoryName(category) {
+                const categoryNames = {
+                    'operasional': 'Operasional',
+                    'bahan_baku': 'Bahan Baku',
+                    'transportasi': 'Transportasi',
+                    'gaji': 'Gaji Karyawan',
+                    'listrik': 'Listrik & Air',
+                    'internet': 'Internet',
+                    'pemeliharaan': 'Pemeliharaan',
+                    'ongkos_kirim': 'Ongkos Kirim',
+                    'penjualan': 'Penjualan',
+                    'lainnya': 'Lainnya'
+                };
+                
+                return categoryNames[category] || category;
+            },
+            
+            // Update reports
+            updateReports() {
+                this.updateIncomeStatement();
+                this.updateBalanceSheet();
+                this.updateCashFlowStatement();
+            },
+            
+            // Update income statement
+            updateIncomeStatement() {
+                const container = document.getElementById('incomeStatementBody');
+                const current = this.data.current;
+                const previous = this.data.previous;
+                
+                let html = '';
+                
+                // Revenue section
+                html += `
+                    <tr class="bg-gray-50">
+                        <td class="font-bold">Pendapatan</td>
+                        <td class="font-bold">${this.formatCurrency(current.income)}</td>
+                        <td class="font-bold">100%</td>
+                        <td class="font-bold">-</td>
+                    </tr>
+                `;
+                
+                // Income categories
+                Object.entries(current.incomeByCategory).forEach(([category, amount]) => {
+                    const percentage = (amount / current.income) * 100;
+                    const prevAmount = previous.incomeByCategory[category] || 0;
+                    const change = prevAmount > 0 ? ((amount - prevAmount) / prevAmount) * 100 : 0;
+                    const changeClass = change >= 0 ? 'positive' : 'negative';
+                    const changeIcon = change >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                    
+                    html += `
+                        <tr>
+                            <td class="pl-4">${this.formatCategoryName(category)}</td>
+                            <td>${this.formatCurrency(amount)}</td>
+                            <td>${percentage.toFixed(1)}%</td>
+                            <td class="${changeClass}">
+                                <i class="fas ${changeIcon}"></i>
+                                ${Math.abs(change).toFixed(1)}%
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // Expenses section
+                html += `
+                    <tr class="bg-gray-50">
+                        <td class="font-bold">Pengeluaran</td>
+                        <td class="font-bold">${this.formatCurrency(current.expenses)}</td>
+                        <td class="font-bold">${((current.expenses / current.income) * 100).toFixed(1)}%</td>
+                        <td class="font-bold">-</td>
+                    </tr>
+                `;
+                
+                // Expense categories
+                Object.entries(current.expensesByCategory).forEach(([category, amount]) => {
+                    const percentage = (amount / current.income) * 100;
+                    const prevAmount = previous.expensesByCategory[category] || 0;
+                    const change = prevAmount > 0 ? ((amount - prevAmount) / prevAmount) * 100 : 0;
+                    const changeClass = change >= 0 ? 'negative' : 'positive';
+                    const changeIcon = change >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                    
+                    html += `
+                        <tr>
+                            <td class="pl-4">${this.formatCategoryName(category)}</td>
+                            <td>${this.formatCurrency(amount)}</td>
+                            <td>${percentage.toFixed(1)}%</td>
+                            <td class="${changeClass}">
+                                <i class="fas ${changeIcon}"></i>
+                                ${Math.abs(change).toFixed(1)}%
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // Net profit
+                const profitPercentage = (current.netProfit / current.income) * 100;
+                const prevProfit = previous.netProfit || 0;
+                const profitChange = prevProfit !== 0 ? ((current.netProfit - prevProfit) / Math.abs(prevProfit)) * 100 : 0;
+                const profitChangeClass = profitChange >= 0 ? 'positive' : 'negative';
+                const profitChangeIcon = profitChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                
+                html += `
+                    <tr class="bg-green-50 border-t-2 border-green-200">
+                        <td class="font-bold">Laba Bersih</td>
+                        <td class="font-bold positive">${this.formatCurrency(current.netProfit)}</td>
+                        <td class="font-bold positive">${profitPercentage.toFixed(1)}%</td>
+                        <td class="font-bold ${profitChangeClass}">
+                            <i class="fas ${profitChangeIcon}"></i>
+                            ${Math.abs(profitChange).toFixed(1)}%
+                        </td>
+                    </tr>
+                `;
+                
+                container.innerHTML = html;
+            },
+            
+            // Update balance sheet
+            updateBalanceSheet() {
+                const current = this.data.current;
+                
+                // Update assets
+                const assetsContainer = document.getElementById('assetsList');
+                assetsContainer.innerHTML = '';
+                
+                this.data.accounts.forEach(account => {
+                    assetsContainer.innerHTML += `
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">${account.name}</span>
+                            <span class="font-medium">${this.formatCurrency(account.balance || 0)}</span>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('totalAssets').textContent = this.formatCurrency(current.assets);
+                
+                // Update liabilities & equity (simplified for demo)
+                const liabilitiesContainer = document.getElementById('liabilitiesList');
+                liabilitiesContainer.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Modal Awal</span>
+                        <span class="font-medium">${this.formatCurrency(current.assets * 0.7)}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Laba Ditahan</span>
+                        <span class="font-medium positive">${this.formatCurrency(current.netProfit)}</span>
+                    </div>
+                `;
+                
+                document.getElementById('totalLiabilities').textContent = this.formatCurrency(current.assets);
+            },
+            
+            // Update cash flow statement
+            updateCashFlowStatement() {
+                const container = document.getElementById('cashFlowStatement');
+                const current = this.data.current;
+                const previous = this.data.previous;
+                
+                container.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center p-4 rounded-lg bg-green-50 border border-green-200">
+                            <div class="text-lg font-bold text-green-600">${this.formatCurrency(current.cashInflow)}</div>
+                            <div class="text-sm text-green-700">Arus Kas Masuk</div>
+                            <div class="text-xs text-green-600 mt-1">
+                                ${this.calculateChange(current.cashInflow, previous.cashInflow)}
+                            </div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-red-50 border border-red-200">
+                            <div class="text-lg font-bold text-red-600">${this.formatCurrency(current.cashOutflow)}</div>
+                            <div class="text-sm text-red-700">Arus Kas Keluar</div>
+                            <div class="text-xs text-red-600 mt-1">
+                                ${this.calculateChange(current.cashOutflow, previous.cashOutflow)}
+                            </div>
+                        </div>
+                        <div class="text-center p-4 rounded-lg bg-blue-50 border border-blue-200">
+                            <div class="text-lg font-bold text-blue-600">${this.formatCurrency(current.netCashFlow)}</div>
+                            <div class="text-sm text-blue-700">Arus Kas Bersih</div>
+                            <div class="text-xs text-blue-600 mt-1">
+                                ${this.calculateChange(current.netCashFlow, previous.netCashFlow)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+            
+            // Calculate change percentage
+            calculateChange(current, previous) {
+                if (previous === 0) return 'Tidak ada data sebelumnya';
+                
+                const change = ((current - previous) / Math.abs(previous)) * 100;
+                const direction = change >= 0 ? 'naik' : 'turun';
+                const icon = change >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                const colorClass = change >= 0 ? 'text-green-600' : 'text-red-600';
+                
+                return `<i class="fas ${icon} ${colorClass}"></i> ${Math.abs(change).toFixed(1)}% ${direction}`;
+            },
+            
+            // Update analytics
+            updateAnalytics() {
+                const current = this.data.current;
+                const previous = this.data.previous;
+                
+                // Calculate financial ratios
+                const roi = current.netProfit > 0 ? (current.netProfit / (current.assets * 0.3)) * 100 : 0;
+                const currentRatio = current.assets > 0 ? (current.assets * 0.7) / (current.assets * 0.3) : 0;
+                const debtEquity = current.assets > 0 ? (current.assets * 0.3) / (current.assets * 0.7) : 0;
+                const grossMargin = current.profitMargin;
+                
+                document.getElementById('roiRatio').textContent = roi.toFixed(1) + '%';
+                document.getElementById('currentRatio').textContent = currentRatio.toFixed(1);
+                document.getElementById('debtEquityRatio').textContent = debtEquity.toFixed(1);
+                document.getElementById('grossMargin').textContent = grossMargin.toFixed(1) + '%';
+            },
+            
+            // Update period display
+            updatePeriodDisplay() {
+                const periodText = `${this.formatDate(this.currentPeriod.start)} - ${this.formatDate(this.currentPeriod.end)}`;
+                document.getElementById('currentPeriod').textContent = periodText;
+            },
+            
+            // Update print information
+            updatePrintInfo() {
+                const now = new Date();
+                document.getElementById('printDate').textContent = this.formatDate(now);
+                document.getElementById('printPeriod').textContent = `Periode: ${this.formatDate(this.currentPeriod.start)} - ${this.formatDate(this.currentPeriod.end)}`;
+            },
+            
+            // Tab Navigation
+            showTab(tabName) {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('text-orange-600', 'bg-orange-50');
+                    nav.classList.add('text-gray-500');
+                });
+                
+                document.getElementById(tabName + 'Tab').classList.add('active');
+                
+                const activeNav = document.querySelector(`.nav-item:nth-child(${this.getTabIndex(tabName)})`);
+                if (activeNav) {
+                    activeNav.classList.remove('text-gray-500');
+                    activeNav.classList.add('text-orange-600', 'bg-orange-50');
+                }
+                
+                this.currentTab = tabName;
+                
+                // Refresh charts when switching to analytics tab
+                if (tabName === 'analytics') {
+                    setTimeout(() => {
+                        this.updateCharts();
+                    }, 100);
+                }
+            },
+            
+            // Get tab index for navigation
+            getTabIndex(tabName) {
+                const tabs = ['dashboard', 'reports', 'analytics', 'export'];
+                return tabs.indexOf(tabName) + 1;
+            },
+            
+            // Show date range modal
+            showDateRangeModal() {
+                // Set current values in modal
+                document.getElementById('startDate').value = this.formatDateForInput(this.currentPeriod.start);
+                document.getElementById('endDate').value = this.formatDateForInput(this.currentPeriod.end);
+                
+                document.getElementById('dateRangeModal').classList.remove('hidden');
+            },
+            
+            // Apply date range
+            applyDateRange() {
+                const startDate = new Date(document.getElementById('startDate').value);
+                const endDate = new Date(document.getElementById('endDate').value);
+                const periodType = document.getElementById('periodType').value;
+                const compareWith = document.getElementById('compareWith').value;
+                
+                this.currentPeriod.start = startDate;
+                this.currentPeriod.end = endDate;
+                this.currentPeriod.type = periodType;
+                
+                // Set comparison period based on selection
+                if (compareWith === 'previous_period') {
+                    const periodDiff = endDate - startDate;
+                    this.comparisonPeriod.start = new Date(startDate.getTime() - periodDiff - 86400000);
+                    this.comparisonPeriod.end = new Date(startDate.getTime() - 86400000);
+                } else if (compareWith === 'same_period_last_year') {
+                    this.comparisonPeriod.start = new Date(startDate.getFullYear() - 1, startDate.getMonth(), startDate.getDate());
+                    this.comparisonPeriod.end = new Date(endDate.getFullYear() - 1, endDate.getMonth(), endDate.getDate());
+                }
+                
+                this.updatePeriodDisplay();
+                this.updatePrintInfo();
+                this.processFinancialData();
+                this.closeModal();
+                
+                this.showNotification('Periode laporan diperbarui', 'success');
+            },
+            
+            // Set preset period
+            setPresetPeriod(preset) {
+                const now = new Date();
+                let startDate, endDate;
+                
+                switch (preset) {
+                    case 'this_month':
+                        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                        break;
+                    case 'last_month':
+                        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+                        break;
+                    case 'this_quarter':
+                        const quarter = Math.floor(now.getMonth() / 3);
+                        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                        endDate = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
+                        break;
+                    case 'this_year':
+                        startDate = new Date(now.getFullYear(), 0, 1);
+                        endDate = new Date(now.getFullYear(), 11, 31);
+                        break;
+                }
+                
+                document.getElementById('startDate').value = this.formatDateForInput(startDate);
+                document.getElementById('endDate').value = this.formatDateForInput(endDate);
+            },
+            
+            // Show custom report modal
+            showCustomReportModal() {
+                document.getElementById('customReportModal').classList.remove('hidden');
+            },
+            
+            // Generate custom report
+            generateCustomReport() {
+                this.showNotification('Laporan kustom sedang diproses...', 'info');
+                // In a real implementation, this would generate a custom report
+                // based on the selected options
+                setTimeout(() => {
+                    this.showNotification('Laporan kustom berhasil dibuat', 'success');
+                    this.closeModal();
+                }, 2000);
+            },
+            
+            // Export to PDF
+            exportToPDF() {
+                this.showNotification('Mempersiapkan laporan PDF...', 'info');
+                // In a real implementation, this would generate a PDF
+                setTimeout(() => {
+                    this.showNotification('Laporan PDF berhasil diunduh', 'success');
+                // Simulate download
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.download = `Laporan_Keuangan_${this.formatDateForInput(this.currentPeriod.start)}_${this.formatDateForInput(this.currentPeriod.end)}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, 1500);
+            },
+            
+            // Export to Excel
+            exportToExcel() {
+                this.showNotification('Mempersiapkan laporan Excel...', 'info');
+                // In a real implementation, this would generate an Excel file
+                setTimeout(() => {
+                    this.showNotification('Laporan Excel berhasil diunduh', 'success');
+                }, 1500);
+            },
+            
+            // Quick export functions
+            exportIncomeStatement() {
+                this.showNotification('Mengekspor laporan laba rugi...', 'info');
+            },
+            
+            exportBalanceSheet() {
+                this.showNotification('Mengekspor neraca keuangan...', 'info');
+            },
+            
+            exportCashFlow() {
+                this.showNotification('Mengekspor laporan arus kas...', 'info');
+            },
+            
+            exportAll() {
+                this.showNotification('Mengekspor semua data keuangan...', 'info');
+            },
+            
+            // Close modal
+            closeModal() {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.classList.add('hidden');
+                });
+            },
+            
+            // Show notification
+            showNotification(message, type = 'info') {
+                const container = document.getElementById('notificationContainer');
+                const notification = document.createElement('div');
+                
+                const bgColors = {
+                    success: 'bg-green-500',
+                    error: 'bg-red-500',
+                    warning: 'bg-yellow-500',
+                    info: 'bg-blue-500'
+                };
+                
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+                
+                notification.className = `${bgColors[type]} text-white p-4 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in-right`;
+                notification.innerHTML = `
+                    <i class="fas ${icons[type]}"></i>
+                    <span class="flex-1">${message}</span>
+                    <button onclick="this.parentElement.remove()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                container.appendChild(notification);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+            },
+            
+            // Format currency
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(amount);
+            },
+            
+            // Format date for display
+            formatDate(date) {
+                return new Intl.DateTimeFormat('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                }).format(date);
+            },
+            
+            // Format date for input
+            formatDateForInput(date) {
+                return date.toISOString().split('T')[0];
+            },
+            
+            // Generate sample data for demonstration
+            generateSampleData() {
+                // This would be replaced with actual Firestore data
+                const sampleTransactions = [
+                    {
+                        id: '1',
+                        type: 'income',
+                        category: 'penjualan',
+                        amount: 5000000,
+                        description: 'Penjualan produk VLCrave',
+                        createdAt: new Date(2024, 0, 15)
+                    },
+                    {
+                        id: '2',
+                        type: 'income',
+                        category: 'ongkos_kirim',
+                        amount: 1500000,
+                        description: 'Pendapatan ongkos kirim',
+                        createdAt: new Date(2024, 0, 16)
+                    },
+                    {
+                        id: '3',
+                        type: 'expense',
+                        category: 'bahan_baku',
+                        amount: 2000000,
+                        description: 'Pembelian bahan baku',
+                        createdAt: new Date(2024, 0, 17)
+                    },
+                    {
+                        id: '4',
+                        type: 'expense',
+                        category: 'operasional',
+                        amount: 1000000,
+                        description: 'Biaya operasional toko',
+                        createdAt: new Date(2024, 0, 18)
+                    },
+                    {
+                        id: '5',
+                        type: 'expense',
+                        category: 'transportasi',
+                        amount: 500000,
+                        description: 'Biaya transportasi',
+                        createdAt: new Date(2024, 0, 19)
+                    }
+                ];
+                
+                const sampleInvoices = [
+                    {
+                        id: 'inv1',
+                        shippingCost: 25000,
+                        createdAt: new Date(2024, 0, 20)
+                    },
+                    {
+                        id: 'inv2',
+                        shippingCost: 35000,
+                        createdAt: new Date(2024, 0, 21)
+                    }
+                ];
+                
+                const sampleAccounts = [
+                    {
+                        id: 'acc1',
+                        name: 'Bank BCA',
+                        balance: 15000000,
+                        type: 'bank'
+                    },
+                    {
+                        id: 'acc2',
+                        name: 'Kas Kecil',
+                        balance: 2500000,
+                        type: 'cash'
+                    }
+                ];
+                
+                this.data.transactions = sampleTransactions;
+                this.data.invoices = sampleInvoices;
+                this.data.accounts = sampleAccounts;
+                
+                this.processFinancialData();
+                this.hideLoading();
+            }
+        };
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            financialReport.init();
+            
+            // For demo purposes, generate sample data
+            // In production, this would use real Firestore data
+            setTimeout(() => {
+                if (financialReport.data.transactions.length === 0) {
+                    financialReport.generateSampleData();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
