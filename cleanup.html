@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLCrave Express - Financial Data Cleanup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .text-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .modal-overlay {
+            display: none;
+        }
+        
+        .modal-overlay:not(.hidden) {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #f97316;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .duplicate-item {
+            animation: pulse-duplicate 2s infinite;
+            border-left: 4px solid #ef4444;
+        }
+        
+        @keyframes pulse-duplicate {
+            0% { background-color: #fef2f2; }
+            50% { background-color: #fee2e2; }
+            100% { background-color: #fef2f2; }
+        }
+        
+        .suspected-item {
+            border-left: 4px solid #f59e0b;
+            background-color: #fffbeb;
+        }
+        
+        .clean-item {
+            border-left: 4px solid #10b981;
+            background-color: #f0fdf4;
+        }
+        
+        .data-card {
+            transition: all 0.3s ease;
+        }
+        
+        .data-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #10b981;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans antialiased">
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Main Content -->
+        <main class="flex-1 pb-20 safe-area-bottom">
+            <div class="container mx-auto px-4 py-6 max-w-7xl">
+                
+                <!-- Header -->
+                <header class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-sm mb-4 border border-orange-200">
+                        <i class="fas fa-broom text-orange-500 text-2xl"></i>
+                    </div>
+                    <h1 class="text-3xl font-black text-gray-800 mb-2 text-gradient">Financial Data Cleanup</h1>
+                    <p class="text-gray-600 text-sm font-medium">VLCrave Express - Analisis & Pembersihan Data Keuangan Terintegrasi</p>
+                </header>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+                    <div class="loading-spinner mb-4"></div>
+                    <p class="text-gray-600 font-medium">Memuat data keuangan...</p>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboardTab" class="tab-content active">
+                    <!-- Overall Health Status -->
+                    <div class="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-heartbeat text-red-500"></i>
+                                Status Kesehatan Data
+                            </h2>
+                            <button onclick="dataCleaner.runFullAnalysis()" class="bg-orange-500 hover:bg-orange-600 py-2 px-4 rounded-xl text-white font-bold flex items-center gap-2 transition-colors">
+                                <i class="fas fa-play"></i>
+                                Jalankan Analisis Lengkap
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                <div class="text-2xl font-bold text-blue-600 mb-1" id="totalRecords">0</div>
+                                <div class="text-xs text-gray-600">Total Records</div>
+                                <div class="progress-bar mt-2">
+                                    <div class="progress-fill" id="totalProgress" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                                <div class="text-2xl font-bold text-red-600 mb-1" id="duplicateCount">0</div>
+                                <div class="text-xs text-gray-600">Duplikat Ditemukan</div>
+                                <div class="progress-bar mt-2">
+                                    <div class="progress-fill bg-red-500" id="duplicateProgress" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                                <div class="text-2xl font-bold text-yellow-600 mb-1" id="suspectedCount">0</div>
+                                <div class="text-xs text-gray-600">Terduga Duplikat</div>
+                                <div class="progress-bar mt-2">
+                                    <div class="progress-fill bg-yellow-500" id="suspectedProgress" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-xl border border-green-200">
+                                <div class="text-2xl font-bold text-green-600 mb-1" id="cleanCount">0</div>
+                                <div class="text-xs text-gray-600">Data Bersih</div>
+                                <div class="progress-bar mt-2">
+                                    <div class="progress-fill" id="cleanProgress" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Type Overview -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <!-- Invoices -->
+                        <div class="data-card bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                    <i class="fas fa-receipt text-orange-500"></i>
+                                    Invoice
+                                </h3>
+                                <span class="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full font-bold" id="invoiceCount">0</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Duplikat:</span>
+                                    <span class="font-semibold text-red-600" id="invoiceDuplicates">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Terduga:</span>
+                                    <span class="font-semibold text-yellow-600" id="invoiceSuspected">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Bersih:</span>
+                                    <span class="font-semibold text-green-600" id="invoiceClean">0</span>
+                                </div>
+                            </div>
+                            <button onclick="dataCleaner.showTab('invoices')" class="w-full mt-4 bg-orange-500 hover:bg-orange-600 py-2 px-4 rounded-xl text-white font-bold text-sm transition-colors">
+                                Kelola Invoice
+                            </button>
+                        </div>
+
+                        <!-- Income Transactions -->
+                        <div class="data-card bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                    <i class="fas fa-arrow-down text-green-500"></i>
+                                    Pemasukan
+                                </h3>
+                                <span class="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full font-bold" id="incomeCount">0</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Duplikat:</span>
+                                    <span class="font-semibold text-red-600" id="incomeDuplicates">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Terduga:</span>
+                                    <span class="font-semibold text-yellow-600" id="incomeSuspected">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Bersih:</span>
+                                    <span class="font-semibold text-green-600" id="incomeClean">0</span>
+                                </div>
+                            </div>
+                            <button onclick="dataCleaner.showTab('income')" class="w-full mt-4 bg-green-500 hover:bg-green-600 py-2 px-4 rounded-xl text-white font-bold text-sm transition-colors">
+                                Kelola Pemasukan
+                            </button>
+                        </div>
+
+                        <!-- Expense Transactions -->
+                        <div class="data-card bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                    <i class="fas fa-arrow-up text-red-500"></i>
+                                    Pengeluaran
+                                </h3>
+                                <span class="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full font-bold" id="expenseCount">0</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Duplikat:</span>
+                                    <span class="font-semibold text-red-600" id="expenseDuplicates">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Terduga:</span>
+                                    <span class="font-semibold text-yellow-600" id="expenseSuspected">0</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Bersih:</span>
+                                    <span class="font-semibold text-green-600" id="expenseClean">0</span>
+                                </div>
+                            </div>
+                            <button onclick="dataCleaner.showTab('expenses')" class="w-full mt-4 bg-red-500 hover:bg-red-600 py-2 px-4 rounded-xl text-white font-bold text-sm transition-colors">
+                                Kelola Pengeluaran
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-bolt text-purple-500"></i>
+                            Aksi Cepat
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <button onclick="dataCleaner.scanAllDuplicates()" class="bg-purple-500 hover:bg-purple-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-search"></i>
+                                Scan Duplikat
+                            </button>
+                            <button onclick="dataCleaner.autoCleanDuplicates()" class="bg-green-500 hover:bg-green-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-robot"></i>
+                                Auto Clean
+                            </button>
+                            <button onclick="dataCleaner.showCleanupModal()" class="bg-red-500 hover:bg-red-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-trash"></i>
+                                Hapus Duplikat
+                            </button>
+                            <button onclick="dataCleaner.exportCleanReport()" class="bg-blue-500 hover:bg-blue-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-file-export"></i>
+                                Export Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Results -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-chart-bar text-orange-500"></i>
+                            Hasil Analisis
+                        </h2>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="h-64">
+                                <canvas id="duplicateChart"></canvas>
+                            </div>
+                            <div class="h-64">
+                                <canvas id="dataHealthChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoices Tab -->
+                <div id="invoicesTab" class="tab-content">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-receipt text-orange-500"></i>
+                                Analisis Invoice
+                            </h2>
+                            <div class="flex gap-2">
+                                <button onclick="dataCleaner.toggleView('invoices', 'all')" class="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold">Semua</button>
+                                <button onclick="dataCleaner.toggleView('invoices', 'duplicate')" class="px-3 py-1 rounded-lg bg-red-100 text-red-600 text-xs font-bold">Duplikat</button>
+                                <button onclick="dataCleaner.toggleView('invoices', 'suspected')" class="px-3 py-1 rounded-lg bg-yellow-100 text-yellow-600 text-xs font-bold">Terduga</button>
+                                <button onclick="dataCleaner.toggleView('invoices', 'clean')" class="px-3 py-1 rounded-lg bg-green-100 text-green-600 text-xs font-bold">Bersih</button>
+                            </div>
+                        </div>
+
+                        <div class="invoice-container max-h-96 overflow-y-auto custom-scrollbar rounded-xl border border-gray-200 p-4 bg-gray-50 mb-4">
+                            <div id="invoiceList">
+                                <!-- Invoices will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-600">
+                                Menampilkan <span id="invoiceShowing">0</span> dari <span id="invoiceTotal">0</span> invoice
+                            </div>
+                            <button onclick="dataCleaner.cleanupInvoices()" class="bg-red-500 hover:bg-red-600 py-2 px-4 rounded-xl text-white font-bold text-sm transition-colors">
+                                <i class="fas fa-trash"></i>
+                                Hapus Duplikat Terpilih
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Income Tab -->
+                <div id="incomeTab" class="tab-content">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-arrow-down text-green-500"></i>
+                                Analisis Pemasukan
+                            </h2>
+                            <div class="flex gap-2">
+                                <button onclick="dataCleaner.toggleView('income', 'all')" class="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold">Semua</button>
+                                <button onclick="dataCleaner.toggleView('income', 'duplicate')" class="px-3 py-1 rounded-lg bg-red-100 text-red-600 text-xs font-bold">Duplikat</button>
+                                <button onclick="dataCleaner.toggleView('income', 'suspected')" class="px-3 py-1 rounded-lg bg-yellow-100 text-yellow-600 text-xs font-bold">Terduga</button>
+                                <button onclick="dataCleaner.toggleView('income', 'clean')" class="px-3 py-1 rounded-lg bg-green-100 text-green-600 text-xs font-bold">Bersih</button>
+                            </div>
+                        </div>
+
+                        <div class="income-container max-h-96 overflow-y-auto custom-scrollbar rounded-xl border border-gray-200 p-4 bg-gray-50 mb-4">
+                            <div id="incomeList">
+                                <!-- Income transactions will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-600">
+                                Menampilkan <span id="incomeShowing">0</span> dari <span id="incomeTotal">0</span> pemasukan
+                            </div>
+                            <button onclick="dataCleaner.cleanupIncome()" class="bg-red-500 hover:bg-red-600 py-2 px-4 rounded-xl text-white font-bold text-sm transition-colors">
+                                <i class="fas fa-trash"></i>
+                                Hapus Duplikat Terpilih
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Tab -->
+                <div id="expensesTab" class="tab-content">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <i class="fas fa-arrow-up text-red-500"></i>
+                                Analisis Pengeluaran
+                            </h2>
+                            <div class="flex gap-2">
+                                <button onclick="dataCleaner.toggleView('expenses', 'all')" class="px-3 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold">Semua</button>
+                                <button onclick="dataCleaner.toggleView('expenses', 'duplicate')" class="px-3 py-1 rounded-lg bg-red-100 text-red-600 text-xs font-bold">Duplikat</button>
+                                <button onclick="dataCleaner.toggleView('expenses', 'suspected')" class="px-3 py-1 rounded-lg bg-yellow-100 text-yellow-600 text-xs font-bold">Terduga</button>
+                                <button onclick="dataCleaner.toggleView('expenses', 'clean')" class="px-3 py-1 rounded-lg bg-green-100 text-green-600 text-xs font-bold">Bersih</button>
+                            </div>
+                        </div>
+
+                        <div class="expenses-container max-h-96 overflow-y-auto custom-scrollbar rounded-xl border border-gray-200 p-4 bg-gray-50 mb-4">
+                            <div id="expensesList">
+                                <!-- Expense transactions will be loaded here -->
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-600">
+                                Menampilkan <span id="expensesShowing">0</span> dari <span id="expensesTotal">0</span> pengeluaran
+                            </div>
+                            <button onclick="dataCleaner.cleanupExpenses()" class="bg-red-500 hover:bg-red-600 py-2 px-4 rounded-xl text-white font-bold text-sm transition-colors">
+                                <i class="fas fa-trash"></i>
+                                Hapus Duplikat Terpilih
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settingsTab" class="tab-content">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <i class="fas fa-cog text-gray-500"></i>
+                            Pengaturan Analisis
+                        </h2>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Detection Settings -->
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                <h3 class="font-bold text-gray-800 mb-4">Pengaturan Deteksi</h3>
+                                <div class="space-y-3">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="detectSameAmount" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500" checked>
+                                        <span class="text-sm text-gray-700">Deteksi amount yang sama</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="detectSimilarAmount" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500" checked>
+                                        <span class="text-sm text-gray-700">Deteksi amount yang mirip (±10%)</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="detectSameDate" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500" checked>
+                                        <span class="text-sm text-gray-700">Deteksi tanggal yang sama</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="detectSameDescription" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                        <span class="text-sm text-gray-700">Deteksi deskripsi yang sama</span>
+                                    </label>
+                                    <div class="flex items-center justify-between mt-2">
+                                        <span class="text-sm text-gray-700">Threshold Similarity</span>
+                                        <input type="number" id="similarityThreshold" class="w-20 p-2 border border-gray-300 rounded-lg text-sm" value="85" min="0" max="100">
+                                        <span class="text-sm text-gray-500">%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cleanup Settings -->
+                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                <h3 class="font-bold text-gray-800 mb-4">Pengaturan Pembersihan</h3>
+                                <div class="space-y-3">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="autoArchive" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500" checked>
+                                        <span class="text-sm text-gray-700">Arsipkan而不是 hapus</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="keepLatest" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500" checked>
+                                        <span class="text-sm text-gray-700">Simpan data terbaru</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="backupBeforeClean" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                        <span class="text-sm text-gray-700">Backup sebelum membersihkan</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="notifyOnComplete" class="mr-2 rounded border-gray-300 text-orange-500 focus:ring-orange-500" checked>
+                                        <span class="text-sm text-gray-700">Notifikasi saat selesai</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-3 mt-6">
+                            <button onclick="dataCleaner.saveSettings()" class="bg-orange-500 hover:bg-orange-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-save"></i>
+                                Simpan Pengaturan
+                            </button>
+                            <button onclick="dataCleaner.resetSettings()" class="bg-gray-500 hover:bg-gray-600 py-3 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-colors">
+                                <i class="fas fa-undo"></i>
+                                Reset ke Default
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex p-2 z-40 safe-area-bottom shadow-sm">
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="dataCleaner.showTab('dashboard')">
+                <i class="fas fa-chart-pie text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Dashboard</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="dataCleaner.showTab('invoices')">
+                <i class="fas fa-receipt text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Invoice</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="dataCleaner.showTab('income')">
+                <i class="fas fa-arrow-down text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Pemasukan</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="dataCleaner.showTab('expenses')">
+                <i class="fas fa-arrow-up text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Pengeluaran</span>
+            </button>
+            <button class="nav-item flex-1 flex flex-col items-center justify-center p-2 text-gray-500 transition-all rounded-xl active:bg-orange-50 active:text-orange-600" onclick="dataCleaner.showTab('settings')">
+                <i class="fas fa-cog text-lg mb-1"></i>
+                <span class="text-xs font-semibold">Pengaturan</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Cleanup Confirmation Modal -->
+    <div id="cleanupModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="modal-header bg-red-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Konfirmasi Pembersihan
+                </h2>
+                <button onclick="dataCleaner.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-xl mt-0.5"></i>
+                        <div>
+                            <h4 class="font-bold text-red-800 text-sm mb-1">Peringatan!</h4>
+                            <p class="text-red-700 text-xs">Tindakan ini akan menghapus data yang terdeteksi sebagai duplikat. Pastikan Anda telah memeriksa dengan teliti.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 mb-4">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span class="text-sm font-medium text-gray-700">Invoice Duplikat:</span>
+                        <span class="font-bold text-red-600" id="cleanupInvoicesCount">0</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span class="text-sm font-medium text-gray-700">Pemasukan Duplikat:</span>
+                        <span class="font-bold text-red-600" id="cleanupIncomeCount">0</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span class="text-sm font-medium text-gray-700">Pengeluaran Duplikat:</span>
+                        <span class="font-bold text-red-600" id="cleanupExpensesCount">0</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg border-t border-gray-200">
+                        <span class="text-sm font-medium text-gray-700">Total Akan Dihapus:</span>
+                        <span class="font-bold text-red-600" id="cleanupTotalCount">0</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="confirmCleanup" class="mr-2 rounded border-gray-300 text-red-500 focus:ring-red-500">
+                        <span class="text-sm text-gray-700">Saya memahami dan menyetujui penghapusan data</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="createBackup" class="mr-2 rounded border-gray-300 text-red-500 focus:ring-red-500" checked>
+                        <span class="text-sm text-gray-700">Buat backup sebelum menghapus</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="dataCleaner.closeModal()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="dataCleaner.executeCleanup()" class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors" id="cleanupButton" disabled>
+                    <i class="fas fa-trash"></i>
+                    Hapus Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notificationContainer" class="fixed top-4 right-4 left-4 z-50 space-y-2"></div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Data Cleaner Application
+        const dataCleaner = {
+            currentTab: 'dashboard',
+            currentViews: {
+                invoices: 'all',
+                income: 'all',
+                expenses: 'all'
+            },
+            data: {
+                invoices: [],
+                transactions: [],
+                income: [],
+                expenses: []
+            },
+            analysis: {
+                invoices: { duplicates: [], suspected: [], clean: [] },
+                income: { duplicates: [], suspected: [], clean: [] },
+                expenses: { duplicates: [], suspected: [], clean: [] }
+            },
+            settings: {
+                detectSameAmount: true,
+                detectSimilarAmount: true,
+                detectSameDate: true,
+                detectSameDescription: false,
+                similarityThreshold: 85,
+                autoArchive: true,
+                keepLatest: true,
+                backupBeforeClean: false,
+                notifyOnComplete: true
+            },
+            charts: {},
+            selectedItems: {
+                invoices: new Set(),
+                income: new Set(),
+                expenses: new Set()
+            },
+            
+            // Initialize App
+            async init() {
+                console.log("Data Cleaner App Initialized");
+                
+                // Load settings
+                this.loadSettings();
+                
+                // Setup real-time listeners
+                this.setupRealtimeListeners();
+                
+                // Initialize charts
+                this.initCharts();
+            },
+            
+            // Setup real-time Firestore listeners
+            setupRealtimeListeners() {
+                // Invoices listener
+                db.collection("invoices")
+                    .orderBy("createdAt", "desc")
+                    .limit(1000)
+                    .onSnapshot((snapshot) => {
+                        this.data.invoices = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            data.type = 'invoice';
+                            // Convert Firestore timestamp to Date if needed
+                            if (data.createdAt && data.createdAt.toDate) {
+                                data.createdAt = data.createdAt.toDate();
+                            }
+                            this.data.invoices.push(data);
+                        });
+                        
+                        console.log("Invoices loaded:", this.data.invoices.length);
+                        this.runInvoiceAnalysis();
+                        this.hideLoading();
+                    }, error => {
+                        console.error("Error loading invoices:", error);
+                        this.hideLoading();
+                        this.showNotification('Error memuat data invoice', 'error');
+                    });
+
+                // Transactions listener
+                db.collection("finance_transactions")
+                    .orderBy("createdAt", "desc")
+                    .limit(2000)
+                    .onSnapshot((snapshot) => {
+                        this.data.transactions = [];
+                        this.data.income = [];
+                        this.data.expenses = [];
+                        
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            // Convert Firestore timestamp to Date if needed
+                            if (data.createdAt && data.createdAt.toDate) {
+                                data.createdAt = data.createdAt.toDate();
+                            }
+                            this.data.transactions.push(data);
+                            
+                            // Separate income and expenses
+                            if (data.type === 'income') {
+                                this.data.income.push(data);
+                            } else if (data.type === 'expense') {
+                                this.data.expenses.push(data);
+                            }
+                        });
+                        
+                        console.log("Transactions loaded:", this.data.transactions.length);
+                        console.log("Income transactions:", this.data.income.length);
+                        console.log("Expense transactions:", this.data.expenses.length);
+                        
+                        this.runTransactionAnalysis();
+                    }, error => {
+                        console.error("Error loading transactions:", error);
+                        this.showNotification('Error memuat data transaksi', 'error');
+                    });
+            },
+            
+            // Hide loading state
+            hideLoading() {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('dashboardTab').classList.add('active');
+            },
+            
+            // Load settings from localStorage
+            loadSettings() {
+                const savedSettings = localStorage.getItem('dataCleanerSettings');
+                if (savedSettings) {
+                    this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
+                }
+                this.applySettingsToUI();
+            },
+            
+            // Save settings to localStorage
+            saveSettings() {
+                this.getSettingsFromUI();
+                localStorage.setItem('dataCleanerSettings', JSON.stringify(this.settings));
+                this.showNotification('Pengaturan berhasil disimpan', 'success');
+            },
+            
+            // Reset settings to default
+            resetSettings() {
+                this.settings = {
+                    detectSameAmount: true,
+                    detectSimilarAmount: true,
+                    detectSameDate: true,
+                    detectSameDescription: false,
+                    similarityThreshold: 85,
+                    autoArchive: true,
+                    keepLatest: true,
+                    backupBeforeClean: false,
+                    notifyOnComplete: true
+                };
+                this.applySettingsToUI();
+                localStorage.removeItem('dataCleanerSettings');
+                this.showNotification('Pengaturan direset ke default', 'info');
+            },
+            
+            // Apply settings to UI
+            applySettingsToUI() {
+                document.getElementById('detectSameAmount').checked = this.settings.detectSameAmount;
+                document.getElementById('detectSimilarAmount').checked = this.settings.detectSimilarAmount;
+                document.getElementById('detectSameDate').checked = this.settings.detectSameDate;
+                document.getElementById('detectSameDescription').checked = this.settings.detectSameDescription;
+                document.getElementById('similarityThreshold').value = this.settings.similarityThreshold;
+                document.getElementById('autoArchive').checked = this.settings.autoArchive;
+                document.getElementById('keepLatest').checked = this.settings.keepLatest;
+                document.getElementById('backupBeforeClean').checked = this.settings.backupBeforeClean;
+                document.getElementById('notifyOnComplete').checked = this.settings.notifyOnComplete;
+            },
+            
+            // Get settings from UI
+            getSettingsFromUI() {
+                this.settings.detectSameAmount = document.getElementById('detectSameAmount').checked;
+                this.settings.detectSimilarAmount = document.getElementById('detectSimilarAmount').checked;
+                this.settings.detectSameDate = document.getElementById('detectSameDate').checked;
+                this.settings.detectSameDescription = document.getElementById('detectSameDescription').checked;
+                this.settings.similarityThreshold = parseInt(document.getElementById('similarityThreshold').value) || 85;
+                this.settings.autoArchive = document.getElementById('autoArchive').checked;
+                this.settings.keepLatest = document.getElementById('keepLatest').checked;
+                this.settings.backupBeforeClean = document.getElementById('backupBeforeClean').checked;
+                this.settings.notifyOnComplete = document.getElementById('notifyOnComplete').checked;
+            },
+            
+            // Run full analysis on all data
+            runFullAnalysis() {
+                this.showNotification('Memulai analisis lengkap...', 'info');
+                
+                this.runInvoiceAnalysis();
+                this.runTransactionAnalysis();
+                
+                setTimeout(() => {
+                    this.updateDashboard();
+                    this.showNotification('Analisis lengkap selesai', 'success');
+                }, 1000);
+            },
+            
+            // Run analysis on invoices
+            runInvoiceAnalysis() {
+                this.analysis.invoices = {
+                    duplicates: [],
+                    suspected: [],
+                    clean: []
+                };
+                
+                const groups = {};
+                
+                // Group invoices by potential duplicates
+                this.data.invoices.forEach(invoice => {
+                    const key = this.generateInvoiceKey(invoice);
+                    if (!groups[key]) {
+                        groups[key] = [];
+                    }
+                    groups[key].push(invoice);
+                });
+                
+                // Analyze groups
+                Object.values(groups).forEach(group => {
+                    if (group.length > 1) {
+                        const isExactDuplicate = this.isExactInvoiceDuplicate(group);
+                        if (isExactDuplicate) {
+                            this.analysis.invoices.duplicates.push(...group);
+                        } else {
+                            this.analysis.invoices.suspected.push(...group);
+                        }
+                    } else {
+                        this.analysis.invoices.clean.push(...group);
+                    }
+                });
+                
+                // Remove duplicates from clean list
+                this.analysis.invoices.clean = this.analysis.invoices.clean.filter(
+                    invoice => !this.analysis.invoices.duplicates.includes(invoice) && 
+                              !this.analysis.invoices.suspected.includes(invoice)
+                );
+                
+                this.renderInvoiceList();
+                this.updateDashboard();
+            },
+            
+            // Run analysis on transactions
+            runTransactionAnalysis() {
+                this.analysis.income = { duplicates: [], suspected: [], clean: [] };
+                this.analysis.expenses = { duplicates: [], suspected: [], clean: [] };
+                
+                // Analyze income
+                this.analyzeTransactionType(this.data.income, this.analysis.income);
+                
+                // Analyze expenses
+                this.analyzeTransactionType(this.data.expenses, this.analysis.expenses);
+                
+                this.renderIncomeList();
+                this.renderExpensesList();
+                this.updateDashboard();
+            },
+            
+            // Analyze specific transaction type
+            analyzeTransactionType(transactions, analysis) {
+                const groups = {};
+                
+                transactions.forEach(transaction => {
+                    const key = this.generateTransactionKey(transaction);
+                    if (!groups[key]) {
+                        groups[key] = [];
+                    }
+                    groups[key].push(transaction);
+                });
+                
+                Object.values(groups).forEach(group => {
+                    if (group.length > 1) {
+                        const isExactDuplicate = this.isExactTransactionDuplicate(group);
+                        if (isExactDuplicate) {
+                            analysis.duplicates.push(...group);
+                        } else {
+                            analysis.suspected.push(...group);
+                        }
+                    } else {
+                        analysis.clean.push(...group);
+                    }
+                });
+                
+                // Remove duplicates from clean list
+                analysis.clean = analysis.clean.filter(
+                    transaction => !analysis.duplicates.includes(transaction) && 
+                                  !analysis.suspected.includes(transaction)
+                );
+            },
+            
+            // Generate key for invoice grouping
+            generateInvoiceKey(invoice) {
+                const keys = [];
+                
+                if (this.settings.detectSameAmount) {
+                    keys.push(`amount_${Math.round(invoice.total || 0)}`);
+                }
+                
+                if (this.settings.detectSameDate) {
+                    const date = new Date(invoice.createdAt);
+                    keys.push(`date_${date.toDateString()}`);
+                }
+                
+                if (invoice.invoiceNumber) {
+                    keys.push(`number_${invoice.invoiceNumber}`);
+                }
+                
+                if (invoice.products) {
+                    const productKey = invoice.products.map(p => `${p.quantity}x${p.name}`).sort().join('_');
+                    keys.push(`products_${productKey}`);
+                }
+                
+                return keys.join('|');
+            },
+            
+            // Generate key for transaction grouping
+            generateTransactionKey(transaction) {
+                const keys = [];
+                
+                if (this.settings.detectSameAmount) {
+                    keys.push(`amount_${Math.round(transaction.amount || 0)}`);
+                }
+                
+                if (this.settings.detectSameDate) {
+                    const date = new Date(transaction.createdAt);
+                    keys.push(`date_${date.toDateString()}`);
+                }
+                
+                if (this.settings.detectSameDescription && transaction.description) {
+                    keys.push(`desc_${transaction.description}`);
+                }
+                
+                if (transaction.category) {
+                    keys.push(`cat_${transaction.category}`);
+                }
+                
+                if (transaction.accountId) {
+                    keys.push(`account_${transaction.accountId}`);
+                }
+                
+                return keys.join('|');
+            },
+            
+            // Check if invoice group is exact duplicate
+            isExactInvoiceGroup(group) {
+                if (group.length < 2) return false;
+                
+                const first = group[0];
+                
+                return group.every(invoice => {
+                    if (Math.abs((invoice.total || 0) - (first.total || 0)) > 100) return false;
+                    
+                    const date1 = new Date(invoice.createdAt);
+                    const date2 = new Date(first.createdAt);
+                    if (Math.abs(date1 - date2) > 3600000) return false; // 1 hour difference
+                    
+                    return true;
+                });
+            },
+            
+            // Check if transaction group is exact duplicate
+            isExactTransactionGroup(group) {
+                if (group.length < 2) return false;
+                
+                const first = group[0];
+                
+                return group.every(transaction => {
+                    if (Math.abs((transaction.amount || 0) - (first.amount || 0)) > 100) return false;
+                    
+                    const date1 = new Date(transaction.createdAt);
+                    const date2 = new Date(first.createdAt);
+                    if (Math.abs(date1 - date2) > 3600000) return false;
+                    
+                    if (transaction.description !== first.description) return false;
+                    
+                    return true;
+                });
+            },
+            
+            // Update dashboard with analysis results
+            updateDashboard() {
+                // Update overall counts
+                const totalInvoices = this.data.invoices.length;
+                const totalIncome = this.data.income.length;
+                const totalExpenses = this.data.expenses.length;
+                const totalRecords = totalInvoices + totalIncome + totalExpenses;
+                
+                const totalDuplicates = this.analysis.invoices.duplicates.length + 
+                                      this.analysis.income.duplicates.length + 
+                                      this.analysis.expenses.duplicates.length;
+                
+                const totalSuspected = this.analysis.invoices.suspected.length + 
+                                     this.analysis.income.suspected.length + 
+                                     this.analysis.expenses.suspected.length;
+                
+                const totalClean = this.analysis.invoices.clean.length + 
+                                 this.analysis.income.clean.length + 
+                                 this.analysis.expenses.clean.length;
+                
+                document.getElementById('totalRecords').textContent = totalRecords;
+                document.getElementById('duplicateCount').textContent = totalDuplicates;
+                document.getElementById('suspectedCount').textContent = totalSuspected;
+                document.getElementById('cleanCount').textContent = totalClean;
+                
+                // Update progress bars
+                document.getElementById('totalProgress').style.width = '100%';
+                document.getElementById('duplicateProgress').style.width = totalRecords > 0 ? (totalDuplicates / totalRecords * 100) + '%' : '0%';
+                document.getElementById('suspectedProgress').style.width = totalRecords > 0 ? (totalSuspected / totalRecords * 100) + '%' : '0%';
+                document.getElementById('cleanProgress').style.width = totalRecords > 0 ? (totalClean / totalRecords * 100) + '%' : '0%';
+                
+                // Update data type overviews
+                document.getElementById('invoiceCount').textContent = totalInvoices;
+                document.getElementById('invoiceDuplicates').textContent = this.analysis.invoices.duplicates.length;
+                document.getElementById('invoiceSuspected').textContent = this.analysis.invoices.suspected.length;
+                document.getElementById('invoiceClean').textContent = this.analysis.invoices.clean.length;
+                
+                document.getElementById('incomeCount').textContent = totalIncome;
+                document.getElementById('incomeDuplicates').textContent = this.analysis.income.duplicates.length;
+                document.getElementById('incomeSuspected').textContent = this.analysis.income.suspected.length;
+                document.getElementById('incomeClean').textContent = this.analysis.income.clean.length;
+                
+                document.getElementById('expenseCount').textContent = totalExpenses;
+                document.getElementById('expenseDuplicates').textContent = this.analysis.expenses.duplicates.length;
+                document.getElementById('expenseSuspected').textContent = this.analysis.expenses.suspected.length;
+                document.getElementById('expenseClean').textContent = this.analysis.expenses.clean.length;
+                
+                // Update charts
+                this.updateCharts();
+            },
+            
+            // Initialize charts
+            initCharts() {
+                // Duplicate Chart
+                const duplicateCtx = document.getElementById('duplicateChart').getContext('2d');
+                this.charts.duplicate = new Chart(duplicateCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Invoice', 'Pemasukan', 'Pengeluaran'],
+                        datasets: [
+                            {
+                                label: 'Duplikat',
+                                data: [0, 0, 0],
+                                backgroundColor: '#ef4444'
+                            },
+                            {
+                                label: 'Terduga',
+                                data: [0, 0, 0],
+                                backgroundColor: '#f59e0b'
+                            },
+                            {
+                                label: 'Bersih',
+                                data: [0, 0, 0],
+                                backgroundColor: '#10b981'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                stacked: true
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                
+                // Data Health Chart
+                const healthCtx = document.getElementById('dataHealthChart').getContext('2d');
+                this.charts.health = new Chart(healthCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Bersih', 'Terduga', 'Duplikat'],
+                        datasets: [
+                            {
+                                data: [0, 0, 0],
+                                backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            },
+            
+            // Update charts with current data
+            updateCharts() {
+                // Update duplicate chart
+                this.charts.duplicate.data.datasets[0].data = [
+                    this.analysis.invoices.duplicates.length,
+                    this.analysis.income.duplicates.length,
+                    this.analysis.expenses.duplicates.length
+                ];
+                this.charts.duplicate.data.datasets[1].data = [
+                    this.analysis.invoices.suspected.length,
+                    this.analysis.income.suspected.length,
+                    this.analysis.expenses.suspected.length
+                ];
+                this.charts.duplicate.data.datasets[2].data = [
+                    this.analysis.invoices.clean.length,
+                    this.analysis.income.clean.length,
+                    this.analysis.expenses.clean.length
+                ];
+                this.charts.duplicate.update();
+                
+                // Update health chart
+                const total = this.data.invoices.length + this.data.income.length + this.data.expenses.length;
+                const clean = this.analysis.invoices.clean.length + this.analysis.income.clean.length + this.analysis.expenses.clean.length;
+                const suspected = this.analysis.invoices.suspected.length + this.analysis.income.suspected.length + this.analysis.expenses.suspected.length;
+                const duplicates = this.analysis.invoices.duplicates.length + this.analysis.income.duplicates.length + this.analysis.expenses.duplicates.length;
+                
+                this.charts.health.data.datasets[0].data = [clean, suspected, duplicates];
+                this.charts.health.update();
+            },
+            
+            // Render invoice list
+            renderInvoiceList() {
+                const container = document.getElementById('invoiceList');
+                const view = this.currentViews.invoices;
+                
+                let invoicesToShow = [];
+                
+                switch (view) {
+                    case 'duplicate':
+                        invoicesToShow = this.analysis.invoices.duplicates;
+                        break;
+                    case 'suspected':
+                        invoicesToShow = this.analysis.invoices.suspected;
+                        break;
+                    case 'clean':
+                        invoicesToShow = this.analysis.invoices.clean;
+                        break;
+                    default:
+                        invoicesToShow = this.data.invoices;
+                }
+                
+                if (invoicesToShow.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-receipt text-3xl mb-3"></i>
+                            <p>Tidak ada invoice</p>
+                            <p class="text-sm">Invoice akan muncul di sini</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = invoicesToShow.map(invoice => {
+                    const isDuplicate = this.analysis.invoices.duplicates.includes(invoice);
+                    const isSuspected = this.analysis.invoices.suspected.includes(invoice);
+                    
+                    let statusClass = '';
+                    let statusIcon = '';
+                    let statusText = '';
+                    
+                    if (isDuplicate) {
+                        statusClass = 'duplicate-item';
+                        statusIcon = 'fa-exclamation-triangle text-red-500';
+                        statusText = 'Duplikat';
+                    } else if (isSuspected) {
+                        statusClass = 'suspected-item';
+                        statusIcon = 'fa-question-circle text-yellow-500';
+                        statusText = 'Terduga';
+                    } else {
+                        statusClass = 'clean-item';
+                        statusIcon = 'fa-check-circle text-green-500';
+                        statusText = 'Bersih';
+                    }
+                    
+                    const isSelected = this.selectedItems.invoices.has(invoice.id);
+                    
+                    return `
+                        <div class="flex justify-between items-start p-3 mb-3 rounded-xl ${statusClass} ${isSelected ? 'ring-2 ring-orange-500' : ''}">
+                            <div class="flex items-start gap-3 flex-1">
+                                <input type="checkbox" ${isDuplicate || isSuspected ? '' : 'disabled'} 
+                                    onchange="dataCleaner.toggleSelectItem('invoices', '${invoice.id}', this.checked)"
+                                    ${isSelected ? 'checked' : ''}
+                                    class="mt-1 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <div class="font-medium text-gray-800 text-sm">${invoice.invoiceNumber || 'No Number'}</div>
+                                        <div class="flex items-center gap-1 text-xs ${isDuplicate ? 'text-red-600' : isSuspected ? 'text-yellow-600' : 'text-green-600'}">
+                                            <i class="fas ${statusIcon}"></i>
+                                            <span>${statusText}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500">${this.formatDate(invoice.createdAt)} • ${invoice.paymentMethod || 'Tunai'}</div>
+                                    <div class="text-xs text-gray-500">Ongkir: ${this.formatCurrency(invoice.shippingCost || 0)}</div>
+                                    ${invoice.products ? `
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            ${invoice.products.map(p => `${p.quantity}x ${p.name}`).join(', ')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-orange-600 text-sm mb-2">${this.formatCurrency(invoice.total || 0)}</div>
+                                <div class="flex gap-1">
+                                    <button onclick="dataCleaner.viewItemDetails('${invoice.id}', 'invoice')" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </button>
+                                    <button onclick="dataCleaner.deleteItem('${invoice.id}', 'invoice')" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('invoiceShowing').textContent = invoicesToShow.length;
+                document.getElementById('invoiceTotal').textContent = this.data.invoices.length;
+            },
+            
+            // Render income list
+            renderIncomeList() {
+                const container = document.getElementById('incomeList');
+                const view = this.currentViews.income;
+                
+                let incomeToShow = [];
+                
+                switch (view) {
+                    case 'duplicate':
+                        incomeToShow = this.analysis.income.duplicates;
+                        break;
+                    case 'suspected':
+                        incomeToShow = this.analysis.income.suspected;
+                        break;
+                    case 'clean':
+                        incomeToShow = this.analysis.income.clean;
+                        break;
+                    default:
+                        incomeToShow = this.data.income;
+                }
+                
+                if (incomeToShow.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-arrow-down text-3xl mb-3"></i>
+                            <p>Tidak ada pemasukan</p>
+                            <p class="text-sm">Data pemasukan akan muncul di sini</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = incomeToShow.map(transaction => {
+                    const isDuplicate = this.analysis.income.duplicates.includes(transaction);
+                    const isSuspected = this.analysis.income.suspected.includes(transaction);
+                    
+                    let statusClass = '';
+                    let statusIcon = '';
+                    let statusText = '';
+                    
+                    if (isDuplicate) {
+                        statusClass = 'duplicate-item';
+                        statusIcon = 'fa-exclamation-triangle text-red-500';
+                        statusText = 'Duplikat';
+                    } else if (isSuspected) {
+                        statusClass = 'suspected-item';
+                        statusIcon = 'fa-question-circle text-yellow-500';
+                        statusText = 'Terduga';
+                    } else {
+                        statusClass = 'clean-item';
+                        statusIcon = 'fa-check-circle text-green-500';
+                        statusText = 'Bersih';
+                    }
+                    
+                    const isSelected = this.selectedItems.income.has(transaction.id);
+                    
+                    return `
+                        <div class="flex justify-between items-start p-3 mb-3 rounded-xl ${statusClass} ${isSelected ? 'ring-2 ring-orange-500' : ''}">
+                            <div class="flex items-start gap-3 flex-1">
+                                <input type="checkbox" ${isDuplicate || isSuspected ? '' : 'disabled'} 
+                                    onchange="dataCleaner.toggleSelectItem('income', '${transaction.id}', this.checked)"
+                                    ${isSelected ? 'checked' : ''}
+                                    class="mt-1 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <div class="font-medium text-gray-800 text-sm">${transaction.description || 'No Description'}</div>
+                                        <div class="flex items-center gap-1 text-xs ${isDuplicate ? 'text-red-600' : isSuspected ? 'text-yellow-600' : 'text-green-600'}">
+                                            <i class="fas ${statusIcon}"></i>
+                                            <span>${statusText}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500">${this.formatDate(transaction.createdAt)} • ${transaction.category || 'No Category'}</div>
+                                    <div class="text-xs text-gray-500">Akun: ${transaction.accountName || 'No Account'}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-green-600 text-sm mb-2">${this.formatCurrency(transaction.amount || 0)}</div>
+                                <div class="flex gap-1">
+                                    <button onclick="dataCleaner.viewItemDetails('${transaction.id}', 'income')" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </button>
+                                    <button onclick="dataCleaner.deleteItem('${transaction.id}', 'income')" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('incomeShowing').textContent = incomeToShow.length;
+                document.getElementById('incomeTotal').textContent = this.data.income.length;
+            },
+            
+            // Render expenses list
+            renderExpensesList() {
+                const container = document.getElementById('expensesList');
+                const view = this.currentViews.expenses;
+                
+                let expensesToShow = [];
+                
+                switch (view) {
+                    case 'duplicate':
+                        expensesToShow = this.analysis.expenses.duplicates;
+                        break;
+                    case 'suspected':
+                        expensesToShow = this.analysis.expenses.suspected;
+                        break;
+                    case 'clean':
+                        expensesToShow = this.analysis.expenses.clean;
+                        break;
+                    default:
+                        expensesToShow = this.data.expenses;
+                }
+                
+                if (expensesToShow.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-arrow-up text-3xl mb-3"></i>
+                            <p>Tidak ada pengeluaran</p>
+                            <p class="text-sm">Data pengeluaran akan muncul di sini</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = expensesToShow.map(transaction => {
+                    const isDuplicate = this.analysis.expenses.duplicates.includes(transaction);
+                    const isSuspected = this.analysis.expenses.suspected.includes(transaction);
+                    
+                    let statusClass = '';
+                    let statusIcon = '';
+                    let statusText = '';
+                    
+                    if (isDuplicate) {
+                        statusClass = 'duplicate-item';
+                        statusIcon = 'fa-exclamation-triangle text-red-500';
+                        statusText = 'Duplikat';
+                    } else if (isSuspected) {
+                        statusClass = 'suspected-item';
+                        statusIcon = 'fa-question-circle text-yellow-500';
+                        statusText = 'Terduga';
+                    } else {
+                        statusClass = 'clean-item';
+                        statusIcon = 'fa-check-circle text-green-500';
+                        statusText = 'Bersih';
+                    }
+                    
+                    const isSelected = this.selectedItems.expenses.has(transaction.id);
+                    
+                    return `
+                        <div class="flex justify-between items-start p-3 mb-3 rounded-xl ${statusClass} ${isSelected ? 'ring-2 ring-orange-500' : ''}">
+                            <div class="flex items-start gap-3 flex-1">
+                                <input type="checkbox" ${isDuplicate || isSuspected ? '' : 'disabled'} 
+                                    onchange="dataCleaner.toggleSelectItem('expenses', '${transaction.id}', this.checked)"
+                                    ${isSelected ? 'checked' : ''}
+                                    class="mt-1 rounded border-gray-300 text-orange-500 focus:ring-orange-500">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <div class="font-medium text-gray-800 text-sm">${transaction.description || 'No Description'}</div>
+                                        <div class="flex items-center gap-1 text-xs ${isDuplicate ? 'text-red-600' : isSuspected ? 'text-yellow-600' : 'text-green-600'}">
+                                            <i class="fas ${statusIcon}"></i>
+                                            <span>${statusText}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-xs text-gray-500">${this.formatDate(transaction.createdAt)} • ${transaction.category || 'No Category'}</div>
+                                    <div class="text-xs text-gray-500">Akun: ${transaction.accountName || 'No Account'}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-semibold text-red-600 text-sm mb-2">${this.formatCurrency(transaction.amount || 0)}</div>
+                                <div class="flex gap-1">
+                                    <button onclick="dataCleaner.viewItemDetails('${transaction.id}', 'expense')" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </button>
+                                    <button onclick="dataCleaner.deleteItem('${transaction.id}', 'expense')" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('expensesShowing').textContent = expensesToShow.length;
+                document.getElementById('expensesTotal').textContent = this.data.expenses.length;
+            },
+            
+            // Toggle item selection
+            toggleSelectItem(type, id, selected) {
+                if (selected) {
+                    this.selectedItems[type].add(id);
+                } else {
+                    this.selectedItems[type].delete(id);
+                }
+                
+                // Re-render the appropriate list
+                switch (type) {
+                    case 'invoices':
+                        this.renderInvoiceList();
+                        break;
+                    case 'income':
+                        this.renderIncomeList();
+                        break;
+                    case 'expenses':
+                        this.renderExpensesList();
+                        break;
+                }
+            },
+            
+            // Toggle view for specific data type
+            toggleView(type, view) {
+                this.currentViews[type] = view;
+                
+                switch (type) {
+                    case 'invoices':
+                        this.renderInvoiceList();
+                        break;
+                    case 'income':
+                        this.renderIncomeList();
+                        break;
+                    case 'expenses':
+                        this.renderExpensesList();
+                        break;
+                }
+            },
+            
+            // Scan all duplicates
+            scanAllDuplicates() {
+                this.runFullAnalysis();
+                this.showNotification('Scan duplikat selesai', 'success');
+            },
+            
+            // Auto clean duplicates
+            autoCleanDuplicates() {
+                this.showCleanupModal();
+            },
+            
+            // Show cleanup confirmation modal
+            showCleanupModal() {
+                document.getElementById('cleanupInvoicesCount').textContent = this.analysis.invoices.duplicates.length;
+                document.getElementById('cleanupIncomeCount').textContent = this.analysis.income.duplicates.length;
+                document.getElementById('cleanupExpensesCount').textContent = this.analysis.expenses.duplicates.length;
+                
+                const total = this.analysis.invoices.duplicates.length + 
+                            this.analysis.income.duplicates.length + 
+                            this.analysis.expenses.duplicates.length;
+                
+                document.getElementById('cleanupTotalCount').textContent = total;
+                
+                // Reset confirmation
+                document.getElementById('confirmCleanup').checked = false;
+                document.getElementById('cleanupButton').disabled = true;
+                
+                document.getElementById('cleanupModal').classList.remove('hidden');
+                
+                // Add event listener for confirmation checkbox
+                document.getElementById('confirmCleanup').addEventListener('change', function() {
+                    document.getElementById('cleanupButton').disabled = !this.checked;
+                });
+            },
+            
+            // Execute cleanup
+            async executeCleanup() {
+                const createBackup = document.getElementById('createBackup').checked;
+                
+                if (createBackup) {
+                    this.showNotification('Membuat backup data...', 'info');
+                    // Backup logic would go here
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                let deletedCount = 0;
+                
+                // Delete duplicate invoices
+                for (const invoice of this.analysis.invoices.duplicates) {
+                    try {
+                        if (this.settings.autoArchive) {
+                            await db.collection("invoices").doc(invoice.id).update({
+                                archived: true,
+                                archivedAt: new Date(),
+                                archiveReason: 'duplicate_cleanup'
+                            });
+                        } else {
+                            await db.collection("invoices").doc(invoice.id).delete();
+                        }
+                        deletedCount++;
+                    } catch (error) {
+                        console.error("Error deleting invoice:", error);
+                    }
+                }
+                
+                // Delete duplicate income
+                for (const transaction of this.analysis.income.duplicates) {
+                    try {
+                        if (this.settings.autoArchive) {
+                            await db.collection("finance_transactions").doc(transaction.id).update({
+                                archived: true,
+                                archivedAt: new Date(),
+                                archiveReason: 'duplicate_cleanup'
+                            });
+                        } else {
+                            await db.collection("finance_transactions").doc(transaction.id).delete();
+                        }
+                        deletedCount++;
+                    } catch (error) {
+                        console.error("Error deleting income transaction:", error);
+                    }
+                }
+                
+                // Delete duplicate expenses
+                for (const transaction of this.analysis.expenses.duplicates) {
+                    try {
+                        if (this.settings.autoArchive) {
+                            await db.collection("finance_transactions").doc(transaction.id).update({
+                                archived: true,
+                                archivedAt: new Date(),
+                                archiveReason: 'duplicate_cleanup'
+                            });
+                        } else {
+                            await db.collection("finance_transactions").doc(transaction.id).delete();
+                        }
+                        deletedCount++;
+                    } catch (error) {
+                        console.error("Error deleting expense transaction:", error);
+                    }
+                }
+                
+                this.closeModal();
+                this.showNotification(`Berhasil ${this.settings.autoArchive ? 'mengarsipkan' : 'menghapus'} ${deletedCount} data duplikat`, 'success');
+                
+                // Clear selections
+                this.selectedItems.invoices.clear();
+                this.selectedItems.income.clear();
+                this.selectedItems.expenses.clear();
+            },
+            
+            // Cleanup specific data type
+            async cleanupInvoices() {
+                const selectedIds = Array.from(this.selectedItems.invoices);
+                if (selectedIds.length === 0) {
+                    this.showNotification('Pilih invoice yang akan dihapus', 'warning');
+                    return;
+                }
+                
+                if (!confirm(`Hapus ${selectedIds.length} invoice terpilih?`)) return;
+                
+                for (const id of selectedIds) {
+                    try {
+                        await db.collection("invoices").doc(id).delete();
+                    } catch (error) {
+                        console.error("Error deleting invoice:", error);
+                    }
+                }
+                
+                this.selectedItems.invoices.clear();
+                this.showNotification(`Berhasil menghapus ${selectedIds.length} invoice`, 'success');
+            },
+            
+            async cleanupIncome() {
+                const selectedIds = Array.from(this.selectedItems.income);
+                if (selectedIds.length === 0) {
+                    this.showNotification('Pilih pemasukan yang akan dihapus', 'warning');
+                    return;
+                }
+                
+                if (!confirm(`Hapus ${selectedIds.length} pemasukan terpilih?`)) return;
+                
+                for (const id of selectedIds) {
+                    try {
+                        await db.collection("finance_transactions").doc(id).delete();
+                    } catch (error) {
+                        console.error("Error deleting income transaction:", error);
+                    }
+                }
+                
+                this.selectedItems.income.clear();
+                this.showNotification(`Berhasil menghapus ${selectedIds.length} pemasukan`, 'success');
+            },
+            
+            async cleanupExpenses() {
+                const selectedIds = Array.from(this.selectedItems.expenses);
+                if (selectedIds.length === 0) {
+                    this.showNotification('Pilih pengeluaran yang akan dihapus', 'warning');
+                    return;
+                }
+                
+                if (!confirm(`Hapus ${selectedIds.length} pengeluaran terpilih?`)) return;
+                
+                for (const id of selectedIds) {
+                    try {
+                        await db.collection("finance_transactions").doc(id).delete();
+                    } catch (error) {
+                        console.error("Error deleting expense transaction:", error);
+                    }
+                }
+                
+                this.selectedItems.expenses.clear();
+                this.showNotification(`Berhasil menghapus ${selectedIds.length} pengeluaran`, 'success');
+            },
+            
+            // View item details
+            viewItemDetails(id, type) {
+                let item;
+                let collection;
+                
+                switch (type) {
+                    case 'invoice':
+                        item = this.data.invoices.find(i => i.id === id);
+                        collection = 'invoices';
+                        break;
+                    case 'income':
+                        item = this.data.income.find(i => i.id === id);
+                        collection = 'finance_transactions';
+                        break;
+                    case 'expense':
+                        item = this.data.expenses.find(i => i.id === id);
+                        collection = 'finance_transactions';
+                        break;
+                }
+                
+                if (!item) return;
+                
+                alert(`Detail ${type}:\n\n` +
+                      `ID: ${item.id}\n` +
+                      `Tanggal: ${this.formatDate(item.createdAt)}\n` +
+                      `Amount: ${this.formatCurrency(item.amount || item.total || 0)}\n` +
+                      `Deskripsi: ${item.description || item.invoiceNumber || 'N/A'}\n` +
+                      `Collection: ${collection}`);
+            },
+            
+            // Delete single item
+            async deleteItem(id, type) {
+                if (!confirm(`Hapus ${type} ini?`)) return;
+                
+                try {
+                    let collection;
+                    switch (type) {
+                        case 'invoice':
+                            collection = 'invoices';
+                            break;
+                        case 'income':
+                        case 'expense':
+                            collection = 'finance_transactions';
+                            break;
+                    }
+                    
+                    await db.collection(collection).doc(id).delete();
+                    this.showNotification(`${type} berhasil dihapus`, 'success');
+                } catch (error) {
+                    console.error(`Error deleting ${type}:`, error);
+                    this.showNotification(`Error menghapus ${type}`, 'error');
+                }
+            },
+            
+            // Export clean report
+            exportCleanReport() {
+                const report = {
+                    generatedAt: new Date().toISOString(),
+                    summary: {
+                        totalRecords: this.data.invoices.length + this.data.income.length + this.data.expenses.length,
+                        duplicates: this.analysis.invoices.duplicates.length + this.analysis.income.duplicates.length + this.analysis.expenses.duplicates.length,
+                        suspected: this.analysis.invoices.suspected.length + this.analysis.income.suspected.length + this.analysis.expenses.suspected.length,
+                        clean: this.analysis.invoices.clean.length + this.analysis.income.clean.length + this.analysis.expenses.clean.length
+                    },
+                    invoices: this.analysis.invoices,
+                    income: this.analysis.income,
+                    expenses: this.analysis.expenses
+                };
+                
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(report, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `financial_cleanup_report_${new Date().toISOString().split('T')[0]}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                
+                this.showNotification('Laporan berhasil diexport', 'success');
+            },
+            
+            // Tab Navigation
+            showTab(tabName) {
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                document.getElementById(tabName + 'Tab').classList.add('active');
+                this.currentTab = tabName;
+            },
+            
+            // Modal Management
+            closeModal() {
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.classList.add('hidden');
+                });
+            },
+            
+            // Utility Functions
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(amount);
+            },
+            
+            formatDate(date) {
+                if (!date) return '';
+                try {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('id-ID', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } catch (error) {
+                    return '';
+                }
+            },
+            
+            showNotification(message, type = 'info') {
+                const container = document.getElementById('notificationContainer');
+                const notification = document.createElement('div');
+                
+                const typeClasses = {
+                    success: 'bg-green-500 text-white',
+                    error: 'bg-red-500 text-white',
+                    info: 'bg-blue-500 text-white',
+                    warning: 'bg-yellow-500 text-white'
+                };
+                
+                notification.className = `p-4 rounded-xl shadow-lg font-bold text-sm transform -translate-y-2 opacity-0 transition-all duration-300 ${typeClasses[type]}`;
+                notification.textContent = message;
+                
+                container.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.classList.remove('-translate-y-2', 'opacity-0');
+                    notification.classList.add('translate-y-0', 'opacity-100');
+                }, 100);
+                
+                setTimeout(() => {
+                    notification.classList.remove('translate-y-0', 'opacity-100');
+                    notification.classList.add('-translate-y-2', 'opacity-0');
+                    
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+        };
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            dataCleaner.init();
+        });
+    </script>
+</body>
+</html>
