@@ -821,7 +821,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                         <h3 class="font-bold text-gray-800 text-sm mb-1">${item.name}</h3>
                         <p class="text-xs text-gray-600 mb-2 line-clamp-2">${item.description || 'Tidak ada deskripsi'}</p>
                         <div class="flex justify-between items-center">
-                            <span class="text-orange-600 font-bold">Rp ${this.formatPrice(item.price || 0)}</span>
+                            <span class="text-orange-600 font-bold">${this.formatPriceForDisplay(item.price || 0)}</span>
                         </div>
                     `;
                     menuItemsList.appendChild(menuItemCard);
@@ -867,7 +867,26 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                 `;
             },
 
-            // Format price
+            // Format price for display (dengan K atau rb)
+            formatPriceForDisplay(price) {
+                if (price >= 1000) {
+                    // Format dengan K untuk ribuan
+                    const thousands = Math.floor(price / 1000);
+                    const remainder = price % 1000;
+                    
+                    if (remainder === 0) {
+                        return `Rp ${thousands}K`;
+                    } else {
+                        // Jika ada sisa, tampilkan dengan rb
+                        return `Rp ${price / 1000} rb`;
+                    }
+                } else {
+                    // Untuk harga di bawah 1000, tampilkan normal
+                    return `Rp ${price}`;
+                }
+            },
+
+            // Format price untuk perhitungan
             formatPrice(price) {
                 return new Intl.NumberFormat('id-ID').format(price);
             },
@@ -1004,7 +1023,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                                 <h3 class="font-bold text-white">${item.name}</h3>
                                 <p class="text-orange-200 text-sm">${item.description || ''}</p>
                             </div>
-                            <span class="font-bold text-white ml-2">Rp ${this.formatPrice(item.price)}</span>
+                            <span class="font-bold text-white ml-2">${this.formatPriceForDisplay(item.price)}</span>
                         `;
                         foodItemsContainer.appendChild(foodItem);
                     });
@@ -1026,7 +1045,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                                 <h3 class="font-bold text-white">${item.name}</h3>
                                 <p class="text-orange-200 text-sm">${item.description || ''}</p>
                             </div>
-                            <span class="font-bold text-white ml-2">Rp ${this.formatPrice(item.price)}</span>
+                            <span class="font-bold text-white ml-2">${this.formatPriceForDisplay(item.price)}</span>
                         `;
                         drinkItemsContainer.appendChild(drinkItem);
                     });
@@ -1048,7 +1067,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                                 <h3 class="font-bold text-white">${item.name}</h3>
                                 <p class="text-orange-200 text-sm">${item.description || ''}</p>
                             </div>
-                            <span class="font-bold text-white ml-2">Rp ${this.formatPrice(item.price)}</span>
+                            <span class="font-bold text-white ml-2">${this.formatPriceForDisplay(item.price)}</span>
                         `;
                         otherItemsContainer.appendChild(otherItem);
                     });
@@ -1232,7 +1251,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                 if (this.categorizedMenu.food.length > 0) {
                     shareText += `*🍕 MAKANAN:*\n`;
                     this.categorizedMenu.food.forEach(item => {
-                        shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                        shareText += `• ${item.name} - ${this.formatPriceForDisplay(item.price)}\n`;
                         if (item.description) {
                             shareText += `  ${item.description}\n`;
                         }
@@ -1243,7 +1262,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                 if (this.categorizedMenu.drink.length > 0) {
                     shareText += `*🥤 MINUMAN:*\n`;
                     this.categorizedMenu.drink.forEach(item => {
-                        shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                        shareText += `• ${item.name} - ${this.formatPriceForDisplay(item.price)}\n`;
                         if (item.description) {
                             shareText += `  ${item.description}\n`;
                         }
@@ -1254,7 +1273,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                 if (this.categorizedMenu.other.length > 0) {
                     shareText += `*📦 LAINNYA:*\n`;
                     this.categorizedMenu.other.forEach(item => {
-                        shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                        shareText += `• ${item.name} - ${this.formatPriceForDisplay(item.price)}\n`;
                         if (item.description) {
                             shareText += `  ${item.description}\n`;
                         }
@@ -1283,7 +1302,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                 // Tambahkan item menu
                 const allItems = [...this.categorizedMenu.food, ...this.categorizedMenu.drink, ...this.categorizedMenu.other];
                 allItems.forEach(item => {
-                    shareText += `• ${item.name} - Rp ${this.formatPrice(item.price)}\n`;
+                    shareText += `• ${item.name} - ${this.formatPriceForDisplay(item.price)}\n`;
                 });
                 
                 shareText += `\n📞 Hubungi: 0857-1234-5678`;
@@ -1314,24 +1333,30 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
             // Share menu for iOS
             async shareMenuIOS() {
                 try {
-                    const canvas = document.getElementById('highQualityCanvas');
+                    // Tunggu sebentar untuk memastikan DOM sudah selesai di-render
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
                     const previewContainer = document.getElementById('previewContainer');
                     
-                    // Set canvas size untuk kualitas tinggi
-                    canvas.width = previewContainer.offsetWidth * 2;
-                    canvas.height = previewContainer.offsetHeight * 2;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.scale(2, 2);
-                    
-                    // Convert preview container to image
-                    const dataUrl = await html2canvas(previewContainer, {
-                        canvas: canvas,
+                    // Gunakan html2canvas dengan konfigurasi yang lebih baik
+                    const canvas = await html2canvas(previewContainer, {
                         scale: 2,
                         useCORS: true,
                         logging: false,
-                        backgroundColor: null
-                    }).then(canvas => canvas.toDataURL('image/png'));
+                        backgroundColor: null,
+                        width: previewContainer.scrollWidth,
+                        height: previewContainer.scrollHeight,
+                        onclone: function(clonedDoc) {
+                            // Pastikan elemen yang diklone memiliki style yang sama
+                            const clonedContainer = clonedDoc.getElementById('previewContainer');
+                            if (clonedContainer) {
+                                clonedContainer.style.width = previewContainer.scrollWidth + 'px';
+                                clonedContainer.style.height = previewContainer.scrollHeight + 'px';
+                            }
+                        }
+                    });
+                    
+                    const dataUrl = canvas.toDataURL('image/png', 1.0);
                     
                     if (navigator.share) {
                         // Convert data URL to blob
@@ -1347,6 +1372,7 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
                     } else {
                         // Fallback: download image
                         this.downloadImage(dataUrl, `menu-${this.storeName}.png`);
+                        this.showNotification('Gambar menu berhasil diunduh', 'success');
                     }
                     
                 } catch (error) {
@@ -1360,24 +1386,30 @@ Hanya kembalikan JSON saja tanpa penjelasan tambahan.`
             // Download as PNG
             async downloadAsPNG() {
                 try {
-                    const canvas = document.getElementById('highQualityCanvas');
+                    // Tunggu sebentar untuk memastikan DOM sudah selesai di-render
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
                     const previewContainer = document.getElementById('previewContainer');
                     
-                    // Set canvas size untuk kualitas tinggi
-                    canvas.width = previewContainer.offsetWidth * 3;
-                    canvas.height = previewContainer.offsetHeight * 3;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.scale(3, 3);
-                    
-                    const dataUrl = await html2canvas(previewContainer, {
-                        canvas: canvas,
-                        scale: 3,
+                    // Gunakan html2canvas dengan konfigurasi yang lebih baik
+                    const canvas = await html2canvas(previewContainer, {
+                        scale: 3, // Skala lebih tinggi untuk kualitas lebih baik
                         useCORS: true,
                         logging: false,
-                        backgroundColor: null
-                    }).then(canvas => canvas.toDataURL('image/png'));
+                        backgroundColor: null,
+                        width: previewContainer.scrollWidth,
+                        height: previewContainer.scrollHeight,
+                        onclone: function(clonedDoc) {
+                            // Pastikan elemen yang diklone memiliki style yang sama
+                            const clonedContainer = clonedDoc.getElementById('previewContainer');
+                            if (clonedContainer) {
+                                clonedContainer.style.width = previewContainer.scrollWidth + 'px';
+                                clonedContainer.style.height = previewContainer.scrollHeight + 'px';
+                            }
+                        }
+                    });
                     
+                    const dataUrl = canvas.toDataURL('image/png', 1.0);
                     this.downloadImage(dataUrl, `menu-${this.storeName}.png`);
                     this.showNotification('Menu berhasil diunduh sebagai PNG', 'success');
                     
