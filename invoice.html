@@ -170,6 +170,28 @@
             margin-bottom: 1rem;
         }
 
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 640px) {
             .invoice-modal-container,
             .invoice-gen-modal {
@@ -392,7 +414,7 @@
             currentShippingCost: 0,
             currentInvoiceData: null,
             invoices: [],
-            accounts: [], // Tambahkan properti accounts
+            accounts: [],
             filteredInvoices: [],
             currentPage: 1,
             invoicesPerPage: 10,
@@ -403,7 +425,7 @@
             unsubscribeIncome: null,
             unsubscribeStats: null,
             unsubscribeInvoices: null,
-            unsubscribeAccounts: null, // Tambahkan unsubscribe untuk accounts
+            unsubscribeAccounts: null,
             isRefreshing: false,
 
             // Initialize the app
@@ -492,9 +514,10 @@
                 if (this.isRefreshing) return;
                 
                 this.isRefreshing = true;
-                const refreshBtn = document.querySelector('.btn-refresh');
+                const refreshBtn = document.querySelector('button[onclick="app.refreshAllData()"]');
                 if (refreshBtn) {
                     refreshBtn.classList.add('loading');
+                    refreshBtn.disabled = true;
                 }
                 
                 try {
@@ -505,6 +528,11 @@
                     if (this.unsubscribeStats) this.unsubscribeStats();
                     if (this.unsubscribeInvoices) this.unsubscribeInvoices();
                     if (this.unsubscribeAccounts) this.unsubscribeAccounts();
+                    
+                    // Clear current data
+                    this.invoices = [];
+                    this.filteredInvoices = [];
+                    this.accounts = [];
                     
                     // Reload all data
                     this.loadInvoicesFromFirestore();
@@ -520,6 +548,7 @@
                     this.isRefreshing = false;
                     if (refreshBtn) {
                         refreshBtn.classList.remove('loading');
+                        refreshBtn.disabled = false;
                     }
                 }
             },
@@ -606,6 +635,185 @@
                 } catch (error) {
                     console.error("Error setting up stats listener:", error);
                 }
+            },
+
+            // Method untuk load invoices dari Firestore dengan snapshot real-time TANPA BATAS
+            loadInvoicesFromFirestore() {
+                try {
+                    this.unsubscribeInvoices = db.collection("invoices")
+                        .orderBy("createdAt", "desc")
+                        // HAPUS .limit(100) untuk menghilangkan batasan
+                        .onSnapshot((snapshot) => {
+                            this.invoices = [];
+                            snapshot.forEach((doc) => {
+                                const data = doc.data();
+                                data.id = doc.id;
+                                this.invoices.push(data);
+                            });
+
+                            this.filteredInvoices = [...this.invoices];
+                            this.renderInvoiceList();
+                            
+                            console.log(`✅ Loaded ${this.invoices.length} invoices from Firestore`);
+                            
+                        }, (error) => {
+                            console.error("Error loading invoices from Firestore: ", error);
+                            this.showNotification('❌ Gagal memuat data invoice', 'error');
+                        });
+                } catch (error) {
+                    console.error("Error setting up invoices listener: ", error);
+                }
+            },
+
+            // Optimasi pagination untuk banyak data
+            renderInvoiceList() {
+                const invoiceList = document.getElementById('invoiceList');
+                const pagination = document.getElementById('pagination');
+                const invoiceCount = document.getElementById('invoiceCount');
+                
+                if (!invoiceList) return;
+
+                // Update invoice count
+                if (invoiceCount) {
+                    invoiceCount.textContent = `${this.filteredInvoices.length} invoices`;
+                }
+
+                if (this.filteredInvoices.length === 0) {
+                    invoiceList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-receipt text-3xl mb-3"></i>
+                            <p>Belum ada invoice</p>
+                            <p class="text-sm">Buat invoice pertama Anda</p>
+                        </div>
+                    `;
+                    pagination.classList.add('hidden');
+                    return;
+                }
+
+                // Calculate pagination
+                const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
+                const startIndex = (this.currentPage - 1) * this.invoicesPerPage;
+                const endIndex = startIndex + this.invoicesPerPage;
+                const currentInvoices = this.filteredInvoices.slice(startIndex, endIndex);
+
+                // Show loading indicator jika data banyak
+                if (this.filteredInvoices.length > 100) {
+                    console.log(`🔄 Rendering ${currentInvoices.length} invoices (page ${this.currentPage} of ${totalPages})`);
+                }
+
+                // Render invoices
+                invoiceList.innerHTML = currentInvoices.map(invoice => `
+                    <div class="bg-white rounded-xl p-4 border border-gray-200 hover:border-orange-300 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="font-bold text-gray-800">${invoice.invoiceNumber}</div>
+                                <div class="text-sm text-gray-600">${invoice.date}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-orange-600">${this.formatCurrency(invoice.total)}</div>
+                                <div class="text-xs text-gray-500 capitalize">${invoice.paymentMethod}</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-4">
+                            <div class="text-xs text-gray-500">
+                                ${invoice.products.length} item • ${invoice.products.reduce((sum, p) => sum + p.quantity, 0)} pcs
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="app.viewInvoice('${invoice.invoiceNumber}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-colors">
+                                    <i class="fas fa-eye mr-1"></i>Lihat
+                                </button>
+                                <button onclick="app.shareInvoice('${invoice.id}', '${invoice.invoiceNumber}', '${invoice.paymentMethod}', ${invoice.total})" class="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1 rounded-lg transition-colors">
+                                    <i class="fas fa-share-alt mr-1"></i>Share
+                                </button>
+                                <button onclick="app.deleteInvoice('${invoice.id}', '${invoice.invoiceNumber}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition-colors">
+                                    <i class="fas fa-trash mr-1"></i>Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Render pagination dengan optimasi untuk banyak halaman
+                if (totalPages > 1) {
+                    pagination.classList.remove('hidden');
+                    let paginationHTML = '';
+                    
+                    // Previous button
+                    paginationHTML += `
+                        <button onclick="app.changePage(${this.currentPage - 1})" 
+                                class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed" 
+                                ${this.currentPage === 1 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left text-sm"></i>
+                        </button>
+                    `;
+                    
+                    // Smart page numbers - tampilkan maksimal 7 halaman
+                    let startPage = Math.max(1, this.currentPage - 3);
+                    let endPage = Math.min(totalPages, startPage + 6);
+                    
+                    // Adjust jika di akhir
+                    if (endPage - startPage < 6) {
+                        startPage = Math.max(1, endPage - 6);
+                    }
+                    
+                    // First page
+                    if (startPage > 1) {
+                        paginationHTML += `
+                            <button onclick="app.changePage(1)" 
+                                    class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 font-medium">
+                                1
+                            </button>
+                        `;
+                        if (startPage > 2) {
+                            paginationHTML += `<span class="w-10 h-10 flex items-center justify-center text-gray-500">...</span>`;
+                        }
+                    }
+                    
+                    // Page numbers
+                    for (let i = startPage; i <= endPage; i++) {
+                        paginationHTML += `
+                            <button onclick="app.changePage(${i})" 
+                                    class="w-10 h-10 flex items-center justify-center rounded-lg border ${i === this.currentPage ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300 bg-white text-gray-700'} font-medium">
+                                ${i}
+                            </button>
+                        `;
+                    }
+                    
+                    // Last page
+                    if (endPage < totalPages) {
+                        if (endPage < totalPages - 1) {
+                            paginationHTML += `<span class="w-10 h-10 flex items-center justify-center text-gray-500">...</span>`;
+                        }
+                        paginationHTML += `
+                            <button onclick="app.changePage(${totalPages})" 
+                                    class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 font-medium">
+                                ${totalPages}
+                            </button>
+                        `;
+                    }
+                    
+                    // Next button
+                    paginationHTML += `
+                        <button onclick="app.changePage(${this.currentPage + 1})" 
+                                class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed" 
+                                ${this.currentPage === totalPages ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </button>
+                    `;
+                    
+                    pagination.innerHTML = paginationHTML;
+                } else {
+                    pagination.classList.add('hidden');
+                }
+            },
+
+            // Change page for pagination
+            changePage(page) {
+                const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
+                if (page < 1 || page > totalPages) return;
+                
+                this.currentPage = page;
+                this.renderInvoiceList();
             },
 
             // Show invoice generator modal
@@ -1139,6 +1347,72 @@
                 document.addEventListener('keydown', this.modalEscapeListener);
             },
 
+            // View invoice
+            viewInvoice(invoiceNumber) {
+                const invoice = this.invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+                if (invoice) {
+                    this.currentInvoiceData = invoice;
+                    this.showSimpleInvoice(invoice);
+                }
+            },
+
+            // Share invoice dengan pesan khusus
+            async shareInvoice(id, invoiceNumber, paymentMethod, total) {
+                const invoice = this.invoices.find(inv => inv.id === id);
+                if (!invoice) {
+                    this.showNotification('❌ Invoice tidak ditemukan', 'error');
+                    return;
+                }
+
+                try {
+                    let shareText = '';
+                    
+                    if (paymentMethod === 'bca') {
+                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
+
+Untuk pembayaran Transfer silahkan ke nomor rekening dibawah
+
+BCA 
+6455106421
+a/n VICKY SATRIA LINDY
+Nominal : ${this.formatCurrency(total)}
+
+Terima kasih telah mempercayai VLCrave Express!`;
+                    } else {
+                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
+
+Silahkan bayar sesuai nominal dibawah secara Tunai/Cash
+Nominal : ${this.formatCurrency(total)}
+
+Terima kasih telah mempercayai VLCrave Express!`;
+                    }
+
+                    // Check if Web Share API is available
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                title: `Invoice ${invoiceNumber} - VLCrave Express`,
+                                text: shareText
+                            });
+                            this.showNotification('✅ Pesan berhasil dibagikan!', 'success');
+                        } catch (shareError) {
+                            console.error('Error sharing:', shareError);
+                            // Fallback: copy to clipboard
+                            this.copyToClipboard(shareText);
+                            this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
+                        }
+                    } else {
+                        // Fallback: copy to clipboard
+                        this.copyToClipboard(shareText);
+                        this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error sharing invoice:', error);
+                    this.showNotification('❌ Gagal membagikan pesan: ' + error.message, 'error');
+                }
+            },
+
             // Method untuk share di iOS - dengan gambar invoice
             async shareInvoiceIOS() {
                 try {
@@ -1484,231 +1758,6 @@
                 `;
             },
 
-            // Method untuk load invoices dari Firestore dengan snapshot real-time
-            loadInvoicesFromFirestore() {
-                try {
-                    this.unsubscribeInvoices = db.collection("invoices")
-                        .orderBy("createdAt", "desc")
-                        .limit(100)
-                        .onSnapshot((snapshot) => {
-                            this.invoices = [];
-                            snapshot.forEach((doc) => {
-                                const data = doc.data();
-                                data.id = doc.id;
-                                this.invoices.push(data);
-                            });
-
-                            this.filteredInvoices = [...this.invoices];
-                            this.renderInvoiceList();
-                            
-                        }, (error) => {
-                            console.error("Error loading invoices from Firestore: ", error);
-                        });
-                } catch (error) {
-                    console.error("Error setting up invoices listener: ", error);
-                }
-            },
-
-            // Render invoice list with pagination
-            renderInvoiceList() {
-                const invoiceList = document.getElementById('invoiceList');
-                const pagination = document.getElementById('pagination');
-                const invoiceCount = document.getElementById('invoiceCount');
-                
-                if (!invoiceList) return;
-
-                // Update invoice count
-                if (invoiceCount) {
-                    invoiceCount.textContent = `${this.filteredInvoices.length} invoices`;
-                }
-
-                if (this.filteredInvoices.length === 0) {
-                    invoiceList.innerHTML = `
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-receipt text-3xl mb-3"></i>
-                            <p>Belum ada invoice</p>
-                            <p class="text-sm">Buat invoice pertama Anda</p>
-                        </div>
-                    `;
-                    pagination.classList.add('hidden');
-                    return;
-                }
-
-                // Calculate pagination
-                const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
-                const startIndex = (this.currentPage - 1) * this.invoicesPerPage;
-                const endIndex = startIndex + this.invoicesPerPage;
-                const currentInvoices = this.filteredInvoices.slice(startIndex, endIndex);
-
-                // Render invoices
-                invoiceList.innerHTML = currentInvoices.map(invoice => `
-                    <div class="bg-white rounded-xl p-4 border border-gray-200 hover:border-orange-300 transition-colors">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <div class="font-bold text-gray-800">${invoice.invoiceNumber}</div>
-                                <div class="text-sm text-gray-600">${invoice.date}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-bold text-orange-600">${this.formatCurrency(invoice.total)}</div>
-                                <div class="text-xs text-gray-500 capitalize">${invoice.paymentMethod}</div>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center mt-4">
-                            <div class="text-xs text-gray-500">
-                                ${invoice.products.length} item • ${invoice.products.reduce((sum, p) => sum + p.quantity, 0)} pcs
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="app.viewInvoice('${invoice.invoiceNumber}')" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg transition-colors">
-                                    <i class="fas fa-eye mr-1"></i>Lihat
-                                </button>
-                                <button onclick="app.shareInvoice('${invoice.id}', '${invoice.invoiceNumber}', '${invoice.paymentMethod}', ${invoice.total})" class="text-xs bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1 rounded-lg transition-colors">
-                                    <i class="fas fa-share-alt mr-1"></i>Share
-                                </button>
-                                <button onclick="app.deleteInvoice('${invoice.id}', '${invoice.invoiceNumber}')" class="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-lg transition-colors">
-                                    <i class="fas fa-trash mr-1"></i>Hapus
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-
-                // Render pagination
-                if (totalPages > 1) {
-                    pagination.classList.remove('hidden');
-                    let paginationHTML = '';
-                    
-                    // Previous button
-                    paginationHTML += `
-                        <button onclick="app.changePage(${this.currentPage - 1})" 
-                                class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed" 
-                                ${this.currentPage === 1 ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-left text-sm"></i>
-                        </button>
-                    `;
-                    
-                    // Page numbers
-                    for (let i = 1; i <= totalPages; i++) {
-                        paginationHTML += `
-                            <button onclick="app.changePage(${i})" 
-                                    class="w-10 h-10 flex items-center justify-center rounded-lg border ${i === this.currentPage ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300 bg-white text-gray-700'} font-medium">
-                                ${i}
-                            </button>
-                        `;
-                    }
-                    
-                    // Next button
-                    paginationHTML += `
-                        <button onclick="app.changePage(${this.currentPage + 1})" 
-                                class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed" 
-                                ${this.currentPage === totalPages ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-right text-sm"></i>
-                        </button>
-                    `;
-                    
-                    pagination.innerHTML = paginationHTML;
-                } else {
-                    pagination.classList.add('hidden');
-                }
-            },
-
-            // Change page for pagination
-            changePage(page) {
-                const totalPages = Math.ceil(this.filteredInvoices.length / this.invoicesPerPage);
-                if (page < 1 || page > totalPages) return;
-                
-                this.currentPage = page;
-                this.renderInvoiceList();
-            },
-
-            // View invoice
-            viewInvoice(invoiceNumber) {
-                const invoice = this.invoices.find(inv => inv.invoiceNumber === invoiceNumber);
-                if (invoice) {
-                    this.currentInvoiceData = invoice;
-                    this.showSimpleInvoice(invoice);
-                }
-            },
-
-            // Share invoice dengan pesan khusus
-            async shareInvoice(id, invoiceNumber, paymentMethod, total) {
-                const invoice = this.invoices.find(inv => inv.id === id);
-                if (!invoice) {
-                    this.showNotification('❌ Invoice tidak ditemukan', 'error');
-                    return;
-                }
-
-                try {
-                    let shareText = '';
-                    
-                    if (paymentMethod === 'bca') {
-                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
-
-Untuk pembayaran Transfer silahkan ke nomor rekening dibawah
-
-BCA 
-6455106421
-a/n VICKY SATRIA LINDY
-Nominal : ${this.formatCurrency(total)}
-
-Terima kasih telah mempercayai VLCrave Express!`;
-                    } else {
-                        shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
-
-Silahkan bayar sesuai nominal dibawah secara Tunai/Cash
-Nominal : ${this.formatCurrency(total)}
-
-Terima kasih telah mempercayai VLCrave Express!`;
-                    }
-
-                    // Check if Web Share API is available
-                    if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                title: `Invoice ${invoiceNumber} - VLCrave Express`,
-                                text: shareText
-                            });
-                            this.showNotification('✅ Pesan berhasil dibagikan!', 'success');
-                        } catch (shareError) {
-                            console.error('Error sharing:', shareError);
-                            // Fallback: copy to clipboard
-                            this.copyToClipboard(shareText);
-                            this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
-                        }
-                    } else {
-                        // Fallback: copy to clipboard
-                        this.copyToClipboard(shareText);
-                        this.showNotification('✅ Pesan berhasil disalin ke clipboard!', 'success');
-                    }
-                    
-                } catch (error) {
-                    console.error('Error sharing invoice:', error);
-                    this.showNotification('❌ Gagal membagikan pesan: ' + error.message, 'error');
-                }
-            },
-
-            // Copy text to clipboard
-            async copyToClipboard(text) {
-                try {
-                    await navigator.clipboard.writeText(text);
-                    return true;
-                } catch (err) {
-                    // Fallback for older browsers
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        document.body.removeChild(textArea);
-                        return true;
-                    } catch (err) {
-                        document.body.removeChild(textArea);
-                        return false;
-                    }
-                }
-            },
-
             // Delete invoice dengan update saldo rekening
             async deleteInvoice(id, invoiceNumber) {
                 if (!confirm(`Apakah Anda yakin ingin menghapus invoice ${invoiceNumber}?`)) {
@@ -1735,6 +1784,29 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 } catch (error) {
                     console.error('Error deleting invoice:', error);
                     this.showNotification('❌ Gagal menghapus invoice: ' + error.message, 'error');
+                }
+            },
+
+            // Copy text to clipboard
+            async copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (err) {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        return true;
+                    } catch (err) {
+                        document.body.removeChild(textArea);
+                        return false;
+                    }
                 }
             },
 
