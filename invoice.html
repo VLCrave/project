@@ -1117,26 +1117,7 @@
                         console.log(`Saldo ${account.name} diperbarui: +${this.formatCurrency(invoiceData.shippingCost)}`);
                     }
                     
-                    // SIMPAN JUGA KE FINANCE_TRANSACTIONS SEBAGAI PEMASUKAN (ONGKIR SAJA)
-                    if (invoiceData.shippingCost > 0) {
-                        const financeTransaction = {
-                            type: 'income',
-                            amount: invoiceData.shippingCost,
-                            category: 'delivery_fee',
-                            description: `Ongkir dari invoice ${invoiceData.invoiceNumber}`,
-                            invoiceNumber: invoiceData.invoiceNumber,
-                            invoiceRef: invoiceRef.id,
-                            userId: "guest-user",
-                            createdAt: new Date(),
-                            updatedAt: new Date(),
-                            date: new Date().toISOString().split('T')[0],
-                            paymentMethod: invoiceData.paymentMethod,
-                            status: 'completed'
-                        };
-                        
-                        await db.collection("finance_transactions").add(financeTransaction);
-                        console.log("Data pendapatan berhasil disimpan ke finance_transactions");
-                    }
+
                     
                     this.showNotification(`✅ Invoice ${invoiceData.invoiceNumber} berhasil dibuat! Saldo diperbarui.`, 'success');
                     
