@@ -100,6 +100,17 @@
             background: #c1c1c1;
             border-radius: 3px;
         }
+        
+        /* Animation for location update */
+        @keyframes locationUpdate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .location-update {
+            animation: locationUpdate 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -134,6 +145,10 @@
             <div class="flex items-center space-x-2">
                 <i class="fas fa-battery-three-quarters text-primary text-sm"></i>
                 <span id="battery-level" class="text-xs font-medium">-</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-clock text-primary text-sm"></i>
+                <span id="location-update-status" class="text-xs font-medium">0.5s</span>
             </div>
         </div>
 
@@ -294,6 +309,8 @@
         let validPoints = 0;
         let waitingTime = 0;
         let isMoving = false;
+        let lastUpdateTime = 0;
+        let positionHistory = [];
 
         // Pengaturan
         const MIN_ACCURACY = 15;
@@ -301,6 +318,7 @@
         const BASE_FARE = 5000;
         const DISTANCE_RATE = 200;
         const WAITING_RATE = 2500;
+        const UPDATE_INTERVAL = 500; // 0.5 detik
 
         // Elemen DOM
         const elements = {
@@ -323,7 +341,8 @@
             distanceTraveled: document.getElementById('distance-traveled'),
             amountDisplay: document.getElementById('amount-display'),
             notification: document.getElementById('notification'),
-            notificationText: document.getElementById('notification-text')
+            notificationText: document.getElementById('notification-text'),
+            locationUpdateStatus: document.getElementById('location-update-status')
         };
 
         // Inisialisasi
@@ -356,6 +375,7 @@
 
             isTracking = true;
             startTime = new Date();
+            lastUpdateTime = Date.now();
             
             // Update UI
             elements.startBtn.innerHTML = '<i class="fas fa-pause mr-2"></i>Berhenti';
@@ -367,21 +387,22 @@
             lastPosition = null;
             validPoints = 0;
             waitingTime = 0;
+            positionHistory = [];
             updateDisplay();
 
             // Mulai timer
             startTimer();
             startWaitingTimer();
 
-            // Mulai GPS tracking
+            // Mulai GPS tracking dengan interval 0.5 detik
             watchId = navigator.geolocation.watchPosition(
                 updatePosition,
                 handleGeolocationError,
                 {
                     enableHighAccuracy: true,
                     timeout: 10000,
-                    maximumAge: 2000,
-                    distanceFilter: MIN_DISTANCE
+                    maximumAge: 0, // Tidak menggunakan data cache
+                    distanceFilter: 0 // Tidak ada filter jarak minimum
                 }
             );
 
@@ -391,6 +412,15 @@
         }
 
         function updatePosition(position) {
+            const currentTime = Date.now();
+            
+            // Batasi update ke setiap 0.5 detik
+            if (currentTime - lastUpdateTime < UPDATE_INTERVAL) {
+                return;
+            }
+            
+            lastUpdateTime = currentTime;
+            
             const accuracy = position.coords.accuracy;
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
@@ -408,19 +438,39 @@
             validPoints++;
             elements.validPoints.textContent = validPoints;
 
-            // Hitung jarak
+            // Simpan posisi ke history untuk smoothing
+            positionHistory.push({
+                latitude: lat,
+                longitude: lng,
+                timestamp: currentTime,
+                accuracy: accuracy
+            });
+            
+            // Batasi history untuk menghindari memori berlebih
+            if (positionHistory.length > 10) {
+                positionHistory.shift();
+            }
+
+            // Hitung jarak menggunakan posisi yang sudah di-smooth
             if (lastPosition !== null) {
+                const smoothedPosition = getSmoothedPosition();
                 const distance = calculateDistance(
                     lastPosition.latitude,
                     lastPosition.longitude,
-                    lat,
-                    lng
+                    smoothedPosition.latitude,
+                    smoothedPosition.longitude
                 );
 
                 if (isValidDistance(distance, accuracy)) {
                     totalDistance += distance;
                     updateDisplay();
                     isMoving = (speed !== null && speed > 0.5) || distance > 2;
+                    
+                    // Animasi update lokasi
+                    elements.distance.classList.add('location-update');
+                    setTimeout(() => {
+                        elements.distance.classList.remove('location-update');
+                    }, 500);
                 }
             }
 
@@ -433,6 +483,30 @@
             };
 
             updateFare();
+        }
+
+        // Fungsi untuk mendapatkan posisi yang sudah di-smooth
+        function getSmoothedPosition() {
+            if (positionHistory.length === 0) return null;
+            
+            // Simple moving average untuk smoothing
+            let totalLat = 0;
+            let totalLng = 0;
+            let totalWeight = 0;
+            
+            for (let i = 0; i < positionHistory.length; i++) {
+                const pos = positionHistory[i];
+                const weight = 1 / (pos.accuracy || 1); // Berikan bobot lebih pada data dengan akurasi tinggi
+                
+                totalLat += pos.latitude * weight;
+                totalLng += pos.longitude * weight;
+                totalWeight += weight;
+            }
+            
+            return {
+                latitude: totalLat / totalWeight,
+                longitude: totalLng / totalWeight
+            };
         }
 
         function isValidDistance(distance, accuracy) {
@@ -558,6 +632,7 @@
             lastPosition = null;
             validPoints = 0;
             waitingTime = 0;
+            positionHistory = [];
             updateDisplay();
             updateFare();
             elements.duration.textContent = '00:00:00';
