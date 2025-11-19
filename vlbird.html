@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e88e5">
+    <title>Bluebird PWA - Tracking Real-time</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            max-width: 100%;
+            overflow-x: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 20px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1e88e5, #0d47a1);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        
+        .logo i {
+            font-size: 28px;
+            margin-right: 10px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1e88e5;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+        }
+        
+        .distance-display {
+            text-align: center;
+            padding: 20px 0;
+        }
+        
+        .distance-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1e88e5;
+            margin-bottom: 5px;
+        }
+        
+        .distance-unit {
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background-color: #1e88e5;
+            color: white;
+            flex: 1;
+            margin-right: 10px;
+        }
+        
+        .btn-secondary {
+            background-color: #e0e0e0;
+            color: #333;
+            flex: 1;
+            margin-left: 10px;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .trip-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .info-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e88e5;
+        }
+        
+        .info-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .coordinates {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .history-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        
+        .history-date {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .history-distance {
+            font-weight: 600;
+            color: #1e88e5;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4caf50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .accuracy-warning {
+            background-color: #ff9800;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .distance-value {
+                font-size: 42px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            
+            .trip-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-taxi"></i>
+                <h1>Bluebird PWA</h1>
+            </div>
+            <p>Tracking Real-time Meter-by-Meter</p>
+        </header>
+        
+        <div class="status-bar">
+            <div><i class="fas fa-satellite-dish"></i> GPS: <span id="gps-status">Mencari...</span></div>
+            <div><i class="fas fa-battery-three-quarters"></i> <span id="battery-level">-</span></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-road"></i>
+                <span>Jarak Tempuh Real-time</span>
+            </div>
+            <div class="distance-display">
+                <div class="distance-value" id="distance">0.00</div>
+                <div class="distance-unit">meter</div>
+            </div>
+            
+            <div class="coordinates">
+                <div>Lat: <span id="latitude">-</span></div>
+                <div>Lng: <span id="longitude">-</span></div>
+                <div>Akurasi: ±<span id="accuracy">-</span> meter</div>
+            </div>
+            
+            <div class="trip-info">
+                <div class="info-item">
+                    <div class="info-value" id="duration">00:00:00</div>
+                    <div class="info-label">Durasi</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-value" id="speed">0.0</div>
+                    <div class="info-label">m/detik</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-value" id="points">0</div>
+                    <div class="info-label">Data Points</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-value" id="avg-speed">0.0</div>
+                    <div class="info-label">Rata-rata m/d</div>
+                </div>
+            </div>
+            
+            <div id="accuracy-warning" class="accuracy-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i> Akurasi GPS rendah. Hasil mungkin kurang akurat.
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" id="start-btn">
+                    <i class="fas fa-play"></i> Mulai Tracking
+                </button>
+                <button class="btn btn-secondary" id="reset-btn" disabled>
+                    <i class="fas fa-redo"></i> Reset
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-history"></i>
+                <span>Riwayat Tracking</span>
+            </div>
+            <div id="history-list">
+                <div class="history-item">
+                    <div class="history-date">Belum ada riwayat</div>
+                    <div class="history-distance">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Aplikasi PWA Bluebird &copy; 2023</p>
+            <p>Tracking real-time per meter</p>
+        </footer>
+    </div>
+    
+    <div class="notification" id="notification">
+        Tracking dimulai!
+    </div>
+
+    <script>
+        // Variabel global untuk tracking
+        let isTracking = false;
+        let startTime = null;
+        let timerInterval = null;
+        let totalDistance = 0; // dalam meter
+        let lastPosition = null;
+        let watchId = null;
+        let positionHistory = [];
+        let totalPoints = 0;
+        
+        // Elemen DOM
+        const distanceElement = document.getElementById('distance');
+        const durationElement = document.getElementById('duration');
+        const speedElement = document.getElementById('speed');
+        const avgSpeedElement = document.getElementById('avg-speed');
+        const pointsElement = document.getElementById('points');
+        const startButton = document.getElementById('start-btn');
+        const resetButton = document.getElementById('reset-btn');
+        const gpsStatusElement = document.getElementById('gps-status');
+        const batteryLevelElement = document.getElementById('battery-level');
+        const historyListElement = document.getElementById('history-list');
+        const notificationElement = document.getElementById('notification');
+        const latitudeElement = document.getElementById('latitude');
+        const longitudeElement = document.getElementById('longitude');
+        const accuracyElement = document.getElementById('accuracy');
+        const accuracyWarningElement = document.getElementById('accuracy-warning');
+
+        // Inisialisasi aplikasi
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cek status baterai
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(function(battery) {
+                    updateBatteryLevel(battery);
+                    
+                    battery.addEventListener('levelchange', function() {
+                        updateBatteryLevel(battery);
+                    });
+                });
+            } else {
+                batteryLevelElement.textContent = 'Tidak tersedia';
+            }
+            
+            // Muat riwayat dari localStorage
+            loadTripHistory();
+            
+            // Event listener untuk tombol
+            startButton.addEventListener('click', toggleTracking);
+            resetButton.addEventListener('click', resetTracking);
+        });
+        
+        // Fungsi untuk memulai/menghentikan tracking
+        function toggleTracking() {
+            if (!isTracking) {
+                startTracking();
+            } else {
+                stopTracking();
+            }
+        }
+        
+        // Mulai tracking real-time
+        function startTracking() {
+            if (!navigator.geolocation) {
+                showNotification('GPS tidak didukung di perangkat ini', 'error');
+                return;
+            }
+            
+            isTracking = true;
+            startTime = new Date();
+            startButton.innerHTML = '<i class="fas fa-pause"></i> Berhenti';
+            startButton.classList.remove('btn-primary');
+            startButton.classList.add('btn-secondary');
+            resetButton.disabled = true;
+            
+            // Reset data sebelumnya
+            positionHistory = [];
+            totalPoints = 0;
+            pointsElement.textContent = '0';
+            
+            // Mulai timer
+            startTimer();
+            
+            // Mulai pelacakan GPS dengan interval cepat untuk akurasi tinggi
+            watchId = navigator.geolocation.watchPosition(
+                updatePosition,
+                handleGeolocationError,
+                {
+                    enableHighAccuracy: true,  // Gunakan GPS high accuracy
+                    timeout: 10000,           // Timeout 10 detik
+                    maximumAge: 1000,         // Data maksimal 1 detik
+                    distanceFilter: 1         // Update setiap 1 meter perubahan
+                }
+            );
+            
+            showNotification('Tracking real-time dimulai!');
+            gpsStatusElement.textContent = 'Aktif';
+            gpsStatusElement.style.color = '#4caf50';
+        }
+        
+        // Hentikan tracking
+        function stopTracking() {
+            isTracking = false;
+            startButton.innerHTML = '<i class="fas fa-play"></i> Mulai Tracking';
+            startButton.classList.remove('btn-secondary');
+            startButton.classList.add('btn-primary');
+            resetButton.disabled = false;
+            
+            // Hentikan timer
+            clearInterval(timerInterval);
+            
+            // Hentikan pelacakan GPS
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            // Simpan perjalanan ke riwayat
+            saveTripToHistory();
+            
+            showNotification('Tracking dihentikan');
+            gpsStatusElement.textContent = 'Nonaktif';
+            gpsStatusElement.style.color = '#f44336';
+        }
+        
+        // Reset tracking
+        function resetTracking() {
+            totalDistance = 0;
+            lastPosition = null;
+            positionHistory = [];
+            totalPoints = 0;
+            distanceElement.textContent = '0.00';
+            durationElement.textContent = '00:00:00';
+            speedElement.textContent = '0.0';
+            avgSpeedElement.textContent = '0.0';
+            pointsElement.textContent = '0';
+            latitudeElement.textContent = '-';
+            longitudeElement.textContent = '-';
+            accuracyElement.textContent = '-';
+            accuracyWarningElement.style.display = 'none';
+        }
+        
+        // Update posisi berdasarkan GPS real-time
+        function updatePosition(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            const speed = position.coords.speed;
+            const timestamp = position.timestamp;
+            
+            // Update tampilan koordinat
+            latitudeElement.textContent = lat.toFixed(6);
+            longitudeElement.textContent = lng.toFixed(6);
+            accuracyElement.textContent = Math.round(accuracy);
+            
+            // Tampilkan peringatan jika akurasi rendah
+            if (accuracy > 20) {
+                accuracyWarningElement.style.display = 'block';
+            } else {
+                accuracyWarningElement.style.display = 'none';
+            }
+            
+            // Update status GPS
+            gpsStatusElement.innerHTML = `Aktif <span style="font-size: 12px;">(±${Math.round(accuracy)}m)</span>`;
+            
+            // Simpan posisi ke history
+            const currentPosition = {
+                latitude: lat,
+                longitude: lng,
+                accuracy: accuracy,
+                timestamp: timestamp,
+                speed: speed
+            };
+            
+            positionHistory.push(currentPosition);
+            totalPoints++;
+            pointsElement.textContent = totalPoints;
+            
+            // Hitung jarak dari posisi sebelumnya
+            if (lastPosition !== null) {
+                const distance = calculateDistanceBetweenPoints(
+                    lastPosition.latitude,
+                    lastPosition.longitude,
+                    lat,
+                    lng
+                );
+                
+                // Hanya tambahkan jarak jika perubahannya signifikan dan akurat
+                if (distance > 0 && accuracy <= 50) {
+                    totalDistance += distance;
+                    distanceElement.textContent = totalDistance.toFixed(2);
+                }
+                
+                // Update kecepatan
+                if (speed !== null && speed > 0) {
+                    speedElement.textContent = speed.toFixed(1);
+                } else {
+                    // Hitung kecepatan manual berdasarkan jarak dan waktu
+                    const timeDiff = (timestamp - lastPosition.timestamp) / 1000; // dalam detik
+                    if (timeDiff > 0) {
+                        const calculatedSpeed = distance / timeDiff;
+                        speedElement.textContent = calculatedSpeed.toFixed(1);
+                    }
+                }
+                
+                // Hitung kecepatan rata-rata
+                const elapsedTime = (new Date() - startTime) / 1000; // dalam detik
+                if (elapsedTime > 0) {
+                    const averageSpeed = totalDistance / elapsedTime;
+                    avgSpeedElement.textContent = averageSpeed.toFixed(1);
+                }
+            }
+            
+            // Simpan posisi saat ini sebagai posisi terakhir
+            lastPosition = currentPosition;
+        }
+        
+        // Hitung jarak antara dua titik koordinat (dalam meter)
+        function calculateDistanceBetweenPoints(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Radius bumi dalam meter
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return distance;
+        }
+        
+        // Tangani error GPS
+        function handleGeolocationError(error) {
+            let message = '';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Akses GPS ditolak. Izinkan akses lokasi di pengaturan.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'Informasi lokasi tidak tersedia.';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Permintaan lokasi timeout.';
+                    break;
+                default:
+                    message = 'Terjadi error tidak diketahui.';
+                    break;
+            }
+            
+            showNotification(message, 'error');
+            gpsStatusElement.textContent = 'Error';
+            gpsStatusElement.style.color = '#f44336';
+        }
+        
+        // Mulai timer
+        function startTimer() {
+            startTime = new Date();
+            
+            timerInterval = setInterval(function() {
+                const now = new Date();
+                const elapsedTime = new Date(now - startTime);
+                
+                const hours = String(elapsedTime.getUTCHours()).padStart(2, '0');
+                const minutes = String(elapsedTime.getUTCMinutes()).padStart(2, '0');
+                const seconds = String(elapsedTime.getUTCSeconds()).padStart(2, '0');
+                
+                durationElement.textContent = `${hours}:${minutes}:${seconds}`;
+            }, 1000);
+        }
+        
+        // Perbarui level baterai
+        function updateBatteryLevel(battery) {
+            const level = Math.round(battery.level * 100);
+            batteryLevelElement.textContent = `${level}%`;
+            
+            if (level <= 20) {
+                batteryLevelElement.style.color = '#f44336';
+            } else if (level <= 50) {
+                batteryLevelElement.style.color = '#ff9800';
+            } else {
+                batteryLevelElement.style.color = '#4caf50';
+            }
+        }
+        
+        // Tampilkan notifikasi
+        function showNotification(message, type = 'success') {
+            notificationElement.textContent = message;
+            
+            if (type === 'error') {
+                notificationElement.style.backgroundColor = '#f44336';
+            } else {
+                notificationElement.style.backgroundColor = '#4caf50';
+            }
+            
+            notificationElement.style.display = 'block';
+            
+            setTimeout(function() {
+                notificationElement.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Simpan perjalanan ke riwayat
+        function saveTripToHistory() {
+            if (totalDistance > 0) {
+                const trip = {
+                    date: new Date().toLocaleString('id-ID'),
+                    distance: (totalDistance / 1000).toFixed(3), // Konversi ke km
+                    duration: durationElement.textContent,
+                    points: totalPoints
+                };
+                
+                const tripHistory = JSON.parse(localStorage.getItem('tripHistory') || '[]');
+                tripHistory.unshift(trip);
+                
+                // Simpan ke localStorage
+                localStorage.setItem('tripHistory', JSON.stringify(tripHistory));
+                
+                // Perbarui tampilan riwayat
+                updateHistoryDisplay();
+            }
+        }
+        
+        // Muat riwayat dari localStorage
+        function loadTripHistory() {
+            const savedHistory = localStorage.getItem('tripHistory');
+            
+            if (savedHistory) {
+                updateHistoryDisplay();
+            }
+        }
+        
+        // Perbarui tampilan riwayat
+        function updateHistoryDisplay() {
+            const tripHistory = JSON.parse(localStorage.getItem('tripHistory') || '[]');
+            
+            if (tripHistory.length === 0) {
+                historyListElement.innerHTML = `
+                    <div class="history-item">
+                        <div class="history-date">Belum ada riwayat</div>
+                        <div class="history-distance">-</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyListElement.innerHTML = '';
+            
+            tripHistory.forEach(trip => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-date">${trip.date}</div>
+                    <div class="history-distance">${trip.distance} km</div>
+                `;
+                
+                historyListElement.appendChild(historyItem);
+            });
+        }
+    </script>
+</body>
+</html>
