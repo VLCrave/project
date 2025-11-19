@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRIS Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-qrcode text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">QRIS Converter</h1>
+                        <p class="text-sm text-gray-500">Invoice to QR Code</p>
+                    </div>
+                </div>
+                <button id="refreshBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-6">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-white rounded-xl p-4 shadow-sm border">
+                <div class="text-2xl font-bold text-blue-600 mb-1" id="totalInvoices">0</div>
+                <div class="text-sm text-gray-500">Total Invoice</div>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-sm border">
+                <div class="text-2xl font-bold text-green-600 mb-1" id="totalAmount">Rp 0</div>
+                <div class="text-sm text-gray-500">Total Nilai</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="space-y-6">
+            <!-- Invoice List -->
+            <div class="bg-white rounded-xl shadow-sm border p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-receipt mr-2 text-blue-500"></i>Daftar Invoice
+                    </h2>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input type="text" id="searchInvoice" placeholder="Cari..." 
+                               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div class="invoice-list max-h-96 overflow-y-auto space-y-3">
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-receipt text-3xl mb-2"></i>
+                        <p>Memuat data invoice...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QRIS Generator & Details -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- QRIS Generator -->
+                <div class="bg-white rounded-xl shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-qrcode mr-2 text-blue-500"></i>QRIS Generator
+                    </h2>
+                    
+                    <div class="text-center mb-6">
+                        <div class="text-2xl font-bold text-green-600 mb-2" id="amountDisplay">Rp 0</div>
+                        <div class="text-sm text-gray-500" id="invoiceNumberDisplay">Pilih invoice</div>
+                    </div>
+                    
+                    <div id="qrcode" class="flex justify-center mb-6">
+                        <div class="w-48 h-48 bg-gray-100 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
+                            <i class="fas fa-qrcode text-3xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-500 text-center text-sm">Pilih invoice<br>untuk generate QR</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="downloadQR" class="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium" disabled>
+                            <i class="fas fa-download mr-2"></i>Download
+                        </button>
+                        <button id="shareQR" class="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium" disabled>
+                            <i class="fas fa-share-alt mr-2"></i>Share
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Invoice Details -->
+                <div class="bg-white rounded-xl shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-file-invoice mr-2 text-blue-500"></i>Detail Pesanan
+                    </h2>
+                    
+                    <div id="invoiceDetails" class="space-y-3 mb-6">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-file-invoice text-3xl mb-2"></i>
+                            <p>Pilih invoice untuk melihat detail</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-2">
+                            <span>Subtotal:</span>
+                            <span id="subtotalDisplay">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600 mb-2">
+                            <span>Ongkir:</span>
+                            <span id="shippingDisplay">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between text-base font-semibold text-gray-800 pt-2 border-t">
+                            <span>Total:</span>
+                            <span id="totalDisplay">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-blue-500 text-white p-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Bagikan Invoice</h3>
+                    <button onclick="app.closeShareModal()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div id="shareContent">
+                    <!-- Content will be generated here -->
+                </div>
+            </div>
+            
+            <div class="border-t p-4 bg-gray-50">
+                <div class="flex gap-2">
+                    <button onclick="app.downloadShareAsPNG()" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm font-medium transition-colors">
+                        <i class="fas fa-download mr-1"></i>Download
+                    </button>
+                    <button onclick="app.shareAsImage()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg text-sm font-medium transition-colors">
+                        <i class="fas fa-share-alt mr-1"></i>Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span id="notification-text">Berhasil!</span>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // QRIS Template
+        const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Vistra Pedia6011Kab. Bangka610533253621960150011ID.DANA.WWW630491F1";
+
+        // Utility functions
+        function replaceTag(payload, tag, newValue) {
+            const pos = payload.indexOf(tag);
+            if (pos !== -1) {
+                const oldLen = parseInt(payload.substr(pos+2,2), 10);
+                const start = pos;
+                const end = pos + 2 + 2 + oldLen;
+                const newLen = newValue.length.toString().padStart(2,'0');
+                return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
+            } else {
+                const crcPos = payload.indexOf('63');
+                const newLen = newValue.length.toString().padStart(2,'0');
+                const insert = tag + newLen + newValue;
+                if (crcPos !== -1) {
+                    return payload.slice(0,crcPos) + insert + payload.slice(crcPos);
+                } else {
+                    return payload + insert;
+                }
+            }
+        }
+
+        function crc16_ccitt(input) {
+            let crc = 0xFFFF;
+            for (let i=0;i<input.length;i++){
+                crc ^= (input.charCodeAt(i) & 0xFF) << 8;
+                for (let j=0;j<8;j++){
+                    if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+                    else crc = (crc << 1) & 0xFFFF;
+                }
+            }
+            return crc & 0xFFFF;
+        }
+
+        function toHex4(n) {
+            return n.toString(16).toUpperCase().padStart(4,'0');
+        }
+
+        // Main Application
+        const app = {
+            currentInvoice: null,
+            invoices: [],
+            unsubscribe: null,
+
+            init() {
+                this.attachEventListeners();
+                this.loadInvoices();
+            },
+
+            attachEventListeners() {
+                document.getElementById('refreshBtn').addEventListener('click', () => this.loadInvoices());
+                document.getElementById('downloadQR').addEventListener('click', () => this.downloadQR());
+                document.getElementById('shareQR').addEventListener('click', () => this.openShareModal());
+                document.getElementById('searchInvoice').addEventListener('input', (e) => this.searchInvoices(e.target.value));
+            },
+
+            // Load invoices from Firestore
+            loadInvoices() {
+                try {
+                    if (this.unsubscribe) this.unsubscribe();
+                    
+                    this.unsubscribe = db.collection("invoices")
+                        .orderBy("createdAt", "desc")
+                        .onSnapshot((snapshot) => {
+                            this.invoices = [];
+                            let totalAmount = 0;
+                            let todayCount = 0;
+                            
+                            const today = new Date();
+                            
+                            snapshot.forEach((doc) => {
+                                const data = doc.data();
+                                data.id = doc.id;
+                                this.invoices.push(data);
+                                
+                                totalAmount += data.total || 0;
+                                
+                                const invoiceDate = data.createdAt?.toDate() || new Date();
+                                if (this.isSameDay(invoiceDate, today)) todayCount++;
+                            });
+
+                            this.renderInvoiceList();
+                            this.updateStats(this.invoices.length, totalAmount);
+                            
+                        }, (error) => {
+                            console.error("Error loading invoices: ", error);
+                            this.showNotification('Gagal memuat data', true);
+                        });
+                } catch (error) {
+                    console.error("Error setting up invoices listener: ", error);
+                }
+            },
+
+            // Render invoice list
+            renderInvoiceList() {
+                const container = document.querySelector('.invoice-list');
+                
+                if (this.invoices.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-receipt text-3xl mb-2"></i>
+                            <p>Belum ada invoice</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.invoices.map(invoice => `
+                    <div class="bg-gray-50 hover:bg-gray-100 rounded-lg p-3 border border-gray-200 transition-colors cursor-pointer" 
+                         onclick="app.selectInvoice('${invoice.id}')">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-semibold text-gray-800 text-sm">${invoice.invoiceNumber || 'N/A'}</div>
+                                <div class="text-gray-500 text-xs mt-1">${invoice.date || 'Tanggal tidak tersedia'}</div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    ${invoice.products?.length || 0} item • ${this.getTotalQuantity(invoice.products)} pcs
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-gray-800">${this.formatCurrency(invoice.total || 0)}</div>
+                                <div class="text-xs ${this.getPaymentMethodClass(invoice.paymentMethod)} mt-1">
+                                    ${this.getPaymentMethodText(invoice.paymentMethod)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            // Select invoice and generate QR
+            selectInvoice(invoiceId) {
+                const invoice = this.invoices.find(inv => inv.id === invoiceId);
+                if (!invoice) return;
+
+                this.currentInvoice = invoice;
+                
+                // Update displays
+                document.getElementById('amountDisplay').textContent = this.formatCurrency(invoice.total || 0);
+                document.getElementById('invoiceNumberDisplay').textContent = invoice.invoiceNumber || 'N/A';
+                
+                // Generate QR Code
+                this.generateQRCode(invoice.total || 0);
+                
+                // Show invoice details
+                this.showInvoiceDetails(invoice);
+                
+                // Enable buttons
+                document.getElementById('downloadQR').disabled = false;
+                document.getElementById('shareQR').disabled = false;
+            },
+
+            // Generate QR Code
+            generateQRCode(amount) {
+                const container = document.getElementById('qrcode');
+                container.innerHTML = '';
+                
+                // Show loader
+                container.innerHTML = `
+                    <div class="w-48 h-48 bg-gray-100 rounded-lg flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
+                        <div class="loader border-2 border-gray-300 border-t-blue-500 rounded-full w-6 h-6 animate-spin mb-2"></div>
+                        <p class="text-gray-500 text-sm">Generating...</p>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    try {
+                        const amountInput = amount.toString();
+                        let normalizedAmount = amountInput.replace(/[,\s]/g,'');
+                        if (/^\d+\.00$/.test(normalizedAmount)) normalizedAmount = normalizedAmount.split('.')[0];
+                        
+                        let amountValue = normalizedAmount;
+                        let newPayload = replaceTag(template, '54', amountValue);
+
+                        const crcTagPos = newPayload.indexOf('63');
+                        if (crcTagPos !== -1) {
+                            newPayload = newPayload.slice(0, crcTagPos);
+                        }
+                        
+                        const toCrc = newPayload + '63' + '04';
+                        const crc = crc16_ccitt(toCrc);
+                        const crcHex = toHex4(crc);
+                        const finalPayload = toCrc + crcHex;
+
+                        // Generate QR Code
+                        container.innerHTML = '';
+                        new QRCode(container, {
+                            text: finalPayload,
+                            width: 192,
+                            height: 192,
+                            colorDark: "#000000",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.H
+                        });
+                        
+                        this.showNotification('QR Code berhasil digenerate');
+                    } catch (e) {
+                        console.error(e);
+                        container.innerHTML = '<p class="text-red-500 text-center text-sm">Error generating QR</p>';
+                    }
+                }, 300);
+            },
+
+            // Show invoice details
+            showInvoiceDetails(invoice) {
+                const container = document.getElementById('invoiceDetails');
+                const products = invoice.products || [];
+                
+                if (products.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-box-open text-xl mb-2"></i>
+                            <p class="text-sm">Tidak ada detail produk</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = products.map(product => `
+                        <div class="flex justify-between items-center bg-gray-50 rounded-lg p-3">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-800 text-sm">${product.name || 'Produk'}</div>
+                                <div class="text-gray-500 text-xs">${product.quantity || 1} x ${this.formatCurrency(product.price || 0)}</div>
+                            </div>
+                            <div class="font-semibold text-gray-800 text-sm">
+                                ${this.formatCurrency((product.quantity || 1) * (product.price || 0))}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Update summary
+                document.getElementById('subtotalDisplay').textContent = this.formatCurrency(invoice.subtotal || 0);
+                document.getElementById('shippingDisplay').textContent = this.formatCurrency(invoice.shippingCost || 0);
+                document.getElementById('totalDisplay').textContent = this.formatCurrency(invoice.total || 0);
+            },
+
+            // Open Share Modal
+            openShareModal() {
+                if (!this.currentInvoice) {
+                    this.showNotification('Pilih invoice terlebih dahulu', true);
+                    return;
+                }
+
+                const modal = document.getElementById('shareModal');
+                const content = document.getElementById('shareContent');
+                
+                content.innerHTML = this.generateShareContent();
+                this.generateShareQRCode();
+                
+                modal.classList.remove('hidden');
+            },
+
+            // Generate Share Content
+            generateShareContent() {
+                const invoice = this.currentInvoice;
+                
+                return `
+                    <div class="space-y-4">
+                        <!-- QR Code -->
+                        <div class="text-center">
+                            <div id="shareQRCode" class="flex justify-center mb-3"></div>
+                            <div class="text-xl font-bold text-green-600">${this.formatCurrency(invoice.total || 0)}</div>
+                            <div class="text-sm text-gray-500">Scan untuk pembayaran</div>
+                        </div>
+
+                        <!-- Invoice Info -->
+                        <div class="bg-blue-50 rounded-lg p-3">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <div class="font-semibold text-blue-800 text-sm">${invoice.invoiceNumber || 'N/A'}</div>
+                                    <div class="text-blue-600 text-xs">${invoice.date || 'Tanggal tidak tersedia'}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-bold text-blue-800">${this.formatCurrency(invoice.total || 0)}</div>
+                                    <div class="text-xs ${this.getPaymentMethodColor(invoice.paymentMethod)}">
+                                        ${this.getPaymentMethodText(invoice.paymentMethod)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Products -->
+                        <div>
+                            <h4 class="font-semibold text-gray-700 text-sm mb-2">Detail Produk:</h4>
+                            <div class="space-y-2 max-h-32 overflow-y-auto">
+                                ${(invoice.products || []).map(product => `
+                                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                        <div class="flex-1">
+                                            <div class="font-medium text-gray-800">${product.name || 'Produk'}</div>
+                                            <div class="text-gray-500 text-xs">${product.quantity || 1} x ${this.formatCurrency(product.price || 0)}</div>
+                                        </div>
+                                        <div class="font-semibold text-gray-800">
+                                            ${this.formatCurrency((product.quantity || 1) * (product.price || 0))}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            // Generate QR Code for Share Modal
+            generateShareQRCode() {
+                if (!this.currentInvoice) return;
+                
+                const container = document.getElementById('shareQRCode');
+                container.innerHTML = '';
+                
+                const amount = this.currentInvoice.total || 0;
+                
+                try {
+                    const amountInput = amount.toString();
+                    let normalizedAmount = amountInput.replace(/[,\s]/g,'');
+                    if (/^\d+\.00$/.test(normalizedAmount)) normalizedAmount = normalizedAmount.split('.')[0];
+                    
+                    let amountValue = normalizedAmount;
+                    let newPayload = replaceTag(template, '54', amountValue);
+
+                    const crcTagPos = newPayload.indexOf('63');
+                    if (crcTagPos !== -1) {
+                        newPayload = newPayload.slice(0, crcTagPos);
+                    }
+                    
+                    const toCrc = newPayload + '63' + '04';
+                    const crc = crc16_ccitt(toCrc);
+                    const crcHex = toHex4(crc);
+                    const finalPayload = toCrc + crcHex;
+
+                    new QRCode(container, {
+                        text: finalPayload,
+                        width: 200,
+                        height: 200,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (e) {
+                    console.error(e);
+                    container.innerHTML = '<p class="text-red-500 text-center text-sm">Error generating QR</p>';
+                }
+            },
+
+            // Download Share as PNG
+            async downloadShareAsPNG() {
+                try {
+                    const element = document.getElementById('shareContent');
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    const canvas = await html2canvas(element, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const pngData = canvas.toDataURL('image/png', 1.0);
+                    const a = document.createElement('a');
+                    a.href = pngData;
+                    a.download = `invoice-${this.currentInvoice.invoiceNumber || 'payment'}.png`;
+                    a.click();
+                    
+                    this.showNotification('Gambar berhasil diunduh');
+                    this.closeShareModal();
+                } catch (error) {
+                    console.error('Error downloading image:', error);
+                    this.showNotification('Gagal mengunduh gambar', true);
+                }
+            },
+
+            // Share as Image
+            async shareAsImage() {
+                try {
+                    const element = document.getElementById('shareContent');
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    const canvas = await html2canvas(element, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const pngData = canvas.toDataURL('image/png', 1.0);
+                    const response = await fetch(pngData);
+                    const blob = await response.blob();
+                    const file = new File([blob], `invoice-${this.currentInvoice.invoiceNumber || 'payment'}.png`, { type: 'image/png' });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: `Invoice ${this.currentInvoice.invoiceNumber}`,
+                            text: `Detail pembayaran invoice ${this.currentInvoice.invoiceNumber}`
+                        });
+                        this.showNotification('Berhasil dibagikan');
+                    } else {
+                        this.downloadShareAsPNG();
+                    }
+                } catch (error) {
+                    console.error('Error sharing image:', error);
+                    this.showNotification('Gagal membagikan', true);
+                }
+            },
+
+            // Close Share Modal
+            closeShareModal() {
+                document.getElementById('shareModal').classList.add('hidden');
+            },
+
+            // Download QR as PNG
+            downloadQR() {
+                const container = document.getElementById('qrcode');
+                const canvas = container.querySelector('canvas');
+                
+                if (canvas) {
+                    const url = canvas.toDataURL('image/png'); 
+                    const a = document.createElement('a'); 
+                    a.href = url; 
+                    a.download = `qris-${this.currentInvoice.invoiceNumber || 'payment'}.png`; 
+                    a.click();
+                    this.showNotification('QR Code berhasil diunduh');
+                } else {
+                    this.showNotification('QR belum tersedia', true);
+                }
+            },
+
+            // Search invoices
+            searchInvoices(query) {
+                const filteredInvoices = this.invoices.filter(invoice => 
+                    invoice.invoiceNumber?.toLowerCase().includes(query.toLowerCase()) ||
+                    invoice.paymentMethod?.toLowerCase().includes(query.toLowerCase()) ||
+                    (invoice.total?.toString().includes(query))
+                );
+                
+                const container = document.querySelector('.invoice-list');
+                if (filteredInvoices.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-search text-2xl mb-2"></i>
+                            <p class="text-sm">Tidak ada invoice yang cocok</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = filteredInvoices.map(invoice => `
+                    <div class="bg-gray-50 hover:bg-gray-100 rounded-lg p-3 border border-gray-200 transition-colors cursor-pointer" 
+                         onclick="app.selectInvoice('${invoice.id}')">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="font-semibold text-gray-800 text-sm">${invoice.invoiceNumber || 'N/A'}</div>
+                                <div class="text-gray-500 text-xs mt-1">${invoice.date || 'Tanggal tidak tersedia'}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-gray-800 text-sm">${this.formatCurrency(invoice.total || 0)}</div>
+                                <div class="text-xs ${this.getPaymentMethodClass(invoice.paymentMethod)} mt-1">
+                                    ${this.getPaymentMethodText(invoice.paymentMethod)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            // Update statistics
+            updateStats(totalCount, totalAmount) {
+                document.getElementById('totalInvoices').textContent = totalCount;
+                document.getElementById('totalAmount').textContent = this.formatCurrency(totalAmount);
+            },
+
+            // Helper methods
+            getPaymentMethodClass(method) {
+                const classes = {
+                    'tunai': 'text-green-600',
+                    'bca': 'text-blue-600',
+                    'qris': 'text-purple-600'
+                };
+                return classes[method] || 'text-gray-600';
+            },
+
+            getPaymentMethodColor(method) {
+                const colors = {
+                    'tunai': 'text-green-600',
+                    'bca': 'text-blue-600',
+                    'qris': 'text-purple-600'
+                };
+                return colors[method] || 'text-gray-600';
+            },
+
+            getPaymentMethodText(method) {
+                const texts = {
+                    'tunai': 'Tunai',
+                    'bca': 'BCA',
+                    'qris': 'QRIS'
+                };
+                return texts[method] || method || 'Unknown';
+            },
+
+            getTotalQuantity(products) {
+                return products?.reduce((sum, p) => sum + (p.quantity || 1), 0) || 0;
+            },
+
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(amount);
+            },
+
+            isSameDay(date1, date2) {
+                return date1.getDate() === date2.getDate() &&
+                       date1.getMonth() === date2.getMonth() &&
+                       date1.getFullYear() === date2.getFullYear();
+            },
+
+            showNotification(message, isError = false) {
+                const notification = document.getElementById('notification');
+                const notificationText = document.getElementById('notification-text');
+                
+                notificationText.textContent = message;
+                notification.className = `fixed top-4 right-4 ${isError ? 'bg-red-500' : 'bg-green-500'} text-white px-4 py-3 rounded-lg shadow-lg z-50 transform translate-x-0 transition-transform duration-300`;
+                
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full');
+                }, 3000);
+            }
+        };
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('shareModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('shareModal')) {
+                app.closeShareModal();
+            }
+        });
+    </script>
+
+    <style>
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>
