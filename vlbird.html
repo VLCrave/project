@@ -337,6 +337,10 @@
                                             <span id="current-trip-id" class="font-mono text-[10px]">-</span>
                                         </div>
                                         <div class="flex justify-between">
+                                            <span class="font-semibold">Status Pause:</span>
+                                            <span id="pause-status" class="text-green-600 font-bold">Aktif</span>
+                                        </div>
+                                        <div class="flex justify-between">
                                             <span class="font-semibold">Firebase Updates:</span>
                                             <span id="firebase-update-count" class="font-bold">0</span>
                                         </div>
@@ -356,6 +360,10 @@
                                     <button id="start-btn" class="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs">
                                         <i class="fas fa-play mr-1"></i>
                                         MULAI
+                                    </button>
+                                    <button id="pause-btn" disabled class="flex-1 bg-warning hover:bg-yellow-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs">
+                                        <i class="fas fa-pause mr-1"></i>
+                                        PAUSE
                                     </button>
                                     <button id="reset-btn" disabled class="flex-1 bg-gray-400 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs">
                                         <i class="fas fa-redo mr-1"></i>
@@ -486,6 +494,7 @@
         class Taximeter {
             constructor() {
                 this.isTracking = false;
+                this.isPaused = false; // Status pause
                 this.startTime = null;
                 this.timerInterval = null;
                 this.waitingTimerInterval = null;
@@ -511,7 +520,7 @@
                 this.DISTANCE_INCREMENT = 100;
                 this.BASE_FARE = 5000;
                 this.DISTANCE_RATE = 200;
-                this.WAITING_RATE = 2500;
+                this.WAITING_RATE = 2500; // Rp 2,500 per 10 menit
                 this.GPS_UPDATE_INTERVAL = 1000;        // GPS: 1 detik
                 this.FIREBASE_UPDATE_INTERVAL = 2000;   // Firebase: 2 detik
                 this.lastFirebaseUpdate = 0;
@@ -528,6 +537,7 @@
                     validPoints: document.getElementById('valid-points'),
                     waitingTime: document.getElementById('waiting-time'),
                     startBtn: document.getElementById('start-btn'),
+                    pauseBtn: document.getElementById('pause-btn'),
                     resetBtn: document.getElementById('reset-btn'),
                     gpsStatus: document.getElementById('gps-status'),
                     batteryLevel: document.getElementById('battery-level'),
@@ -547,6 +557,7 @@
                     tripId: document.getElementById('trip-id'),
                     firebaseStatus: document.getElementById('firebase-status'),
                     tripStatus: document.getElementById('trip-status'),
+                    pauseStatus: document.getElementById('pause-status'),
                     currentTripId: document.getElementById('current-trip-id'),
                     qrPlaceholderText: document.getElementById('qr-placeholder-text'),
                     paymentSection: document.getElementById('payment-section'),
@@ -639,7 +650,7 @@
                 
                 this.marker.setLatLng(newLatLng);
                 
-                if (this.isTracking) {
+                if (this.isTracking && !this.isPaused) {
                     this.routeCoordinates.push(newLatLng);
                     this.path.setLatLngs(this.routeCoordinates);
                     
@@ -897,8 +908,8 @@
                 // Update map
                 this.updateMap(position);
                 
-                // Process untuk taximeter jika sedang tracking
-                if (this.isTracking) {
+                // Process untuk taximeter jika sedang tracking dan tidak pause
+                if (this.isTracking && !this.isPaused) {
                     this.processPositionForTaximeter(position, now);
                 }
                 
@@ -990,15 +1001,16 @@
                     }
                 }, 1000);
                 
-                // Waiting timer
+                // Waiting timer - HANYA berjalan saat pause
                 this.waitingTimerInterval = setInterval(() => {
-                    if (!this.isMoving && this.isTracking) {
+                    if (this.isPaused && this.isTracking) {
                         this.waitingTime++;
                         this.elements.waitingTime.textContent = this.formatWaitingTime(this.waitingTime);
                         
-                        // Update waiting fare setiap menit
-                        if (this.waitingTime % 60 === 0) {
+                        // Update waiting fare setiap 10 menit (600 detik)
+                        if (this.waitingTime % 600 === 0) {
                             this.updateFare();
+                            this.showNotification(`Biaya tunggu ditambahkan: Rp ${this.WAITING_RATE.toLocaleString('id-ID')}`);
                         }
                     }
                 }, 1000);
@@ -1034,7 +1046,7 @@
             }
 
             calculateWaitingFare() {
-                const waitingMinutes = Math.floor(this.waitingTime / 60);
+                const waitingMinutes = Math.floor(this.waitingTime / 600); // 600 detik = 10 menit
                 return waitingMinutes * this.WAITING_RATE;
             }
 
@@ -1088,6 +1100,11 @@
                     this.startTrip();
                 });
                 
+                // Pause trip
+                this.elements.pauseBtn.addEventListener('click', () => {
+                    this.togglePause();
+                });
+                
                 // Reset/Complete trip
                 this.elements.resetBtn.addEventListener('click', () => {
                     this.completeTrip();
@@ -1127,6 +1144,7 @@
             // Main trip control methods
             startTrip() {
                 this.isTracking = true;
+                this.isPaused = false;
                 this.currentTripId = this.generateTripId();
                 
                 // Reset counters
@@ -1138,10 +1156,14 @@
                 
                 // Update UI
                 this.elements.startBtn.disabled = true;
+                this.elements.pauseBtn.disabled = false;
                 this.elements.resetBtn.disabled = false;
-                this.elements.startBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>JALAN';
+                this.elements.startBtn.innerHTML = '<i class="fas fa-play mr-1"></i>JALAN';
+                this.elements.pauseBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>PAUSE';
                 this.elements.tripStatus.textContent = 'Berjalan';
                 this.elements.tripStatus.className = 'text-green-600 font-bold';
+                this.elements.pauseStatus.textContent = 'Aktif';
+                this.elements.pauseStatus.className = 'text-green-600 font-bold';
                 this.elements.currentTripId.textContent = this.currentTripId;
                 this.elements.tripId.textContent = this.currentTripId;
                 
@@ -1155,8 +1177,40 @@
                 this.showNotification('Perjalanan dimulai! Data tersinkronisasi ke cloud.');
             }
 
+            togglePause() {
+                this.isPaused = !this.isPaused;
+                
+                if (this.isPaused) {
+                    // Mode pause aktif
+                    this.elements.pauseBtn.innerHTML = '<i class="fas fa-play mr-1"></i>LANJUT';
+                    this.elements.pauseBtn.className = 'flex-1 bg-success hover:bg-green-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
+                    this.elements.tripStatus.textContent = 'Pause';
+                    this.elements.tripStatus.className = 'text-warning font-bold';
+                    this.elements.pauseStatus.textContent = 'Pause';
+                    this.elements.pauseStatus.className = 'text-warning font-bold';
+                    
+                    this.showNotification('Perjalanan di-pause. Biaya tunggu mulai dihitung.');
+                } else {
+                    // Mode pause non-aktif
+                    this.elements.pauseBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>PAUSE';
+                    this.elements.pauseBtn.className = 'flex-1 bg-warning hover:bg-yellow-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
+                    this.elements.tripStatus.textContent = 'Berjalan';
+                    this.elements.tripStatus.className = 'text-green-600 font-bold';
+                    this.elements.pauseStatus.textContent = 'Aktif';
+                    this.elements.pauseStatus.className = 'text-green-600 font-bold';
+                    
+                    this.showNotification('Perjalanan dilanjutkan.');
+                }
+                
+                // Update Firebase dengan status pause
+                this.optimizedFirebaseUpdate({
+                    isPaused: this.isPaused
+                });
+            }
+
             async completeTrip() {
                 this.isTracking = false;
+                this.isPaused = false;
                 
                 // Stop timers
                 if (this.timerInterval) {
@@ -1173,10 +1227,15 @@
                 
                 // Update UI
                 this.elements.startBtn.disabled = false;
+                this.elements.pauseBtn.disabled = true;
                 this.elements.resetBtn.disabled = true;
                 this.elements.startBtn.innerHTML = '<i class="fas fa-play mr-1"></i>MULAI';
+                this.elements.pauseBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>PAUSE';
+                this.elements.pauseBtn.className = 'flex-1 bg-warning hover:bg-yellow-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
                 this.elements.tripStatus.textContent = 'Selesai';
                 this.elements.tripStatus.className = 'text-blue-600 font-bold';
+                this.elements.pauseStatus.textContent = '-';
+                this.elements.pauseStatus.className = 'text-gray-600 font-bold';
                 
                 // Show payment section and modal
                 this.elements.paymentSection.classList.remove('hidden');
@@ -1244,7 +1303,8 @@
                     distance: this.totalDistance,
                     duration: Math.floor((Date.now() - this.startTime) / 1000),
                     totalFare: this.finalFare,
-                    waitingTime: this.waitingTime
+                    waitingTime: this.waitingTime,
+                    waitingFare: this.calculateWaitingFare()
                 };
                 
                 const history = this.getTripHistory();
@@ -1301,6 +1361,7 @@
                     const duration = typeof trip.duration === 'number' ? trip.duration : 0;
                     const tripId = trip.id || 'Unknown';
                     const date = trip.date ? new Date(trip.date).toLocaleDateString('id-ID') : '-';
+                    const waitingFare = trip.waitingFare || 0;
                     
                     return `
                         <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
@@ -1322,8 +1383,12 @@
                                     <div class="font-bold">${this.formatWaitingTime(waitingTime)}</div>
                                 </div>
                                 <div>
+                                    <div class="text-gray-600">Biaya Tunggu</div>
+                                    <div class="font-bold text-warning">Rp ${waitingFare.toLocaleString('id-ID')}</div>
+                                </div>
+                                <div class="col-span-2 mt-2 pt-2 border-t border-gray-200">
                                     <div class="text-gray-600">Total</div>
-                                    <div class="font-bold text-success">Rp ${totalFare.toLocaleString('id-ID')}</div>
+                                    <div class="font-bold text-success text-sm">Rp ${totalFare.toLocaleString('id-ID')}</div>
                                 </div>
                             </div>
                         </div>
@@ -1387,6 +1452,7 @@
             // Reset system setelah pembayaran
             resetSystem() {
                 this.isTracking = false;
+                this.isPaused = false;
                 this.startTime = null;
                 this.totalDistance = 0;
                 this.lastPosition = null;
@@ -1410,8 +1476,18 @@
                 this.elements.amountDisplay.textContent = 'Rp 0';
                 this.elements.tripStatus.textContent = 'Siap';
                 this.elements.tripStatus.className = 'text-green-600 font-bold';
+                this.elements.pauseStatus.textContent = '-';
+                this.elements.pauseStatus.className = 'text-gray-600 font-bold';
                 this.elements.currentTripId.textContent = '-';
                 this.elements.tripId.textContent = '-';
+                
+                // Reset button states
+                this.elements.startBtn.disabled = false;
+                this.elements.pauseBtn.disabled = true;
+                this.elements.resetBtn.disabled = true;
+                this.elements.startBtn.innerHTML = '<i class="fas fa-play mr-1"></i>MULAI';
+                this.elements.pauseBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>PAUSE';
+                this.elements.pauseBtn.className = 'flex-1 bg-warning hover:bg-yellow-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
                 
                 // Reset payment section
                 this.elements.paymentSection.classList.add('hidden');
