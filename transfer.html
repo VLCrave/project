@@ -93,7 +93,7 @@
                             <i class="fas fa-download mr-2"></i>Download
                         </button>
                         <button id="shareQR" class="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium" disabled>
-                            <i class="fas fa-share-alt mr-2"></i>Share
+                            <i class="fas fa-share-alt mr-2"></i>Share HD
                         </button>
                     </div>
                 </div>
@@ -151,7 +151,7 @@
             <div class="border-t p-4 bg-gray-50">
                 <div class="flex gap-2">
                     <button onclick="app.downloadShareAsPNG()" class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm font-medium transition-colors">
-                        <i class="fas fa-download mr-1"></i>Download
+                        <i class="fas fa-download mr-1"></i>Download HD
                     </button>
                     <button onclick="app.shareAsImage()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg text-sm font-medium transition-colors">
                         <i class="fas fa-share-alt mr-1"></i>Share
@@ -160,6 +160,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Hidden HD Container for Screenshot -->
+    <div id="hdContainer" class="fixed -left-[9999px] -top-[9999px] w-[800px] bg-white p-8"></div>
 
     <!-- Notification -->
     <div id="notification" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300">
@@ -528,63 +531,171 @@
                 }
             },
 
-            // Download Share as PNG
+            // Download Share as PNG dengan HD Quality
             async downloadShareAsPNG() {
                 try {
-                    const element = document.getElementById('shareContent');
+                    // Buat container HD khusus untuk screenshot
+                    const hdContainer = document.getElementById('hdContainer');
+                    hdContainer.innerHTML = this.generateHDShareContent();
                     
+                    // Tunggu rendering selesai
                     await new Promise(resolve => setTimeout(resolve, 500));
                     
-                    const canvas = await html2canvas(element, {
-                        scale: 2,
+                    // Generate QR code untuk HD container
+                    const hdQRContainer = hdContainer.querySelector('#hdQRCode');
+                    if (hdQRContainer) {
+                        this.generateHDQRCode(hdQRContainer);
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                    
+                    // Capture dengan scale 3 untuk kualitas HD
+                    const canvas = await html2canvas(hdContainer, {
+                        scale: 3, // HD Quality
                         useCORS: true,
                         logging: false,
-                        backgroundColor: '#ffffff'
+                        backgroundColor: '#ffffff',
+                        width: hdContainer.scrollWidth,
+                        height: hdContainer.scrollHeight,
+                        scrollX: 0,
+                        scrollY: 0,
+                        allowTaint: false,
+                        removeContainer: false
                     });
 
                     const pngData = canvas.toDataURL('image/png', 1.0);
                     const a = document.createElement('a');
                     a.href = pngData;
-                    a.download = `invoice-${this.currentInvoice.invoiceNumber || 'payment'}.png`;
+                    a.download = `invoice-${this.currentInvoice.invoiceNumber || 'payment'}-hd.png`;
                     a.click();
                     
-                    this.showNotification('Gambar berhasil diunduh');
+                    this.showNotification('Gambar HD berhasil diunduh');
                     this.closeShareModal();
                 } catch (error) {
-                    console.error('Error downloading image:', error);
-                    this.showNotification('Gagal mengunduh gambar', true);
+                    console.error('Error downloading HD image:', error);
+                    this.showNotification('Gagal mengunduh gambar HD', true);
+                }
+            },
+
+            // Generate HD Share Content untuk screenshot
+            generateHDShareContent() {
+                const invoice = this.currentInvoice;
+                
+                return `
+                    <div class="bg-white p-8 rounded-2xl shadow-lg max-w-2xl mx-auto">
+                        <div class="text-center mb-8">
+                            <h1 class="text-3xl font-bold text-gray-800 mb-2">QRIS Payment</h1>
+                            <div class="text-4xl font-bold text-green-600 mb-4">${this.formatCurrency(invoice.total || 0)}</div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-8 items-start">
+                            <!-- QR Code Section -->
+                            <div class="text-center">
+                                <div id="hdQRCode" class="flex justify-center mb-4"></div>
+                                <div class="text-lg text-gray-600">Scan QR code untuk pembayaran</div>
+                            </div>
+                            
+                            <!-- Details Section -->
+                            <div class="space-y-4">
+                                <!-- Invoice Info -->
+                                <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="font-bold text-blue-800 text-lg">${invoice.invoiceNumber || 'N/A'}</div>
+                                            <div class="text-blue-600">${invoice.date || 'Tanggal tidak tersedia'}</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-xl font-bold text-blue-800">${this.formatCurrency(invoice.total || 0)}</div>
+                                            <div class="text-sm ${this.getPaymentMethodColor(invoice.paymentMethod)} font-medium">
+                                                ${this.getPaymentMethodText(invoice.paymentMethod)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Products -->
+                                <div>
+                                    <h3 class="font-bold text-gray-800 text-lg mb-3">Detail Produk:</h3>
+                                    <div class="space-y-2">
+                                        ${(invoice.products || []).map(product => `
+                                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                                <div class="flex-1">
+                                                    <div class="font-semibold text-gray-800">${product.name || 'Produk'}</div>
+                                                    <div class="text-gray-500 text-sm">${product.quantity || 1} x ${this.formatCurrency(product.price || 0)}</div>
+                                                </div>
+                                                <div class="font-bold text-gray-800 text-lg">
+                                                    ${this.formatCurrency((product.quantity || 1) * (product.price || 0))}
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                <!-- Summary -->
+                                <div class="border-t border-gray-300 pt-4">
+                                    <div class="flex justify-between text-gray-600 mb-2">
+                                        <span class="font-medium">Subtotal:</span>
+                                        <span>${this.formatCurrency(invoice.subtotal || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between text-gray-600 mb-2">
+                                        <span class="font-medium">Ongkos Kirim:</span>
+                                        <span>${this.formatCurrency(invoice.shippingCost || 0)}</span>
+                                    </div>
+                                    <div class="flex justify-between text-xl font-bold text-gray-800 pt-3 border-t border-gray-300">
+                                        <span>Total:</span>
+                                        <span>${this.formatCurrency(invoice.total || 0)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            // Generate HD QR Code untuk screenshot
+            generateHDQRCode(container) {
+                if (!this.currentInvoice) return;
+                
+                container.innerHTML = '';
+                
+                const amount = this.currentInvoice.total || 0;
+                
+                try {
+                    const amountInput = amount.toString();
+                    let normalizedAmount = amountInput.replace(/[,\s]/g,'');
+                    if (/^\d+\.00$/.test(normalizedAmount)) normalizedAmount = normalizedAmount.split('.')[0];
+                    
+                    let amountValue = normalizedAmount;
+                    let newPayload = replaceTag(template, '54', amountValue);
+
+                    const crcTagPos = newPayload.indexOf('63');
+                    if (crcTagPos !== -1) {
+                        newPayload = newPayload.slice(0, crcTagPos);
+                    }
+                    
+                    const toCrc = newPayload + '63' + '04';
+                    const crc = crc16_ccitt(toCrc);
+                    const crcHex = toHex4(crc);
+                    const finalPayload = toCrc + crcHex;
+
+                    new QRCode(container, {
+                        text: finalPayload,
+                        width: 300,
+                        height: 300,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (e) {
+                    console.error(e);
+                    container.innerHTML = '<p class="text-red-500 text-center">Error generating QR</p>';
                 }
             },
 
             // Share as Image
             async shareAsImage() {
                 try {
-                    const element = document.getElementById('shareContent');
-                    
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
-                    const canvas = await html2canvas(element, {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: '#ffffff'
-                    });
-
-                    const pngData = canvas.toDataURL('image/png', 1.0);
-                    const response = await fetch(pngData);
-                    const blob = await response.blob();
-                    const file = new File([blob], `invoice-${this.currentInvoice.invoiceNumber || 'payment'}.png`, { type: 'image/png' });
-
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: `Invoice ${this.currentInvoice.invoiceNumber}`,
-                            text: `Detail pembayaran invoice ${this.currentInvoice.invoiceNumber}`
-                        });
-                        this.showNotification('Berhasil dibagikan');
-                    } else {
-                        this.downloadShareAsPNG();
-                    }
+                    // Gunakan metode yang sama dengan download HD
+                    await this.downloadShareAsPNG();
                 } catch (error) {
                     console.error('Error sharing image:', error);
                     this.showNotification('Gagal membagikan', true);
