@@ -472,7 +472,7 @@
                 this.startTime = null;
                 this.timerInterval = null;
                 this.waitingTimerInterval = null;
-                this.totalDistance = 0; // Dalam meter
+                this.totalDistance = 0;
                 this.lastPosition = null;
                 this.watchId = null;
                 this.validPoints = 0;
@@ -488,14 +488,18 @@
                 this.path = null;
                 this.routeCoordinates = [];
                 
-                // Settings - Hitung per 100 meter (0.1 KM)
+                // OPTIMIZED SETTINGS
                 this.MIN_ACCURACY = 15;
-                this.MIN_DISTANCE = 3; // Minimal 3 meter untuk dianggap valid
-                this.DISTANCE_INCREMENT = 100; // Hitung setiap 100 meter
+                this.MIN_DISTANCE = 3;
+                this.DISTANCE_INCREMENT = 100;
                 this.BASE_FARE = 5000;
-                this.DISTANCE_RATE = 200; // Biaya per 100 meter
+                this.DISTANCE_RATE = 200;
                 this.WAITING_RATE = 2500;
-                this.UPDATE_INTERVAL = 500;
+                this.GPS_UPDATE_INTERVAL = 500;
+                this.FIREBASE_UPDATE_INTERVAL = 3000;
+                this.lastFirebaseUpdate = 0;
+                this.pendingFirebaseUpdate = null;
+                this.firebaseUpdateCount = 0;
                 
                 // DOM Elements
                 this.elements = {
@@ -540,19 +544,17 @@
                     historyList: document.getElementById('history-list')
                 };
                 
-                // Initialize
                 this.init();
             }
             
             init() {
-                console.log('VLCrave Taxi - Compact Horizontal Taximeter Loaded');
+                console.log('VLCrave Taxi - Final Fix Loaded');
                 this.initFirebase();
                 this.initBattery();
                 this.initMap();
                 this.bindEvents();
                 this.loadTripHistory();
                 
-                // Update waktu
                 this.updateCurrentTime();
                 setInterval(() => this.updateCurrentTime(), 1000);
                 
@@ -562,41 +564,32 @@
                 this.showNotification('Sistem siap digunakan!', false);
             }
 
-            // Initialize Map
             initMap() {
-                // Default location (Jakarta)
                 const defaultLocation = [-6.2088, 106.8456];
-                
                 this.map = L.map('map').setView(defaultLocation, 13);
                 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors'
                 }).addTo(this.map);
                 
-                // Add marker
                 this.marker = L.marker(defaultLocation).addTo(this.map)
                     .bindPopup('Lokasi saat ini')
                     .openPopup();
                 
-                // Initialize path
                 this.path = L.polyline([], {color: 'blue'}).addTo(this.map);
             }
 
-            // Update map with current position
             updateMap(position) {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 const newLatLng = [lat, lng];
                 
-                // Update marker position
                 this.marker.setLatLng(newLatLng);
                 
-                // Add to route if tracking
                 if (this.isTracking) {
                     this.routeCoordinates.push(newLatLng);
                     this.path.setLatLngs(this.routeCoordinates);
                     
-                    // Adjust map view to show the route
                     if (this.routeCoordinates.length === 1) {
                         this.map.setView(newLatLng, 15);
                     } else {
@@ -606,25 +599,18 @@
                     this.map.setView(newLatLng, 15);
                 }
                 
-                // Update location text
                 this.elements.currentLocation.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                 this.elements.mapGpsStatus.textContent = 'Aktif';
                 this.elements.mapGpsStatus.className = 'text-sm font-medium text-green-600';
             }
 
-            // Show QR Placeholder
             showQRPlaceholder() {
                 const canvas = this.elements.qrCanvas;
                 const ctx = canvas.getContext('2d');
-                
-                // Clear canvas
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Background putih dengan pattern
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Draw pattern background
                 ctx.fillStyle = '#f3f4f6';
                 for (let y = 0; y < canvas.height; y += 20) {
                     for (let x = 0; x < canvas.width; x += 20) {
@@ -634,14 +620,11 @@
                     }
                 }
                 
-                // Show placeholder text
                 this.elements.qrPlaceholderText.classList.remove('hidden');
             }
 
-            // Initialize Firebase Connection
             initFirebase() {
                 try {
-                    // Test Firebase connection
                     db.collection('test').doc('connection').get()
                         .then(() => {
                             this.firebaseConnected = true;
@@ -661,28 +644,42 @@
                 }
             }
 
-            // Generate unique trip ID
             generateTripId() {
                 const timestamp = Date.now().toString(36);
                 const random = Math.random().toString(36).substr(2, 5);
                 return `VL-${timestamp}-${random}`.toUpperCase();
             }
 
-            // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
-            convertRouteForFirebase(routeCoordinates) {
-                // Konversi array of arrays [[lat,lng], [lat,lng]] 
-                // menjadi array of objects [{lat: number, lng: number}]
-                return routeCoordinates.map(coord => ({
-                    lat: coord[0],
-                    lng: coord[1]
-                }));
+            removeUndefinedValues(obj) {
+                if (obj === null || obj === undefined) return {};
+                
+                const cleanObj = {};
+                for (const [key, value] of Object.entries(obj)) {
+                    if (value !== undefined && value !== null) {
+                        if (typeof value === 'object' && !Array.isArray(value)) {
+                            const cleaned = this.removeUndefinedValues(value);
+                            if (Object.keys(cleaned).length > 0) cleanObj[key] = cleaned;
+                        } else if (Array.isArray(value)) {
+                            const cleanedArray = value.filter(item => item !== undefined && item !== null);
+                            if (cleanedArray.length > 0) cleanObj[key] = cleanedArray;
+                        } else {
+                            cleanObj[key] = value;
+                        }
+                    }
+                }
+                return cleanObj;
             }
 
-            // PERBAIKAN: Buat trip baru dengan semua field yang diperlukan
+            convertRouteForFirebase(routeCoordinates) {
+                if (!routeCoordinates || !Array.isArray(routeCoordinates) || routeCoordinates.length === 0) return [];
+                return routeCoordinates.filter(coord => Array.isArray(coord) && coord.length === 2)
+                    .map(coord => ({ lat: coord[0] || 0, lng: coord[1] || 0 }));
+            }
+
             async createNewTrip() {
                 if (!this.firebaseConnected) {
                     console.warn('Firebase not connected, skipping create trip');
-                    return;
+                    return false;
                 }
 
                 try {
@@ -700,15 +697,16 @@
                         distanceFare: 0,
                         waitingFare: 0,
                         currentSpeed: 0,
+                        validPoints: 0,
                         locations: [],
-                        // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
                         routeCoordinates: this.convertRouteForFirebase(this.routeCoordinates),
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
 
+                    const cleanTripData = this.removeUndefinedValues(tripData);
                     const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
-                    await tripRef.set(tripData);
+                    await tripRef.set(cleanTripData);
                     console.log('New trip created in Firebase:', this.currentTripId);
                     return true;
                 } catch (error) {
@@ -718,42 +716,70 @@
                 }
             }
 
-            // PERBAIKAN: Update trip data dengan error handling yang lebih baik
-            async updateTripInFirebase(updateData) {
-                if (!this.firebaseConnected || !this.currentTripId) {
+            async optimizedFirebaseUpdate(updateData) {
+                const now = Date.now();
+                
+                if (now - this.lastFirebaseUpdate < this.FIREBASE_UPDATE_INTERVAL) {
+                    this.pendingFirebaseUpdate = {...this.pendingFirebaseUpdate, ...updateData};
                     return;
                 }
-
+                
+                if (this.pendingFirebaseUpdate) {
+                    updateData = {...this.pendingFirebaseUpdate, ...updateData};
+                    this.pendingFirebaseUpdate = null;
+                }
+                
                 try {
-                    const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
-                    
-                    // Cek apakah dokumen sudah ada
-                    const doc = await tripRef.get();
-                    if (!doc.exists) {
-                        console.log('Document does not exist, creating new one...');
-                        await this.createNewTrip();
-                    }
-                    
-                    // PERBAIKAN: Konversi routeCoordinates jika ada di updateData
-                    if (updateData.routeCoordinates) {
-                        updateData.routeCoordinates = this.convertRouteForFirebase(updateData.routeCoordinates);
-                    }
-                    
-                    // Update dengan data baru
-                    await tripRef.update({
-                        ...updateData,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    
-                    console.log('Trip data updated successfully');
+                    await this.updateTripInFirebase(updateData);
+                    this.lastFirebaseUpdate = now;
+                    this.firebaseUpdateCount++;
+                    console.log(`Firebase update #${this.firebaseUpdateCount} successful`);
                 } catch (error) {
-                    console.error('Error updating trip in Firebase:', error);
-                    // Coba buat ulang dokumen jika error
+                    console.error('Optimized Firebase update failed:', error);
+                    this.pendingFirebaseUpdate = {...this.pendingFirebaseUpdate, ...updateData};
+                }
+            }
+
+            async updateTripInFirebase(updateData) {
+                if (!this.firebaseConnected || !this.currentTripId) return;
+
+                const MAX_RETRIES = 2;
+                let retries = 0;
+
+                while (retries <= MAX_RETRIES) {
                     try {
-                        await this.createNewTrip();
-                        console.log('Recreated trip document after update error');
-                    } catch (createError) {
-                        console.error('Failed to recreate trip document:', createError);
+                        const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
+                        const doc = await tripRef.get();
+                        
+                        if (!doc.exists) {
+                            console.log('Document does not exist, creating new one...');
+                            const created = await this.createNewTrip();
+                            if (!created) return;
+                        }
+                        
+                        if (updateData.routeCoordinates) {
+                            updateData.routeCoordinates = this.convertRouteForFirebase(updateData.routeCoordinates);
+                        }
+
+                        const cleanUpdateData = this.removeUndefinedValues(updateData);
+                        if (Object.keys(cleanUpdateData).length === 0) {
+                            console.log('No valid fields to update');
+                            return;
+                        }
+                        
+                        await tripRef.update({
+                            ...cleanUpdateData,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        console.log(`Firebase update successful (attempt ${retries + 1})`);
+                        return;
+                        
+                    } catch (error) {
+                        retries++;
+                        console.error(`Firebase update attempt ${retries} failed:`, error);
+                        if (retries > MAX_RETRIES) break;
+                        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
                     }
                 }
             }
@@ -762,12 +788,10 @@
                 this.elements.startBtn.addEventListener('click', () => this.toggleTracking());
                 this.elements.resetBtn.addEventListener('click', () => this.showPaymentModal());
                 
-                // Modal events
                 this.elements.cashPayment.addEventListener('click', () => this.processCashPayment());
                 this.elements.qrisPayment.addEventListener('click', () => this.processQRISPayment());
                 this.elements.closeModal.addEventListener('click', () => this.hidePaymentModal());
                 
-                // Tab events
                 document.querySelectorAll('.tab-button').forEach(button => {
                     button.addEventListener('click', () => {
                         const tab = button.getAttribute('data-tab');
@@ -775,52 +799,35 @@
                     });
                 });
                 
-                // History events
                 this.elements.refreshHistory.addEventListener('click', () => this.loadTripHistory());
                 this.elements.clearHistory.addEventListener('click', () => this.clearTripHistory());
                 
-                // Close modal when clicking outside
                 this.elements.paymentModal.addEventListener('click', (e) => {
-                    if (e.target === this.elements.paymentModal) {
-                        this.hidePaymentModal();
-                    }
+                    if (e.target === this.elements.paymentModal) this.hidePaymentModal();
                 });
             }
 
-            // Switch between tabs
             switchTab(tabName) {
-                // Update active tab button
-                document.querySelectorAll('.tab-button').forEach(button => {
-                    button.classList.remove('active');
-                });
+                document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
                 document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
                 
-                // Update active tab content
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
-                });
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
                 document.getElementById(`${tabName}-tab`).classList.add('active');
                 
-                // Refresh map if needed
                 if (tabName === 'maps' && this.map) {
-                    setTimeout(() => {
-                        this.map.invalidateSize();
-                    }, 100);
+                    setTimeout(() => this.map.invalidateSize(), 100);
                 }
             }
             
-            // Show payment modal
             showPaymentModal() {
                 this.elements.modalTotalFare.textContent = this.formatCurrency(this.finalFare);
                 this.elements.paymentModal.classList.remove('hidden');
             }
             
-            // Hide payment modal
             hidePaymentModal() {
                 this.elements.paymentModal.classList.add('hidden');
             }
             
-            // Process cash payment
             processCashPayment() {
                 this.hidePaymentModal();
                 this.showNotification('Pembayaran Cash berhasil diproses!');
@@ -828,7 +835,6 @@
                 this.resetTracking();
             }
             
-            // Process QRIS payment
             processQRISPayment() {
                 this.hidePaymentModal();
                 this.showNotification('QRIS berhasil dibuat! Silakan scan QR Code.');
@@ -837,22 +843,19 @@
                 this.saveTripToHistory();
             }
             
-            // Show payment section
             showPaymentSection() {
                 this.elements.paymentSection.classList.remove('hidden');
             }
             
-            // Hide payment section
             hidePaymentSection() {
                 this.elements.paymentSection.classList.add('hidden');
             }
 
-            // Save trip to local history
             saveTripToHistory() {
                 const tripData = {
                     id: this.currentTripId,
                     date: new Date().toLocaleString('id-ID'),
-                    distance: (this.totalDistance / 1000).toFixed(2), // Convert to KM
+                    distance: (this.totalDistance / 1000).toFixed(2),
                     duration: this.elements.duration.textContent,
                     fare: this.finalFare,
                     status: 'Selesai'
@@ -860,17 +863,11 @@
                 
                 let history = JSON.parse(localStorage.getItem('taxi_trip_history') || '[]');
                 history.unshift(tripData);
-                
-                // Keep only last 50 trips
-                if (history.length > 50) {
-                    history = history.slice(0, 50);
-                }
-                
+                if (history.length > 50) history = history.slice(0, 50);
                 localStorage.setItem('taxi_trip_history', JSON.stringify(history));
                 this.loadTripHistory();
             }
 
-            // Load trip history from localStorage
             loadTripHistory() {
                 const history = JSON.parse(localStorage.getItem('taxi_trip_history') || '[]');
                 const historyList = this.elements.historyList;
@@ -892,28 +889,15 @@
                             <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">${trip.status}</span>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                            <div>
-                                <i class="fas fa-calendar mr-1"></i>
-                                ${trip.date}
-                            </div>
-                            <div>
-                                <i class="fas fa-road mr-1"></i>
-                                ${trip.distance} KM
-                            </div>
-                            <div>
-                                <i class="fas fa-clock mr-1"></i>
-                                ${trip.duration}
-                            </div>
-                            <div class="font-bold text-primary">
-                                <i class="fas fa-money-bill-wave mr-1"></i>
-                                ${this.formatCurrency(trip.fare)}
-                            </div>
+                            <div><i class="fas fa-calendar mr-1"></i>${trip.date}</div>
+                            <div><i class="fas fa-road mr-1"></i>${trip.distance} KM</div>
+                            <div><i class="fas fa-clock mr-1"></i>${trip.duration}</div>
+                            <div class="font-bold text-primary"><i class="fas fa-money-bill-wave mr-1"></i>${this.formatCurrency(trip.fare)}</div>
                         </div>
                     </div>
                 `).join('');
             }
 
-            // Clear trip history
             clearTripHistory() {
                 if (confirm('Apakah Anda yakin ingin menghapus semua riwayat perjalanan?')) {
                     localStorage.removeItem('taxi_trip_history');
@@ -922,54 +906,34 @@
                 }
             }
 
-            // QR Code Generator dengan Canvas
             generateQRCode(amount = 5000) {
                 try {
                     const canvas = this.elements.qrCanvas;
                     const ctx = canvas.getContext('2d');
-                    
-                    // Clear canvas
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Background putih
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Generate QR code pattern sederhana
                     this.drawQRPattern(ctx, amount, canvas.width, canvas.height);
-                    
-                    // Hide placeholder text
                     this.elements.qrPlaceholderText.classList.add('hidden');
-                    
                 } catch (error) {
                     console.error('Error generating QR Code:', error);
                     this.showNotification('Error membuat QR Code', true);
                 }
             }
 
-            // Draw QR Pattern sederhana
             drawQRPattern(ctx, amount, width, height) {
                 const cellSize = 4;
                 const margin = 10;
                 const size = Math.min(width, height) - margin * 2;
                 
-                // Background putih
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, width, height);
-                
-                // Draw finder patterns (kotak di sudut)
                 ctx.fillStyle = '#000000';
                 
-                // Sudut kiri atas
                 this.drawFinderPattern(ctx, margin, margin, cellSize);
-                
-                // Sudut kanan atas
                 this.drawFinderPattern(ctx, margin + size - 7 * cellSize, margin, cellSize);
-                
-                // Sudut kiri bawah
                 this.drawFinderPattern(ctx, margin, margin + size - 7 * cellSize, cellSize);
                 
-                // Draw data pattern berdasarkan amount
                 const dataString = `VLCRAVE-TAXI|${this.currentTripId}|${amount}|${Date.now()}`;
                 let hash = 0;
                 for (let i = 0; i < dataString.length; i++) {
@@ -980,31 +944,19 @@
                 ctx.fillStyle = '#000000';
                 for (let y = 0; y < 17; y++) {
                     for (let x = 0; x < 17; x++) {
-                        // Skip finder patterns
-                        if ((x < 7 && y < 7) || (x > 9 && y < 7) || (x < 7 && y > 9)) {
-                            continue;
-                        }
-                        
-                        // Gunakan hash untuk menentukan sel mana yang diisi
+                        if ((x < 7 && y < 7) || (x > 9 && y < 7) || (x < 7 && y > 9)) continue;
                         const bitPos = (y * 17 + x);
                         if ((hash >> (bitPos % 32)) & 1) {
-                            ctx.fillRect(
-                                margin + x * cellSize, 
-                                margin + y * cellSize, 
-                                cellSize, 
-                                cellSize
-                            );
+                            ctx.fillRect(margin + x * cellSize, margin + y * cellSize, cellSize, cellSize);
                         }
                     }
                 }
                 
-                // Tambahkan teks di bawah QR
                 ctx.fillStyle = '#1e88e5';
                 ctx.font = 'bold 10px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('VLCrave Taxi', width/2, height - 5);
                 
-                // Tambahkan amount di atas QR
                 ctx.fillStyle = '#000000';
                 ctx.font = 'bold 8px Arial';
                 ctx.fillText(`Rp ${amount.toLocaleString('id-ID')}`, width/2, 8);
@@ -1012,33 +964,17 @@
 
             drawFinderPattern(ctx, x, y, cellSize) {
                 ctx.fillStyle = '#000000';
-                
-                // Outer square
                 ctx.fillRect(x, y, 7 * cellSize, 7 * cellSize);
-                
-                // Inner white square
                 ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(x + cellSize, y + cellSize, 5 * cellSize, 5 * cellSize);
-                
-                // Center black square
                 ctx.fillStyle = '#000000';
                 ctx.fillRect(x + 2 * cellSize, y + 2 * cellSize, 3 * cellSize, 3 * cellSize);
             }
 
             showNotification(message, isError = false) {
                 this.elements.notificationText.textContent = message;
-                
-                // Reset classes
                 this.elements.notification.className = 'fixed top-2 left-1/2 transform -translate-x-1/2 -translate-y-20 text-white px-4 py-2 rounded-full shadow-lg z-50 transition-all duration-300 flex items-center space-x-2 text-xs';
-                
-                // Add color classes
-                if (isError) {
-                    this.elements.notification.classList.add('bg-danger');
-                } else {
-                    this.elements.notification.classList.add('bg-success');
-                }
-                
-                // Show notification
+                this.elements.notification.classList.add(isError ? 'bg-danger' : 'bg-success');
                 this.elements.notification.classList.remove('-translate-y-20');
                 this.elements.notification.classList.add('translate-y-0');
                 
@@ -1052,13 +988,10 @@
                 return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             }
 
-            // Update current time
             updateCurrentTime() {
                 const now = new Date();
                 const timeString = now.toLocaleTimeString('id-ID', { 
-                    hour: '2-digit', 
-                    minute: '2-digit', 
-                    second: '2-digit' 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit' 
                 });
                 this.elements.currentTime.textContent = timeString;
             }
@@ -1081,7 +1014,8 @@
                 this.startTime = new Date();
                 this.lastUpdateTime = Date.now();
                 this.currentTripId = this.generateTripId();
-                this.routeCoordinates = []; // Reset route
+                this.routeCoordinates = [];
+                this.firebaseUpdateCount = 0;
                 
                 this.elements.startBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>BERHENTI';
                 this.elements.startBtn.className = 'flex-1 bg-secondary hover:bg-gray-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
@@ -1092,7 +1026,6 @@
                 this.elements.tripMode.textContent = 'On Trip';
                 this.elements.tripId.textContent = this.currentTripId;
 
-                // Hide payment section selama trip berlangsung
                 this.hidePaymentSection();
 
                 this.totalDistance = 0;
@@ -1102,7 +1035,6 @@
                 this.positionHistory = [];
                 this.updateDisplay();
 
-                // PERBAIKAN: Buat trip baru di Firebase dengan semua field
                 this.createNewTrip();
 
                 this.startTimer();
@@ -1125,11 +1057,7 @@
 
             updatePosition(position) {
                 const currentTime = Date.now();
-                
-                if (currentTime - this.lastUpdateTime < this.UPDATE_INTERVAL) {
-                    return;
-                }
-                
+                if (currentTime - this.lastUpdateTime < this.GPS_UPDATE_INTERVAL) return;
                 this.lastUpdateTime = currentTime;
                 
                 const accuracy = position.coords.accuracy;
@@ -1153,12 +1081,11 @@
                     latitude: lat,
                     longitude: lng,
                     timestamp: currentTime,
-                    accuracy: accuracy
+                    accuracy: accuracy,
+                    speed: speed
                 });
                 
-                if (this.positionHistory.length > 10) {
-                    this.positionHistory.shift();
-                }
+                if (this.positionHistory.length > 20) this.positionHistory.shift();
 
                 if (this.lastPosition !== null) {
                     const smoothedPosition = this.getSmoothedPosition();
@@ -1170,17 +1097,12 @@
                     );
 
                     if (this.isValidDistance(distance, accuracy)) {
-                        // Tambahkan jarak ke total
                         this.totalDistance += distance;
-                        
-                        // Update display dengan konversi ke kilometer
                         this.updateDisplay();
                         this.isMoving = (speed !== null && speed > 0.5) || distance > 2;
                         
                         this.elements.distance.classList.add('pulse');
-                        setTimeout(() => {
-                            this.elements.distance.classList.remove('pulse');
-                        }, 500);
+                        setTimeout(() => this.elements.distance.classList.remove('pulse'), 500);
                     }
                 }
 
@@ -1194,11 +1116,8 @@
 
                 this.updateFare();
                 
-                // Update last update time
                 this.elements.lastUpdate.textContent = 'Last: ' + new Date().toLocaleTimeString('id-ID', { 
-                    hour: '2-digit', 
-                    minute: '2-digit', 
-                    second: '2-digit' 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit' 
                 });
             }
 
@@ -1208,10 +1127,14 @@
                 let totalLat = 0;
                 let totalLng = 0;
                 let totalWeight = 0;
+                const now = Date.now();
                 
                 for (let i = 0; i < this.positionHistory.length; i++) {
                     const pos = this.positionHistory[i];
-                    const weight = 1 / (pos.accuracy || 1);
+                    const accuracyWeight = 1 / (pos.accuracy || 1);
+                    const timeWeight = 1 / ((now - pos.timestamp) / 1000 + 1);
+                    const weight = accuracyWeight * timeWeight;
+                    
                     totalLat += pos.latitude * weight;
                     totalLng += pos.longitude * weight;
                     totalWeight += weight;
@@ -1224,44 +1147,38 @@
             }
 
             isValidDistance(distance, accuracy) {
-                const maxReasonableDistance = accuracy * 2;
-                return distance > 0 && distance <= maxReasonableDistance && distance >= this.MIN_DISTANCE;
+                const maxReasonableDistance = Math.min(accuracy * 3, 50);
+                const minReasonableDistance = 0.5;
+                return distance > minReasonableDistance && distance <= maxReasonableDistance && distance >= this.MIN_DISTANCE;
             }
 
             updateDistanceIndicator(accuracy) {
                 let status = '', indicatorClass = '';
-                
                 if (accuracy <= 10) {
-                    status = 'Sangat Baik';
-                    indicatorClass = 'bg-success';
+                    status = 'Sangat Baik'; indicatorClass = 'bg-success';
                 } else if (accuracy <= 20) {
-                    status = 'Baik';
-                    indicatorClass = 'bg-green-500';
+                    status = 'Baik'; indicatorClass = 'bg-green-500';
                 } else if (accuracy <= 30) {
-                    status = 'Cukup';
-                    indicatorClass = 'bg-warning';
+                    status = 'Cukup'; indicatorClass = 'bg-warning';
                 } else {
-                    status = 'Kurang';
-                    indicatorClass = 'bg-danger';
+                    status = 'Kurang'; indicatorClass = 'bg-danger';
                 }
-
                 this.elements.distanceStatus.textContent = status;
                 this.elements.distanceIndicator.className = `w-2 h-2 rounded-full ${indicatorClass}`;
             }
 
             calculateDistance(lat1, lon1, lat2, lon2) {
-                const R = 6371000; // Radius bumi dalam meter
+                const R = 6371000;
                 const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLon = (lon2 - lon1) * Math.PI / 180;
                 const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                           Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
                           Math.sin(dLon/2) * Math.sin(dLon/2);
                 const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                return R * c; // Jarak dalam meter
+                return R * c;
             }
 
             updateDisplay() {
-                // Tampilkan dalam kilometer dengan 2 desimal
                 const distanceInKm = this.totalDistance / 1000;
                 this.elements.distance.textContent = distanceInKm.toFixed(2);
                 
@@ -1271,7 +1188,6 @@
             }
 
             updateFare() {
-                // Hitung biaya jarak per 100 meter
                 const distanceUnits = Math.floor(this.totalDistance / this.DISTANCE_INCREMENT);
                 const distanceFare = distanceUnits * this.DISTANCE_RATE;
                 const waitingFare = Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
@@ -1283,26 +1199,28 @@
                 this.elements.totalFare.textContent = this.formatCurrency(totalFare);
                 this.elements.amountDisplay.textContent = this.formatCurrency(totalFare);
 
-                // Update trip data in Firebase
                 if (this.isTracking && this.currentTripId) {
                     const tripUpdate = {
-                        totalDistance: parseFloat((this.totalDistance / 1000).toFixed(2)), // Dalam KM
-                        totalDuration: Math.floor((Date.now() - this.startTime) / 1000),
-                        waitingTime: this.waitingTime,
-                        totalFare: totalFare,
-                        distanceFare: distanceFare,
-                        waitingFare: waitingFare,
-                        currentSpeed: this.lastPosition ? (this.lastPosition.speed * 3.6).toFixed(1) : 0,
-                        lastLocation: this.lastPosition ? {
-                            latitude: this.lastPosition.latitude,
-                            longitude: this.lastPosition.longitude,
-                            accuracy: this.lastPosition.accuracy
-                        } : null,
-                        // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
+                        totalDistance: parseFloat((this.totalDistance / 1000).toFixed(2)) || 0,
+                        totalDuration: Math.floor((Date.now() - this.startTime) / 1000) || 0,
+                        waitingTime: this.waitingTime || 0,
+                        totalFare: totalFare || this.BASE_FARE,
+                        distanceFare: distanceFare || 0,
+                        waitingFare: waitingFare || 0,
+                        currentSpeed: this.lastPosition && this.lastPosition.speed !== null ? 
+                                    (this.lastPosition.speed * 3.6).toFixed(1) : "0.0",
+                        validPoints: this.validPoints,
+                        ...(this.lastPosition && {
+                            lastLocation: {
+                                latitude: this.lastPosition.latitude || 0,
+                                longitude: this.lastPosition.longitude || 0,
+                                accuracy: this.lastPosition.accuracy || 0
+                            }
+                        }),
                         routeCoordinates: this.convertRouteForFirebase(this.routeCoordinates)
                     };
 
-                    this.updateTripInFirebase(tripUpdate);
+                    this.optimizedFirebaseUpdate(tripUpdate);
                 }
             }
 
@@ -1324,14 +1242,13 @@
                         this.waitingTime++;
                         const minutes = Math.floor(this.waitingTime / 60);
                         const seconds = this.waitingTime % 60;
-                        this.elements.waitingTime.textContent = 
-                            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                        this.elements.waitingTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                         this.updateFare();
                     }
                 }, 1000);
             }
 
-            stopTracking() {
+            async stopTracking() {
                 this.isTracking = false;
                 
                 this.elements.startBtn.innerHTML = '<i class="fas fa-play mr-1"></i>MULAI';
@@ -1349,26 +1266,31 @@
                     this.watchId = null;
                 }
 
-                // Hitung final fare dengan sistem per 100 meter
                 const distanceUnits = Math.floor(this.totalDistance / this.DISTANCE_INCREMENT);
                 this.finalFare = this.BASE_FARE + (distanceUnits * this.DISTANCE_RATE) + Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
                 
-                // Update final trip data in Firebase
                 if (this.currentTripId) {
                     const finalTripData = {
                         status: "completed",
                         endTime: new Date(),
-                        totalDistance: parseFloat((this.totalDistance / 1000).toFixed(2)), // Dalam KM
-                        totalDuration: Math.floor((Date.now() - this.startTime) / 1000),
-                        waitingTime: this.waitingTime,
-                        totalFare: this.finalFare,
-                        distanceFare: distanceUnits * this.DISTANCE_RATE,
-                        waitingFare: Math.floor(this.waitingTime / 600) * this.WAITING_RATE,
-                        // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
-                        routeCoordinates: this.convertRouteForFirebase(this.routeCoordinates)
+                        totalDistance: parseFloat((this.totalDistance / 1000).toFixed(2)) || 0,
+                        totalDuration: Math.floor((Date.now() - this.startTime) / 1000) || 0,
+                        waitingTime: this.waitingTime || 0,
+                        totalFare: this.finalFare || this.BASE_FARE,
+                        distanceFare: distanceUnits * this.DISTANCE_RATE || 0,
+                        waitingFare: Math.floor(this.waitingTime / 600) * this.WAITING_RATE || 0,
+                        validPoints: this.validPoints,
+                        routeCoordinates: this.convertRouteForFirebase(this.routeCoordinates),
+                        finalUpdate: true,
+                        firebaseUpdateCount: this.firebaseUpdateCount
                     };
 
-                    this.updateTripInFirebase(finalTripData);
+                    try {
+                        await this.updateTripInFirebase(finalTripData);
+                        console.log('Final Firebase update completed with', this.validPoints, 'valid points');
+                    } catch (error) {
+                        console.error('Final Firebase update failed:', error);
+                    }
                 }
 
                 this.showNotification('Perjalanan selesai! Silakan pilih metode pembayaran.');
@@ -1384,6 +1306,7 @@
                 this.currentTripId = null;
                 this.finalFare = 0;
                 this.routeCoordinates = [];
+                this.firebaseUpdateCount = 0;
                 this.updateDisplay();
                 this.updateFare();
                 this.elements.duration.textContent = '00:00:00';
@@ -1393,31 +1316,18 @@
                 this.elements.tripId.textContent = '-';
                 this.elements.currentTripId.textContent = '-';
                 
-                // Reset map
-                if (this.path) {
-                    this.path.setLatLngs([]);
-                }
-                
-                // Hide payment section
+                if (this.path) this.path.setLatLngs([]);
                 this.hidePaymentSection();
-                
                 this.showNotification('Data direset', false);
             }
 
             handleGeolocationError(error) {
                 let message = 'GPS Error: ';
                 switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        message += 'Akses ditolak';
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        message += 'Posisi tidak tersedia';
-                        break;
-                    case error.TIMEOUT:
-                        message += 'Timeout';
-                        break;
-                    default:
-                        message += 'Error tidak diketahui';
+                    case error.PERMISSION_DENIED: message += 'Akses ditolak'; break;
+                    case error.POSITION_UNAVAILABLE: message += 'Posisi tidak tersedia'; break;
+                    case error.TIMEOUT: message += 'Timeout'; break;
+                    default: message += 'Error tidak diketahui';
                 }
                 this.showNotification(message, true);
                 this.elements.gpsStatus.textContent = 'Error';
