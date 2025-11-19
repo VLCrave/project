@@ -29,13 +29,18 @@
     </script>
     
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
             width: 100vw;
             height: 100vh;
             overflow: hidden;
             background: linear-gradient(135deg, #1e88e5, #0d47a1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .app-container {
@@ -43,7 +48,52 @@
             height: 100%;
             display: flex;
             flex-direction: column;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            padding: 16px;
+            gap: 16px;
             overflow: hidden;
+        }
+        
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 0;
+        }
+        
+        .right-panel {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .distance-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .fare-card {
+            height: 200px;
+        }
+        
+        .qris-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
         
         .accuracy-excellent { background-color: #4caf50; }
@@ -51,7 +101,6 @@
         .accuracy-fair { background-color: #ff9800; }
         .accuracy-poor { background-color: #f44336; }
         
-        /* Animation for location update */
         @keyframes locationUpdate {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -62,171 +111,191 @@
             animation: locationUpdate 0.5s ease-in-out;
         }
         
-        /* Custom scrollbar */
-        .scroll-container::-webkit-scrollbar {
-            width: 6px;
+        .qrcode-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            flex: 1;
         }
         
-        .scroll-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1e88e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
         }
         
-        .scroll-container::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
-        /* Notification animation */
-        @keyframes slideIn {
-            from { transform: translateY(-100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        .notification {
-            animation: slideIn 0.3s ease-out;
+        /* Responsive untuk layar kecil */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .right-panel {
+                width: 100%;
+                height: 300px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Main App Container -->
     <div class="app-container">
         <!-- Header -->
-        <header class="bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 shadow-lg">
-            <div class="flex items-center justify-center space-x-3">
-                <i class="fas fa-taxi text-2xl"></i>
-                <h1 class="text-xl font-bold">VLCrave Taxi</h1>
+        <header class="bg-gradient-to-r from-primary to-secondary text-white py-3 px-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-taxi text-2xl"></i>
+                    <h1 class="text-xl font-bold">VLCrave Taxi</h1>
+                </div>
+                <div class="flex items-center space-x-4 text-sm">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-satellite-dish"></i>
+                        <span id="gps-status">Mencari...</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-battery-three-quarters"></i>
+                        <span id="battery-level">-</span>
+                    </div>
+                </div>
             </div>
-            <p class="text-center text-sm opacity-90 mt-1">Taxi Meter dengan QRIS</p>
         </header>
 
-        <!-- Status Bar -->
-        <div class="flex justify-between items-center px-6 py-3 bg-white shadow-sm">
-            <div class="flex items-center space-x-2">
-                <i class="fas fa-satellite-dish text-primary text-sm"></i>
-                <span class="text-xs">GPS: <span id="gps-status" class="font-medium">Mencari...</span></span>
-            </div>
-            <div class="flex items-center space-x-2">
-                <i class="fas fa-battery-three-quarters text-primary text-sm"></i>
-                <span id="battery-level" class="text-xs font-medium">-</span>
-            </div>
-            <div class="flex items-center space-x-2">
-                <i class="fas fa-clock text-primary text-sm"></i>
-                <span id="location-update-status" class="text-xs font-medium">0.5s</span>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1 p-4 overflow-y-auto scroll-container">
-            <div class="space-y-4">
+        <!-- Main Content - Horizontal Layout -->
+        <div class="main-content">
+            <!-- Left Panel -->
+            <div class="left-panel">
                 <!-- Distance Card -->
-                <div class="bg-white rounded-2xl shadow-lg p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold text-primary flex items-center">
-                            <i class="fas fa-road mr-2"></i>
-                            Jarak Tempuh
-                        </h2>
-                        <div class="flex items-center space-x-2">
-                            <span id="accuracy-status" class="text-xs font-medium">-</span>
-                            <span id="accuracy-indicator" class="w-3 h-3 rounded-full"></span>
+                <div class="card distance-card">
+                    <div class="p-6 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg font-bold text-primary flex items-center">
+                                <i class="fas fa-road mr-2"></i>
+                                Jarak Tempuh
+                            </h2>
+                            <div class="flex items-center space-x-2">
+                                <span id="accuracy-status" class="text-xs font-medium">-</span>
+                                <span id="accuracy-indicator" class="w-3 h-3 rounded-full"></span>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="text-center py-4">
-                        <div id="distance" class="text-5xl font-bold text-primary mb-1">0.00</div>
-                        <div class="text-gray-600">meter</div>
-                    </div>
+                    <div class="flex-1 p-6 flex flex-col">
+                        <div class="text-center mb-6">
+                            <div id="distance" class="text-5xl font-bold text-primary mb-2">0.00</div>
+                            <div class="text-gray-600">meter</div>
+                        </div>
 
-                    <div class="grid grid-cols-2 gap-3 mt-4">
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="duration" class="text-xl font-bold text-primary">00:00:00</div>
-                            <div class="text-xs text-gray-600">Durasi</div>
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="duration" class="text-lg font-bold text-primary">00:00:00</div>
+                                <div class="text-xs text-gray-600">Durasi</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="speed" class="text-lg font-bold text-primary">0.0</div>
+                                <div class="text-xs text-gray-600">km/jam</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="valid-points" class="text-lg font-bold text-primary">0</div>
+                                <div class="text-xs text-gray-600">Data Valid</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="waiting-time" class="text-lg font-bold text-primary">00:00</div>
+                                <div class="text-xs text-gray-600">Waktu Tunggu</div>
+                            </div>
                         </div>
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="speed" class="text-xl font-bold text-primary">0.0</div>
-                            <div class="text-xs text-gray-600">km/jam</div>
-                        </div>
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="valid-points" class="text-xl font-bold text-primary">0</div>
-                            <div class="text-xs text-gray-600">Data Valid</div>
-                        </div>
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="waiting-time" class="text-xl font-bold text-primary">00:00</div>
-                            <div class="text-xs text-gray-600">Waktu Tunggu</div>
-                        </div>
-                    </div>
 
-                    <div id="accuracy-warning" class="hidden bg-warning text-white p-3 rounded-lg mt-4 text-center text-sm">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        Menunggu akurasi GPS yang lebih baik...
-                    </div>
+                        <div id="accuracy-warning" class="hidden bg-warning text-white p-3 rounded-lg text-center text-sm mb-4">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Menunggu akurasi GPS yang lebih baik...
+                        </div>
 
-                    <div class="flex space-x-3 mt-6">
-                        <button id="start-btn" class="flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
-                            <i class="fas fa-play mr-2"></i>
-                            Mulai Perjalanan
-                        </button>
-                        <button id="reset-btn" disabled class="flex-1 bg-gray-300 text-gray-600 py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
-                            <i class="fas fa-redo mr-2"></i>
-                            Selesai
-                        </button>
+                        <div class="flex space-x-3 mt-auto">
+                            <button id="start-btn" class="flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
+                                <i class="fas fa-play mr-2"></i>
+                                Mulai Perjalanan
+                            </button>
+                            <button id="reset-btn" disabled class="flex-1 bg-gray-300 text-gray-600 py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
+                                <i class="fas fa-redo mr-2"></i>
+                                Selesai
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Fare Calculation -->
-                <div class="bg-white rounded-2xl shadow-lg p-6">
-                    <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
-                        <i class="fas fa-money-bill-wave mr-2"></i>
-                        Perhitungan Ongkos
-                    </h2>
+                <div class="card fare-card">
+                    <div class="p-6">
+                        <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                            <i class="fas fa-money-bill-wave mr-2"></i>
+                            Perhitungan Ongkos
+                        </h2>
 
-                    <div class="bg-gradient-to-r from-success to-green-700 text-white p-4 rounded-xl text-center mb-4">
-                        <div id="total-fare" class="text-3xl font-bold">Rp 5.000</div>
-                        <div class="text-sm">Total Biaya Perjalanan</div>
-                    </div>
+                        <div class="bg-gradient-to-r from-success to-green-700 text-white p-4 rounded-xl text-center mb-4">
+                            <div id="total-fare" class="text-2xl font-bold">Rp 5.000</div>
+                            <div class="text-sm">Total Biaya Perjalanan</div>
+                        </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="base-fare" class="text-lg font-bold text-primary">Rp 5.000</div>
-                            <div class="text-xs text-gray-600">Tarif Awal</div>
-                        </div>
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="distance-fare" class="text-lg font-bold text-primary">Rp 0</div>
-                            <div class="text-xs text-gray-600">Biaya Jarak</div>
-                        </div>
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="waiting-fare" class="text-lg font-bold text-primary">Rp 0</div>
-                            <div class="text-xs text-gray-600">Biaya Tunggu</div>
-                        </div>
-                        <div class="bg-gray-50 rounded-xl p-3 text-center">
-                            <div id="distance-traveled" class="text-lg font-bold text-primary">0 m</div>
-                            <div class="text-xs text-gray-600">Jarak Tempuh</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                        <div class="text-xs text-gray-600 text-center">
-                            <div>Tarif: Rp 5.000 (awal) + Rp 200/100m + Rp 2.500/10 menit tunggu</div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="base-fare" class="text-md font-bold text-primary">Rp 5.000</div>
+                                <div class="text-xs text-gray-600">Tarif Awal</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="distance-fare" class="text-md font-bold text-primary">Rp 0</div>
+                                <div class="text-xs text-gray-600">Biaya Jarak</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="waiting-fare" class="text-md font-bold text-primary">Rp 0</div>
+                                <div class="text-xs text-gray-600">Biaya Tunggu</div>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                                <div id="distance-traveled" class="text-md font-bold text-primary">0 m</div>
+                                <div class="text-xs text-gray-600">Jarak Tempuh</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- QR Code Payment -->
-                <div class="bg-white rounded-2xl shadow-lg p-6">
-                    <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
-                        <i class="fas fa-qrcode mr-2"></i>
-                        Pembayaran QRIS
-                    </h2>
-
-                    <div class="flex flex-col items-center">
-                        <p class="text-gray-600 text-center mb-4">Scan QR code berikut untuk pembayaran</p>
-                        <div id="qrcode" class="bg-white p-4 rounded-xl shadow-inner mb-3 border-2 border-gray-200">
-                            <div class="w-48 h-48 flex items-center justify-center text-gray-400">
-                                <i class="fas fa-qrcode text-4xl"></i>
+            <!-- Right Panel - QR Code -->
+            <div class="right-panel">
+                <div class="card qris-card">
+                    <div class="p-6 border-b border-gray-100">
+                        <h2 class="text-lg font-bold text-primary flex items-center">
+                            <i class="fas fa-qrcode mr-2"></i>
+                            Pembayaran QRIS
+                        </h2>
+                    </div>
+                    
+                    <div class="flex-1 flex flex-col items-center justify-center p-6">
+                        <div class="qrcode-container">
+                            <div id="qrcode" class="bg-white p-4 rounded-xl shadow-inner border-2 border-gray-200">
+                                <div class="w-48 h-48 flex items-center justify-center text-gray-400">
+                                    <div class="text-center">
+                                        <div class="loader mb-3"></div>
+                                        <div class="text-sm">Generating QR Code...</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-center">
-                            <div class="text-sm text-gray-600">Total Pembayaran:</div>
+                        
+                        <div class="text-center mt-4">
+                            <div class="text-sm text-gray-600 mb-1">Total Pembayaran:</div>
                             <div id="amount-display" class="text-xl font-bold text-primary">Rp 5.000</div>
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-blue-50 rounded-lg w-full">
+                            <div class="text-xs text-gray-600 text-center">
+                                <div>Tarif: Rp 5.000 (awal) + Rp 200/100m + Rp 2.500/10 menit tunggu</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -234,8 +303,8 @@
         </div>
 
         <!-- Footer -->
-        <footer class="bg-white border-t border-gray-200 py-3 px-6 text-center">
-            <p class="text-gray-600 text-sm">VLCrave Taxi &copy; 2023</p>
+        <footer class="bg-white border-t border-gray-200 py-2 px-6 text-center">
+            <p class="text-gray-600 text-sm">VLCrave Taxi &copy; 2023 - Update Lokasi per 0.5 detik</p>
         </footer>
     </div>
 
@@ -288,64 +357,51 @@
             distanceTraveled: document.getElementById('distance-traveled'),
             amountDisplay: document.getElementById('amount-display'),
             notification: document.getElementById('notification'),
-            notificationText: document.getElementById('notification-text'),
-            locationUpdateStatus: document.getElementById('location-update-status')
+            notificationText: document.getElementById('notification-text')
         };
 
-        // Template payload QRIS (tetap ada di kode, tapi tidak ditampilkan)
+        // Template payload QRIS yang TIDAK DIUBAH
         const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Vistra Pedia6011Kab. Bangka610533253621960150011ID.DANA.WWW630491F1";
 
-        // Utility: replace or insert tag (EMV style: tag(2) + length(2) + value)
+        // Utility: replace tag dalam payload QRIS
         function replaceTag(payload, tag, newValue) {
-          const pos = payload.indexOf(tag);
-          if (pos !== -1) {
-            const oldLen = parseInt(payload.substr(pos+2,2), 10);
-            const start = pos;
-            const end = pos + 2 + 2 + oldLen;
-            const newLen = newValue.length.toString().padStart(2,'0');
-            return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
-          } else {
-            // insert before CRC tag '63' if exists, otherwise append
-            const crcPos = payload.indexOf('63');
-            const newLen = newValue.length.toString().padStart(2,'0');
-            const insert = tag + newLen + newValue;
-            if (crcPos !== -1) {
-              return payload.slice(0,crcPos) + insert + payload.slice(crcPos);
-            } else {
-              return payload + insert;
+            const pos = payload.indexOf(tag);
+            if (pos !== -1) {
+                const oldLen = parseInt(payload.substr(pos+2,2), 10);
+                const start = pos;
+                const end = pos + 2 + 2 + oldLen;
+                const newLen = newValue.length.toString().padStart(2,'0');
+                return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
             }
-          }
+            return payload;
         }
 
-        // CRC16-CCITT (0x1021) with initial value 0xFFFF, process bytes of ASCII characters
+        // CRC16-CCITT calculation
         function crc16_ccitt(input) {
-          let crc = 0xFFFF;
-          for (let i=0;i<input.length;i++){
-            crc ^= (input.charCodeAt(i) & 0xFF) << 8;
-            for (let j=0;j<8;j++){
-              if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
-              else crc = (crc << 1) & 0xFFFF;
+            let crc = 0xFFFF;
+            for (let i=0;i<input.length;i++){
+                crc ^= (input.charCodeAt(i) & 0xFF) << 8;
+                for (let j=0;j<8;j++){
+                    if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+                    else crc = (crc << 1) & 0xFFFF;
+                }
             }
-          }
-          return crc & 0xFFFF;
+            return crc & 0xFFFF;
         }
 
         function toHex4(n) {
-          return n.toString(16).toUpperCase().padStart(4,'0');
+            return n.toString(16).toUpperCase().padStart(4,'0');
         }
 
         // Inisialisasi
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Aplikasi VLCrave Taxi loaded');
+            console.log('Aplikasi VLCrave Taxi loaded - Single Frame Mode');
             initBattery();
             elements.startBtn.addEventListener('click', toggleTracking);
             elements.resetBtn.addEventListener('click', resetTracking);
-            updateQRCode();
+            updateQRCode(5000);
             
-            // Test notification
-            setTimeout(() => {
-                showNotification('Aplikasi VLCrave Taxi siap digunakan!', false);
-            }, 1000);
+            showNotification('Aplikasi VLCrave Taxi siap digunakan!', false);
         });
 
         function toggleTracking() {
@@ -383,21 +439,21 @@
             startTimer();
             startWaitingTimer();
 
-            // Mulai GPS tracking dengan interval 0.5 detik
+            // Mulai GPS tracking
             watchId = navigator.geolocation.watchPosition(
                 updatePosition,
                 handleGeolocationError,
                 {
                     enableHighAccuracy: true,
                     timeout: 10000,
-                    maximumAge: 0, // Tidak menggunakan data cache
-                    distanceFilter: 0 // Tidak ada filter jarak minimum
+                    maximumAge: 0,
+                    distanceFilter: 0
                 }
             );
 
             showNotification('Perjalanan dimulai! Menunggu sinyal GPS stabil...');
             elements.gpsStatus.textContent = 'Aktif';
-            elements.gpsStatus.className = 'font-medium text-success';
+            elements.gpsStatus.className = 'text-success';
         }
 
         function updatePosition(position) {
@@ -427,7 +483,7 @@
             validPoints++;
             elements.validPoints.textContent = validPoints;
 
-            // Simpan posisi ke history untuk smoothing
+            // Simpan posisi ke history
             positionHistory.push({
                 latitude: lat,
                 longitude: lng,
@@ -435,12 +491,12 @@
                 accuracy: accuracy
             });
             
-            // Batasi history untuk menghindari memori berlebih
+            // Batasi history
             if (positionHistory.length > 10) {
                 positionHistory.shift();
             }
 
-            // Hitung jarak menggunakan posisi yang sudah di-smooth
+            // Hitung jarak
             if (lastPosition !== null) {
                 const smoothedPosition = getSmoothedPosition();
                 const distance = calculateDistance(
@@ -474,18 +530,16 @@
             updateFare();
         }
 
-        // Fungsi untuk mendapatkan posisi yang sudah di-smooth
         function getSmoothedPosition() {
             if (positionHistory.length === 0) return null;
             
-            // Simple moving average untuk smoothing
             let totalLat = 0;
             let totalLng = 0;
             let totalWeight = 0;
             
             for (let i = 0; i < positionHistory.length; i++) {
                 const pos = positionHistory[i];
-                const weight = 1 / (pos.accuracy || 1); // Berikan bobot lebih pada data dengan akurasi tinggi
+                const weight = 1 / (pos.accuracy || 1);
                 
                 totalLat += pos.latitude * weight;
                 totalLng += pos.longitude * weight;
@@ -544,7 +598,6 @@
             elements.distance.textContent = totalDistance.toFixed(2);
             elements.distanceTraveled.textContent = Math.round(totalDistance) + ' m';
             
-            // Update speed if available
             if (lastPosition && lastPosition.speed !== null && lastPosition.speed > 0) {
                 elements.speed.textContent = (lastPosition.speed * 3.6).toFixed(1);
             }
@@ -596,16 +649,13 @@
         function stopTracking() {
             isTracking = false;
             
-            // Update UI
             elements.startBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Mulai Perjalanan';
             elements.startBtn.className = 'flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95';
             elements.resetBtn.disabled = false;
 
-            // Hentikan timer
             clearInterval(timerInterval);
             clearInterval(waitingTimerInterval);
 
-            // Hentikan GPS
             if (watchId !== null) {
                 navigator.geolocation.clearWatch(watchId);
                 watchId = null;
@@ -613,7 +663,7 @@
 
             showNotification('Perjalanan selesai! Total jarak: ' + totalDistance.toFixed(2) + ' meter');
             elements.gpsStatus.textContent = 'Nonaktif';
-            elements.gpsStatus.className = 'font-medium text-gray-600';
+            elements.gpsStatus.className = 'text-gray-600';
         }
 
         function resetTracking() {
@@ -648,7 +698,7 @@
             }
             showNotification(message, true);
             elements.gpsStatus.textContent = 'Error';
-            elements.gpsStatus.className = 'font-medium text-danger';
+            elements.gpsStatus.className = 'text-danger';
         }
 
         function initBattery() {
@@ -667,11 +717,11 @@
             elements.batteryLevel.textContent = `${level}%`;
             
             if (level <= 20) {
-                elements.batteryLevel.className = 'text-xs font-medium text-danger';
+                elements.batteryLevel.className = 'text-danger';
             } else if (level <= 50) {
-                elements.batteryLevel.className = 'text-xs font-medium text-warning';
+                elements.batteryLevel.className = 'text-warning';
             } else {
-                elements.batteryLevel.className = 'text-xs font-medium text-success';
+                elements.batteryLevel.className = 'text-success';
             }
         }
 
@@ -680,32 +730,30 @@
             elements.notification.className = elements.notification.className.replace('bg-success', '').replace('bg-danger', '');
             elements.notification.classList.add(isError ? 'bg-danger' : 'bg-success');
             
-            // Show notification
             elements.notification.classList.remove('opacity-0', '-translate-y-4');
             elements.notification.classList.add('opacity-100', 'translate-y-0');
             
-            // Hide after 3 seconds
             setTimeout(() => {
                 elements.notification.classList.remove('opacity-100', 'translate-y-0');
                 elements.notification.classList.add('opacity-0', '-translate-y-4');
             }, 3000);
         }
 
-        // QR Code Functions
+        // QR Code Functions - FIXED VERSION
         function updateQRCode(amount = 5000) {
             let amountValue = amount.toString().padStart(5, '0');
 
-            // Replace tag 54
+            // Replace tag 54 dengan amount baru
             let newPayload = replaceTag(template, '54', amountValue);
 
-            // Remove existing CRC (tag 63) if any
+            // Hapus CRC lama jika ada
             const crcTagPos = newPayload.indexOf('63');
             if (crcTagPos !== -1) {
                 newPayload = newPayload.slice(0, crcTagPos);
             }
             
-            // Append CRC placeholder
-            const toCrc = newPayload + '63' + '04';
+            // Tambahkan CRC baru
+            const toCrc = newPayload + '6304';
             const crc = crc16_ccitt(toCrc);
             const crcHex = toHex4(crc);
             const finalPayload = toCrc + crcHex;
@@ -716,28 +764,22 @@
         function generateQRCode(text) {
             const container = document.getElementById('qrcode');
             container.innerHTML = '';
-            try {
-                new QRCode(container, {
-                    text: text,
-                    width: 192,
-                    height: 192,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-            } catch (e) {
-                console.error('QR Code error:', e);
-                container.innerHTML = '<div class="text-center text-gray-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p class="text-sm">Error generating QR</p></div>';
-            }
-        }
-
-        // PWA Installation
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => console.log('SW registered'))
-                    .catch(err => console.log('SW registration failed'));
-            });
+            
+            setTimeout(() => {
+                try {
+                    new QRCode(container, {
+                        text: text,
+                        width: 192,
+                        height: 192,
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (e) {
+                    console.error('QR Code generation error:', e);
+                    container.innerHTML = '<div class="text-center text-gray-500 p-4"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p class="text-sm">Error generating QR Code</p></div>';
+                }
+            }, 100);
         }
     </script>
 </body>
