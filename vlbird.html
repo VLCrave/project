@@ -10,7 +10,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <script>
         tailwind.config = {
@@ -41,6 +44,11 @@
             100% { transform: scale(1); }
         }
         
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         .loader {
             border: 2px solid #f3f3f3;
             border-top: 2px solid #1e88e5;
@@ -52,6 +60,10 @@
         
         .pulse {
             animation: pulse 0.5s ease-in-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
         }
         
         /* Custom scrollbar */
@@ -72,13 +84,26 @@
         .thin-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
+        
+        /* Landscape layout adjustments */
+        @media (max-width: 1024px) {
+            .landscape-container {
+                min-width: 900px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .landscape-container {
+                min-width: 700px;
+            }
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-600 to-blue-800 h-screen overflow-hidden">
-    <!-- Main Container - Full Screen -->
-    <div class="w-full h-screen flex flex-col p-2">
-        <!-- Taximeter Card - Full Height -->
-        <div class="bg-white rounded-xl shadow-xl w-full h-full flex flex-col overflow-hidden border border-white/20">
+<body class="bg-gradient-to-br from-blue-600 to-blue-800 min-h-screen overflow-x-auto">
+    <!-- Main Container - Landscape Layout -->
+    <div class="w-full min-h-screen p-2 landscape-container">
+        <!-- Taximeter Card - Horizontal Layout -->
+        <div class="bg-white rounded-xl shadow-xl w-full min-h-[95vh] flex flex-col overflow-hidden border border-white/20 fade-in">
             
             <!-- Compact Header -->
             <div class="bg-gradient-to-r from-primary to-primary-dark text-white px-4 py-2 flex justify-between items-center">
@@ -86,7 +111,7 @@
                     <i class="fas fa-taxi text-lg"></i>
                     <div>
                         <h1 class="text-sm font-bold">VLCrave Taxi</h1>
-                        <p class="text-xs opacity-90">Update 0.5s</p>
+                        <p class="text-xs opacity-90">Update 0.5s | Firebase: <span id="firebase-status" class="text-green-400">Connected</span></p>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3 text-xs">
@@ -104,8 +129,35 @@
             <!-- Main Content - Horizontal Layout dengan Scroll -->
             <div class="flex-1 flex overflow-x-auto thin-scrollbar">
                 
-                <!-- Left Section - Distance & Controls -->
-                <div class="w-1/3 min-w-[300px] flex flex-col border-r border-gray-200">
+                <!-- QR Code Section -->
+                <div class="w-64 min-w-[200px] flex flex-col border-r border-gray-200">
+                    <div class="p-3 border-b border-gray-200">
+                        <h2 class="text-sm font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-qrcode mr-1 text-primary text-xs"></i>
+                            PEMBAYARAN QRIS
+                        </h2>
+                    </div>
+                    
+                    <div class="flex-1 flex flex-col items-center justify-center p-3">
+                        <div class="bg-white p-2 rounded-lg shadow-inner border border-gray-200 mb-3">
+                            <canvas id="qrcode-canvas" width="128" height="128" class="w-32 h-32"></canvas>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="text-xs text-gray-600 font-semibold mb-1">TOTAL BAYAR</div>
+                            <div id="amount-display" class="text-lg font-bold text-primary">Rp 5.000</div>
+                        </div>
+
+                        <!-- Trip ID Display -->
+                        <div class="mt-3 text-center">
+                            <div class="text-xs text-gray-600 font-semibold mb-1">TRIP ID</div>
+                            <div id="trip-id" class="text-sm font-bold text-gray-800">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Section - Distance, Fare & Controls -->
+                <div class="w-2/3 min-w-[500px] flex flex-col border-r border-gray-200">
                     
                     <!-- Compact Distance Display -->
                     <div class="p-3 border-b border-gray-200">
@@ -115,8 +167,8 @@
                                 Jarak Tempuh
                             </h2>
                             <div class="flex items-center space-x-1">
-                                <span id="accuracy-status" class="text-xs font-medium">-</span>
-                                <span id="accuracy-indicator" class="w-2 h-2 rounded-full"></span>
+                                <span id="distance-status" class="text-xs font-medium">-</span>
+                                <span id="distance-indicator" class="w-2 h-2 rounded-full"></span>
                             </div>
                         </div>
                         
@@ -126,7 +178,7 @@
                         </div>
 
                         <!-- Compact Stats Grid -->
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-4 gap-2 mb-3">
                             <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
                                 <div id="duration" class="text-base font-bold text-primary">00:00:00</div>
                                 <div class="text-[10px] text-gray-600 font-semibold mt-1">DURASI</div>
@@ -144,17 +196,59 @@
                                 <div class="text-[10px] text-gray-600 font-semibold mt-1">WAKTU TUNGGU</div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Compact Control Section -->
-                    <div class="flex-1 p-3 bg-gray-50 flex flex-col">
-                        <div class="flex items-center space-x-2 mb-2">
-                            <span class="text-xs font-semibold text-gray-700">Akurasi:</span>
-                            <span id="accuracy-status" class="text-xs font-medium">-</span>
-                            <span id="accuracy-indicator" class="w-2 h-2 rounded-full"></span>
+                        <!-- Perhitungan Tarif -->
+                        <div class="bg-gradient-to-r from-success to-green-600 text-white p-3 rounded-lg text-center mb-3 shadow">
+                            <div id="total-fare" class="text-xl font-bold mb-1">Rp 5.000</div>
+                            <div class="text-xs opacity-90 font-semibold">TOTAL TARIF</div>
                         </div>
 
-                        <div id="accuracy-warning" class="hidden bg-warning text-white p-2 rounded text-center text-xs mb-3">
+                        <!-- Compact Tarif Breakdown -->
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                                <div class="text-xs font-semibold text-gray-600 mb-1">Tarif Awal</div>
+                                <div id="base-fare" class="text-sm font-bold text-primary">Rp 5.000</div>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                                <div class="text-xs font-semibold text-gray-600 mb-1">Biaya Jarak</div>
+                                <div id="distance-fare" class="text-sm font-bold text-primary">Rp 0</div>
+                            </div>
+                            <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                                <div class="text-xs font-semibold text-gray-600 mb-1">Biaya Tunggu</div>
+                                <div id="waiting-fare" class="text-sm font-bold text-primary">Rp 0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Driver Information & Controls -->
+                    <div class="flex-1 p-3 bg-gray-50 flex flex-col">
+                        <!-- Informasi Driver -->
+                        <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 mb-3">
+                            <div class="text-xs font-bold text-yellow-800 mb-2 flex items-center">
+                                <i class="fas fa-id-card mr-1"></i>
+                                INFORMASI DRIVER
+                            </div>
+                            <div class="text-[11px] text-yellow-700 space-y-1">
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">Nama:</span>
+                                    <span>Vicky Satria Lindy</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">ID Driver:</span>
+                                    <span>VL-001</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">Status:</span>
+                                    <span id="driver-status" class="text-green-600 font-bold">Online</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">Kendaraan:</span>
+                                    <span>VLCrave Taxi</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="distance-warning" class="hidden bg-warning text-white p-2 rounded text-center text-xs mb-3">
                             <i class="fas fa-exclamation-triangle mr-1"></i>
                             Menunggu akurasi GPS...
                         </div>
@@ -168,131 +262,6 @@
                                 <i class="fas fa-redo mr-1"></i>
                                 SELESAI
                             </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Middle Section - QR Code -->
-                <div class="w-64 min-w-[200px] flex flex-col border-r border-gray-200">
-                    <div class="p-3 border-b border-gray-200">
-                        <h2 class="text-sm font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-qrcode mr-1 text-primary text-xs"></i>
-                            PEMBAYARAN QRIS
-                        </h2>
-                    </div>
-                    
-                    <div class="flex-1 flex flex-col items-center justify-center p-3">
-                        <div class="bg-white p-2 rounded-lg shadow-inner border border-gray-200 mb-3">
-                            <div id="qrcode" class="w-32 h-32 flex items-center justify-center">
-                                <div class="text-center text-gray-400">
-                                    <div class="loader mb-2 mx-auto"></div>
-                                    <div class="text-xs">Loading QR...</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="text-center">
-                            <div class="text-xs text-gray-600 font-semibold mb-1">TOTAL BAYAR</div>
-                            <div id="amount-display" class="text-lg font-bold text-primary">Rp 5.000</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Section - Fare Calculation -->
-                <div class="w-80 min-w-[250px] flex flex-col">
-                    <div class="p-3 border-b border-gray-200">
-                        <h2 class="text-sm font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-money-bill-wave mr-1 text-primary text-xs"></i>
-                            PERHITUNGAN TARIF
-                        </h2>
-                    </div>
-                    
-                    <div class="flex-1 flex flex-col p-3">
-                        <!-- Compact Total Fare Display -->
-                        <div class="bg-gradient-to-r from-success to-green-600 text-white p-3 rounded-lg text-center mb-3 shadow">
-                            <div id="total-fare" class="text-xl font-bold mb-1">Rp 5.000</div>
-                            <div class="text-xs opacity-90 font-semibold">TOTAL TARIF</div>
-                        </div>
-
-                        <!-- Compact Tarif Breakdown -->
-                        <div class="space-y-2 mb-3">
-                            <div class="flex justify-between items-center py-1 border-b border-gray-200">
-                                <span class="text-xs font-semibold text-gray-600">Tarif Awal</span>
-                                <span id="base-fare" class="text-sm font-bold text-primary">Rp 5.000</span>
-                            </div>
-                            <div class="flex justify-between items-center py-1 border-b border-gray-200">
-                                <span class="text-xs font-semibold text-gray-600">Biaya Jarak</span>
-                                <span id="distance-fare" class="text-sm font-bold text-primary">Rp 0</span>
-                            </div>
-                            <div class="flex justify-between items-center py-1 border-b border-gray-200">
-                                <span class="text-xs font-semibold text-gray-600">Biaya Tunggu</span>
-                                <span id="waiting-fare" class="text-sm font-bold text-primary">Rp 0</span>
-                            </div>
-                            <div class="flex justify-between items-center py-1">
-                                <span class="text-xs font-semibold text-gray-600">Jarak Tempuh</span>
-                                <span id="distance-traveled" class="text-sm font-bold text-primary">0 m</span>
-                            </div>
-                        </div>
-
-                        <!-- Compact Tarif Details -->
-                        <div class="mt-auto bg-blue-50 rounded-lg p-2 border border-blue-200">
-                            <div class="text-xs font-bold text-primary mb-1">RINCIAN TARIF</div>
-                            <div class="text-[10px] text-gray-600 space-y-0.5">
-                                <div class="flex justify-between">
-                                    <span>Tarif Awal:</span>
-                                    <span class="font-semibold">Rp 5.000</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Per 100 meter:</span>
-                                    <span class="font-semibold">Rp 200</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Per 10 menit tunggu:</span>
-                                    <span class="font-semibold">Rp 2.500</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Additional Info Section -->
-                <div class="w-60 min-w-[200px] flex flex-col border-l border-gray-200">
-                    <div class="p-3 border-b border-gray-200">
-                        <h2 class="text-sm font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-info-circle mr-1 text-primary text-xs"></i>
-                            INFORMASI
-                        </h2>
-                    </div>
-                    
-                    <div class="flex-1 p-3 space-y-3">
-                        <!-- Driver Info -->
-                        <div class="bg-yellow-50 rounded-lg p-2 border border-yellow-200">
-                            <div class="text-xs font-bold text-yellow-800 mb-1">DRIVER</div>
-                            <div class="text-[10px] text-yellow-700">
-                                <div>Nama: VLCrave Driver</div>
-                                <div>ID: VL-001</div>
-                                <div>Status: Online</div>
-                            </div>
-                        </div>
-
-                        <!-- Trip Info -->
-                        <div class="bg-purple-50 rounded-lg p-2 border border-purple-200">
-                            <div class="text-xs font-bold text-purple-800 mb-1">PERJALANAN</div>
-                            <div class="text-[10px] text-purple-700">
-                                <div>Mulai: -</div>
-                                <div>Selesai: -</div>
-                                <div>Status: Menunggu</div>
-                            </div>
-                        </div>
-
-                        <!-- System Info -->
-                        <div class="bg-green-50 rounded-lg p-2 border border-green-200">
-                            <div class="text-xs font-bold text-green-800 mb-1">SISTEM</div>
-                            <div class="text-[10px] text-green-700">
-                                <div>Versi: 2.0.1</div>
-                                <div>Update: 0.5 detik</div>
-                                <div>Status: Aktif</div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -323,488 +292,731 @@
     </div>
 
     <script>
-        // Variabel global
-        let isTracking = false;
-        let startTime = null;
-        let timerInterval = null;
-        let waitingTimerInterval = null;
-        let totalDistance = 0;
-        let lastPosition = null;
-        let watchId = null;
-        let validPoints = 0;
-        let waitingTime = 0;
-        let isMoving = false;
-        let lastUpdateTime = 0;
-        let positionHistory = [];
-
-        // Pengaturan
-        const MIN_ACCURACY = 15;
-        const MIN_DISTANCE = 3;
-        const BASE_FARE = 5000;
-        const DISTANCE_RATE = 200;
-        const WAITING_RATE = 2500;
-        const UPDATE_INTERVAL = 500;
-
-        // Elemen DOM
-        const elements = {
-            distance: document.getElementById('distance'),
-            duration: document.getElementById('duration'),
-            speed: document.getElementById('speed'),
-            validPoints: document.getElementById('valid-points'),
-            waitingTime: document.getElementById('waiting-time'),
-            startBtn: document.getElementById('start-btn'),
-            resetBtn: document.getElementById('reset-btn'),
-            gpsStatus: document.getElementById('gps-status'),
-            batteryLevel: document.getElementById('battery-level'),
-            accuracyStatus: document.getElementById('accuracy-status'),
-            accuracyIndicator: document.getElementById('accuracy-indicator'),
-            accuracyWarning: document.getElementById('accuracy-warning'),
-            totalFare: document.getElementById('total-fare'),
-            baseFare: document.getElementById('base-fare'),
-            distanceFare: document.getElementById('distance-fare'),
-            waitingFare: document.getElementById('waiting-fare'),
-            distanceTraveled: document.getElementById('distance-traveled'),
-            amountDisplay: document.getElementById('amount-display'),
-            notification: document.getElementById('notification'),
-            notificationText: document.getElementById('notification-text'),
-            currentTime: document.getElementById('current-time'),
-            lastUpdate: document.getElementById('last-update')
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
         };
 
-        // Simple QRIS Generator
-        const createQRISPayload = (amount) => {
-            const amountStr = String(amount).padStart(5, '0');
-            
-            const payload = [
-                "000201",
-                "010212",
-                "26570011ID.DANA.WWW01189360091400000000000000",
-                "3026",
-                "52045999",
-                "5303360",
-                "54" + String(amountStr.length).padStart(2, '0') + amountStr,
-                "5802ID",
-                "5913VLCrave Taxi",
-                "6011Kab. Bangka",
-                "610533253",
-                "62196015",
-                "0011ID.DANA.WWW",
-                "6304"
-            ].join('');
-            
-            return payload;
-        };
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-        // CRC16 Calculation
-        function calculateCRC16(payload) {
-            let crc = 0xFFFF;
-            for (let i = 0; i < payload.length; i++) {
-                crc ^= payload.charCodeAt(i) << 8;
-                for (let j = 0; j < 8; j++) {
-                    if (crc & 0x8000) {
-                        crc = (crc << 1) ^ 0x1021;
+        // Taximeter Application Class
+        class Taximeter {
+            constructor() {
+                this.isTracking = false;
+                this.startTime = null;
+                this.timerInterval = null;
+                this.waitingTimerInterval = null;
+                this.totalDistance = 0;
+                this.lastPosition = null;
+                this.watchId = null;
+                this.validPoints = 0;
+                this.waitingTime = 0;
+                this.isMoving = false;
+                this.lastUpdateTime = 0;
+                this.positionHistory = [];
+                this.currentTripId = null;
+                this.firebaseConnected = false;
+                
+                // Settings
+                this.MIN_ACCURACY = 15;
+                this.MIN_DISTANCE = 3;
+                this.BASE_FARE = 5000;
+                this.DISTANCE_RATE = 200;
+                this.WAITING_RATE = 2500;
+                this.UPDATE_INTERVAL = 500;
+                
+                // DOM Elements
+                this.elements = {
+                    distance: document.getElementById('distance'),
+                    duration: document.getElementById('duration'),
+                    speed: document.getElementById('speed'),
+                    validPoints: document.getElementById('valid-points'),
+                    waitingTime: document.getElementById('waiting-time'),
+                    startBtn: document.getElementById('start-btn'),
+                    resetBtn: document.getElementById('reset-btn'),
+                    gpsStatus: document.getElementById('gps-status'),
+                    batteryLevel: document.getElementById('battery-level'),
+                    distanceStatus: document.getElementById('distance-status'),
+                    distanceIndicator: document.getElementById('distance-indicator'),
+                    distanceWarning: document.getElementById('distance-warning'),
+                    totalFare: document.getElementById('total-fare'),
+                    baseFare: document.getElementById('base-fare'),
+                    distanceFare: document.getElementById('distance-fare'),
+                    waitingFare: document.getElementById('waiting-fare'),
+                    amountDisplay: document.getElementById('amount-display'),
+                    notification: document.getElementById('notification'),
+                    notificationText: document.getElementById('notification-text'),
+                    currentTime: document.getElementById('current-time'),
+                    lastUpdate: document.getElementById('last-update'),
+                    qrCanvas: document.getElementById('qrcode-canvas'),
+                    tripId: document.getElementById('trip-id'),
+                    firebaseStatus: document.getElementById('firebase-status'),
+                    driverStatus: document.getElementById('driver-status')
+                };
+                
+                // Initialize
+                this.init();
+            }
+            
+            init() {
+                console.log('VLCrave Taxi - Compact Horizontal Taximeter Loaded');
+                this.initFirebase();
+                this.initBattery();
+                this.bindEvents();
+                
+                // Update waktu
+                this.updateCurrentTime();
+                setInterval(() => this.updateCurrentTime(), 1000);
+                
+                this.updateFare();
+                this.generateQRCode(5000);
+                
+                this.showNotification('Sistem siap digunakan!', false);
+            }
+
+            // Initialize Firebase Connection
+            initFirebase() {
+                try {
+                    // Test Firebase connection
+                    db.collection('test').doc('connection').get()
+                        .then(() => {
+                            this.firebaseConnected = true;
+                            this.elements.firebaseStatus.textContent = 'Connected';
+                            this.elements.firebaseStatus.className = 'text-green-400';
+                            console.log('Firebase connected successfully');
+                        })
+                        .catch((error) => {
+                            this.firebaseConnected = false;
+                            this.elements.firebaseStatus.textContent = 'Disconnected';
+                            this.elements.firebaseStatus.className = 'text-red-400';
+                            console.error('Firebase connection error:', error);
+                        });
+                } catch (error) {
+                    console.error('Firebase initialization error:', error);
+                    this.firebaseConnected = false;
+                }
+            }
+
+            // Generate unique trip ID
+            generateTripId() {
+                const timestamp = Date.now().toString(36);
+                const random = Math.random().toString(36).substr(2, 5);
+                return `VL-${timestamp}-${random}`.toUpperCase();
+            }
+
+            // Save trip data to Firebase
+            async saveTripToFirebase(tripData) {
+                if (!this.firebaseConnected) {
+                    console.warn('Firebase not connected, skipping save');
+                    return;
+                }
+
+                try {
+                    const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
+                    await tripRef.set({
+                        ...tripData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log('Trip data saved to Firebase');
+                } catch (error) {
+                    console.error('Error saving to Firebase:', error);
+                    this.showNotification('Error menyimpan data ke cloud', true);
+                }
+            }
+
+            // Update trip data in Firebase
+            async updateTripInFirebase(updateData) {
+                if (!this.firebaseConnected || !this.currentTripId) {
+                    return;
+                }
+
+                try {
+                    const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
+                    await tripRef.update({
+                        ...updateData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error('Error updating trip in Firebase:', error);
+                }
+            }
+            
+            bindEvents() {
+                this.elements.startBtn.addEventListener('click', () => this.toggleTracking());
+                this.elements.resetBtn.addEventListener('click', () => this.resetTracking());
+            }
+            
+            // QRIS Template Generator
+            generateQRCode(amount = 5000) {
+                try {
+                    // QRIS Template
+                    const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Vistra Pedia6011Kab. Bangka610533253621960150011ID.DANA.WWW630491F1";
+
+                    // Replace amount in template
+                    const amountStr = amount.toFixed(0).padStart(5, '0');
+                    let payload = this.replaceTag(template, "54", amountStr);
+                    
+                    // Recalculate CRC
+                    payload = this.updateCRC(payload);
+                    
+                    // Generate QR code dari payload
+                    this.drawQRCodeFromPayload(payload);
+                    
+                } catch (error) {
+                    console.error('Error generating QR Code:', error);
+                    this.showNotification('Error generating QR Code', true);
+                }
+            }
+
+            // Utility functions untuk QRIS
+            replaceTag(payload, tag, newValue) {
+                const pos = payload.indexOf(tag);
+                if (pos !== -1) {
+                    const oldLen = parseInt(payload.substr(pos+2,2), 10);
+                    const start = pos;
+                    const end = pos + 2 + 2 + oldLen;
+                    const newLen = newValue.length.toString().padStart(2,'0');
+                    return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
+                } else {
+                    const crcPos = payload.indexOf('63');
+                    const newLen = newValue.length.toString().padStart(2,'0');
+                    const insert = tag + newLen + newValue;
+                    if (crcPos !== -1) {
+                        return payload.slice(0,crcPos) + insert + payload.slice(crcPos);
                     } else {
-                        crc = crc << 1;
+                        return payload + insert;
                     }
                 }
             }
-            return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-        }
 
-        // QR Code Generator
-        function generateQRCode(text) {
-            const container = document.getElementById('qrcode');
-            container.innerHTML = '';
-            
-            setTimeout(() => {
-                container.innerHTML = '';
-                try {
-                    new QRCode(container, {
-                        text: text,
-                        width: 120,
-                        height: 120,
-                        colorDark: "#000000",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
-                } catch (e) {
-                    console.error('QR Code generation error:', e);
-                    container.innerHTML = '<div class="text-center text-gray-500"><i class="fas fa-exclamation-triangle text-xs mb-1"></i><p class="text-[10px]">QR Error</p></div>';
+            crc16_ccitt(input) {
+                let crc = 0xFFFF;
+                for (let i=0;i<input.length;i++){
+                    crc ^= (input.charCodeAt(i) & 0xFF) << 8;
+                    for (let j=0;j<8;j++){
+                        if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+                        else crc = (crc << 1) & 0xFFFF;
+                    }
                 }
-            }, 300);
-        }
+                return crc & 0xFFFF;
+            }
 
-        // Simple QRIS Generator
-        function updateQRCode(amount = 5000) {
-            try {
-                if (!amount || amount < 0) {
-                    console.error('Invalid amount:', amount);
+            toHex4(n) {
+                return n.toString(16).toUpperCase().padStart(4,'0');
+            }
+
+            updateCRC(payload) {
+                const crcPos = payload.indexOf('63');
+                if (crcPos !== -1) {
+                    const data = payload.slice(0, crcPos);
+                    const crc = this.crc16_ccitt(data);
+                    return data + '63' + '04' + this.toHex4(crc);
+                }
+                return payload;
+            }
+
+            // Draw QR Code dari payload
+            drawQRCodeFromPayload(payload) {
+                const canvas = this.elements.qrCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Background putih
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw QR code pattern sederhana berdasarkan payload
+                this.drawSimpleQRPattern(ctx, payload, canvas.width, canvas.height);
+            }
+
+            // Draw QR pattern sederhana
+            drawSimpleQRPattern(ctx, data, width, height) {
+                const cellSize = 4;
+                const margin = 10;
+                const size = Math.min(width, height) - margin * 2;
+                
+                // Background putih
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw finder patterns (kotak di sudut)
+                ctx.fillStyle = '#000000';
+                
+                // Sudut kiri atas
+                this.drawFinderPattern(ctx, margin, margin, cellSize);
+                
+                // Sudut kanan atas
+                this.drawFinderPattern(ctx, margin + size - 7 * cellSize, margin, cellSize);
+                
+                // Sudut kiri bawah
+                this.drawFinderPattern(ctx, margin, margin + size - 7 * cellSize, cellSize);
+                
+                // Draw data pattern berdasarkan hash dari payload
+                let hash = 0;
+                for (let i = 0; i < data.length; i++) {
+                    hash = ((hash << 5) - hash) + data.charCodeAt(i);
+                    hash |= 0;
+                }
+                
+                ctx.fillStyle = '#000000';
+                for (let y = 0; y < 17; y++) {
+                    for (let x = 0; x < 17; x++) {
+                        // Skip finder patterns
+                        if ((x < 7 && y < 7) || (x > 9 && y < 7) || (x < 7 && y > 9)) {
+                            continue;
+                        }
+                        
+                        // Gunakan hash untuk menentukan sel mana yang diisi
+                        const bitPos = (y * 17 + x);
+                        if ((hash >> (bitPos % 32)) & 1) {
+                            ctx.fillRect(
+                                margin + x * cellSize, 
+                                margin + y * cellSize, 
+                                cellSize, 
+                                cellSize
+                            );
+                        }
+                    }
+                }
+                
+                // Tambahkan teks di bawah QR
+                ctx.fillStyle = '#1e88e5';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('VLCrave Taxi', width/2, height - 5);
+            }
+
+            drawFinderPattern(ctx, x, y, cellSize) {
+                ctx.fillStyle = '#000000';
+                
+                // Outer square
+                ctx.fillRect(x, y, 7 * cellSize, 7 * cellSize);
+                
+                // Inner white square
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(x + cellSize, y + cellSize, 5 * cellSize, 5 * cellSize);
+                
+                // Center black square
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(x + 2 * cellSize, y + 2 * cellSize, 3 * cellSize, 3 * cellSize);
+            }
+
+            showNotification(message, isError = false) {
+                this.elements.notificationText.textContent = message;
+                
+                // Reset classes
+                this.elements.notification.className = 'fixed top-2 left-1/2 transform -translate-x-1/2 -translate-y-20 text-white px-4 py-2 rounded-full shadow-lg z-50 transition-all duration-300 flex items-center space-x-2 text-xs';
+                
+                // Add color classes
+                if (isError) {
+                    this.elements.notification.classList.add('bg-danger');
+                } else {
+                    this.elements.notification.classList.add('bg-success');
+                }
+                
+                // Show notification
+                this.elements.notification.classList.remove('-translate-y-20');
+                this.elements.notification.classList.add('translate-y-0');
+                
+                setTimeout(() => {
+                    this.elements.notification.classList.remove('translate-y-0');
+                    this.elements.notification.classList.add('-translate-y-20');
+                }, 2000);
+            }
+
+            formatCurrency(amount) {
+                return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
+
+            // Update current time
+            updateCurrentTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+                this.elements.currentTime.textContent = timeString;
+            }
+
+            toggleTracking() {
+                if (!this.isTracking) {
+                    this.startTracking();
+                } else {
+                    this.stopTracking();
+                }
+            }
+
+            startTracking() {
+                if (!navigator.geolocation) {
+                    this.showNotification('GPS tidak didukung', true);
+                    return;
+                }
+
+                this.isTracking = true;
+                this.startTime = new Date();
+                this.lastUpdateTime = Date.now();
+                this.currentTripId = this.generateTripId();
+                
+                this.elements.startBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>BERHENTI';
+                this.elements.startBtn.className = 'flex-1 bg-secondary hover:bg-gray-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
+                this.elements.resetBtn.disabled = true;
+                this.elements.driverStatus.textContent = 'On Trip';
+                this.elements.driverStatus.className = 'text-blue-600 font-bold';
+                this.elements.tripId.textContent = this.currentTripId;
+
+                this.totalDistance = 0;
+                this.lastPosition = null;
+                this.validPoints = 0;
+                this.waitingTime = 0;
+                this.positionHistory = [];
+                this.updateDisplay();
+
+                // Save initial trip data to Firebase
+                const initialTripData = {
+                    tripId: this.currentTripId,
+                    driverName: "Vicky Satria Lindy",
+                    driverId: "VL-001",
+                    status: "active",
+                    startTime: this.startTime,
+                    baseFare: this.BASE_FARE,
+                    distanceRate: this.DISTANCE_RATE,
+                    waitingRate: this.WAITING_RATE,
+                    totalDistance: 0,
+                    totalDuration: 0,
+                    waitingTime: 0,
+                    totalFare: this.BASE_FARE,
+                    locations: [],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                this.saveTripToFirebase(initialTripData);
+
+                this.startTimer();
+                this.startWaitingTimer();
+
+                this.watchId = navigator.geolocation.watchPosition(
+                    (position) => this.updatePosition(position),
+                    (error) => this.handleGeolocationError(error),
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0,
+                        distanceFilter: 0
+                    }
+                );
+
+                this.showNotification('Perjalanan dimulai! Trip ID: ' + this.currentTripId, false);
+                this.elements.gpsStatus.textContent = 'Aktif';
+            }
+
+            updatePosition(position) {
+                const currentTime = Date.now();
+                
+                if (currentTime - this.lastUpdateTime < this.UPDATE_INTERVAL) {
                     return;
                 }
                 
-                const payloadWithoutCRC = createQRISPayload(amount);
-                const crc = calculateCRC16(payloadWithoutCRC);
-                const finalPayload = payloadWithoutCRC + crc;
+                this.lastUpdateTime = currentTime;
                 
-                generateQRCode(finalPayload);
-                
-            } catch (error) {
-                console.error('Error generating QR Code:', error);
-                showNotification('Error generating QR Code', true);
-            }
-        }
+                const accuracy = position.coords.accuracy;
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const speed = position.coords.speed;
 
-        function showNotification(message, isError = false) {
-            elements.notificationText.textContent = message;
-            
-            // Reset classes
-            elements.notification.className = 'fixed top-2 left-1/2 transform -translate-x-1/2 -translate-y-20 text-white px-4 py-2 rounded-full shadow-lg z-50 transition-all duration-300 flex items-center space-x-2 text-xs';
-            
-            // Add color classes
-            if (isError) {
-                elements.notification.classList.add('bg-danger');
-            } else {
-                elements.notification.classList.add('bg-success');
-            }
-            
-            // Show notification
-            elements.notification.classList.remove('-translate-y-20');
-            elements.notification.classList.add('translate-y-0');
-            
-            setTimeout(() => {
-                elements.notification.classList.remove('translate-y-0');
-                elements.notification.classList.add('-translate-y-20');
-            }, 2000);
-        }
+                this.updateDistanceIndicator(accuracy);
 
-        function formatCurrency(amount) {
-            return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        }
-
-        // Update current time
-        function updateCurrentTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
-            elements.currentTime.textContent = timeString;
-        }
-
-        // Inisialisasi
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('VLCrave Taxi - Compact Horizontal Taximeter Loaded');
-            initBattery();
-            elements.startBtn.addEventListener('click', toggleTracking);
-            elements.resetBtn.addEventListener('click', resetTracking);
-            
-            // Update waktu
-            updateCurrentTime();
-            setInterval(updateCurrentTime, 1000);
-            
-            updateFare();
-            updateQRCode(5000);
-            
-            showNotification('Sistem siap digunakan!', false);
-        });
-
-        function toggleTracking() {
-            if (!isTracking) {
-                startTracking();
-            } else {
-                stopTracking();
-            }
-        }
-
-        function startTracking() {
-            if (!navigator.geolocation) {
-                showNotification('GPS tidak didukung', true);
-                return;
-            }
-
-            isTracking = true;
-            startTime = new Date();
-            lastUpdateTime = Date.now();
-            
-            elements.startBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>BERHENTI';
-            elements.startBtn.className = 'flex-1 bg-secondary hover:bg-gray-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
-            elements.resetBtn.disabled = true;
-
-            totalDistance = 0;
-            lastPosition = null;
-            validPoints = 0;
-            waitingTime = 0;
-            positionHistory = [];
-            updateDisplay();
-
-            startTimer();
-            startWaitingTimer();
-
-            watchId = navigator.geolocation.watchPosition(
-                updatePosition,
-                handleGeolocationError,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0,
-                    distanceFilter: 0
+                if (accuracy > this.MIN_ACCURACY) {
+                    this.elements.distanceWarning.classList.remove('hidden');
+                    return;
                 }
-            );
 
-            showNotification('Perjalanan dimulai!', false);
-            elements.gpsStatus.textContent = 'Aktif';
-        }
+                this.elements.distanceWarning.classList.add('hidden');
+                this.validPoints++;
+                this.elements.validPoints.textContent = this.validPoints;
 
-        function updatePosition(position) {
-            const currentTime = Date.now();
-            
-            if (currentTime - lastUpdateTime < UPDATE_INTERVAL) {
-                return;
-            }
-            
-            lastUpdateTime = currentTime;
-            
-            const accuracy = position.coords.accuracy;
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const speed = position.coords.speed;
-
-            updateAccuracyIndicator(accuracy);
-
-            if (accuracy > MIN_ACCURACY) {
-                elements.accuracyWarning.classList.remove('hidden');
-                return;
-            }
-
-            elements.accuracyWarning.classList.add('hidden');
-            validPoints++;
-            elements.validPoints.textContent = validPoints;
-
-            positionHistory.push({
-                latitude: lat,
-                longitude: lng,
-                timestamp: currentTime,
-                accuracy: accuracy
-            });
-            
-            if (positionHistory.length > 10) {
-                positionHistory.shift();
-            }
-
-            if (lastPosition !== null) {
-                const smoothedPosition = getSmoothedPosition();
-                const distance = calculateDistance(
-                    lastPosition.latitude,
-                    lastPosition.longitude,
-                    smoothedPosition.latitude,
-                    smoothedPosition.longitude
-                );
-
-                if (isValidDistance(distance, accuracy)) {
-                    totalDistance += distance;
-                    updateDisplay();
-                    isMoving = (speed !== null && speed > 0.5) || distance > 2;
-                    
-                    elements.distance.classList.add('pulse');
-                    setTimeout(() => {
-                        elements.distance.classList.remove('pulse');
-                    }, 500);
-                }
-            }
-
-            lastPosition = {
-                latitude: lat,
-                longitude: lng,
-                accuracy: accuracy,
-                timestamp: position.timestamp,
-                speed: speed
-            };
-
-            updateFare();
-            
-            // Update last update time
-            elements.lastUpdate.textContent = 'Last: ' + new Date().toLocaleTimeString('id-ID', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
-        }
-
-        function getSmoothedPosition() {
-            if (positionHistory.length === 0) return null;
-            
-            let totalLat = 0;
-            let totalLng = 0;
-            let totalWeight = 0;
-            
-            for (let i = 0; i < positionHistory.length; i++) {
-                const pos = positionHistory[i];
-                const weight = 1 / (pos.accuracy || 1);
-                totalLat += pos.latitude * weight;
-                totalLng += pos.longitude * weight;
-                totalWeight += weight;
-            }
-            
-            return {
-                latitude: totalLat / totalWeight,
-                longitude: totalLng / totalWeight
-            };
-        }
-
-        function isValidDistance(distance, accuracy) {
-            const maxReasonableDistance = accuracy * 2;
-            return distance > 0 && distance <= maxReasonableDistance && distance >= MIN_DISTANCE;
-        }
-
-        function updateAccuracyIndicator(accuracy) {
-            let status = '', indicatorClass = '';
-            
-            if (accuracy <= 10) {
-                status = 'Sangat Baik';
-                indicatorClass = 'bg-success';
-            } else if (accuracy <= 20) {
-                status = 'Baik';
-                indicatorClass = 'bg-green-500';
-            } else if (accuracy <= 30) {
-                status = 'Cukup';
-                indicatorClass = 'bg-warning';
-            } else {
-                status = 'Kurang';
-                indicatorClass = 'bg-danger';
-            }
-
-            elements.accuracyStatus.textContent = status;
-            elements.accuracyIndicator.className = `w-2 h-2 rounded-full ${indicatorClass}`;
-        }
-
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        function updateDisplay() {
-            elements.distance.textContent = totalDistance.toFixed(2);
-            elements.distanceTraveled.textContent = Math.round(totalDistance) + ' m';
-            
-            if (lastPosition && lastPosition.speed !== null && lastPosition.speed > 0) {
-                elements.speed.textContent = (lastPosition.speed * 3.6).toFixed(1);
-            }
-        }
-
-        function updateFare() {
-            const distanceFare = Math.floor(totalDistance / 100) * DISTANCE_RATE;
-            const waitingFare = Math.floor(waitingTime / 600) * WAITING_RATE;
-            const totalFare = BASE_FARE + distanceFare + waitingFare;
-
-            elements.baseFare.textContent = formatCurrency(BASE_FARE);
-            elements.distanceFare.textContent = formatCurrency(distanceFare);
-            elements.waitingFare.textContent = formatCurrency(waitingFare);
-            elements.totalFare.textContent = formatCurrency(totalFare);
-            elements.amountDisplay.textContent = formatCurrency(totalFare);
-
-            updateQRCode(totalFare);
-        }
-
-        function startTimer() {
-            startTime = new Date();
-            timerInterval = setInterval(() => {
-                const now = new Date();
-                const elapsed = new Date(now - startTime);
-                const hours = String(elapsed.getUTCHours()).padStart(2, '0');
-                const minutes = String(elapsed.getUTCMinutes()).padStart(2, '0');
-                const seconds = String(elapsed.getUTCSeconds()).padStart(2, '0');
-                elements.duration.textContent = `${hours}:${minutes}:${seconds}`;
-            }, 1000);
-        }
-
-        function startWaitingTimer() {
-            waitingTimerInterval = setInterval(() => {
-                if (!isMoving && isTracking) {
-                    waitingTime++;
-                    const minutes = Math.floor(waitingTime / 60);
-                    const seconds = waitingTime % 60;
-                    elements.waitingTime.textContent = 
-                        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                    updateFare();
-                }
-            }, 1000);
-        }
-
-        function stopTracking() {
-            isTracking = false;
-            
-            elements.startBtn.innerHTML = '<i class="fas fa-play mr-1"></i>MULAI';
-            elements.startBtn.className = 'flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
-            elements.resetBtn.disabled = false;
-
-            clearInterval(timerInterval);
-            clearInterval(waitingTimerInterval);
-
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-
-            showNotification('Perjalanan selesai! Total: ' + formatCurrency(BASE_FARE + Math.floor(totalDistance / 100) * DISTANCE_RATE + Math.floor(waitingTime / 600) * WAITING_RATE));
-            elements.gpsStatus.textContent = 'Nonaktif';
-        }
-
-        function resetTracking() {
-            totalDistance = 0;
-            lastPosition = null;
-            validPoints = 0;
-            waitingTime = 0;
-            positionHistory = [];
-            updateDisplay();
-            updateFare();
-            elements.duration.textContent = '00:00:00';
-            elements.waitingTime.textContent = '00:00';
-            elements.validPoints.textContent = '0';
-            elements.speed.textContent = '0.0';
-            showNotification('Data direset', false);
-        }
-
-        function handleGeolocationError(error) {
-            let message = 'GPS Error: ';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    message += 'Akses ditolak';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message += 'Posisi tidak tersedia';
-                    break;
-                case error.TIMEOUT:
-                    message += 'Timeout';
-                    break;
-                default:
-                    message += 'Error tidak diketahui';
-            }
-            showNotification(message, true);
-            elements.gpsStatus.textContent = 'Error';
-        }
-
-        function initBattery() {
-            if ('getBattery' in navigator) {
-                navigator.getBattery().then(battery => {
-                    updateBatteryLevel(battery);
-                    battery.addEventListener('levelchange', () => updateBatteryLevel(battery));
+                this.positionHistory.push({
+                    latitude: lat,
+                    longitude: lng,
+                    timestamp: currentTime,
+                    accuracy: accuracy
                 });
-            } else {
-                elements.batteryLevel.textContent = 'N/A';
+                
+                if (this.positionHistory.length > 10) {
+                    this.positionHistory.shift();
+                }
+
+                if (this.lastPosition !== null) {
+                    const smoothedPosition = this.getSmoothedPosition();
+                    const distance = this.calculateDistance(
+                        this.lastPosition.latitude,
+                        this.lastPosition.longitude,
+                        smoothedPosition.latitude,
+                        smoothedPosition.longitude
+                    );
+
+                    if (this.isValidDistance(distance, accuracy)) {
+                        this.totalDistance += distance;
+                        this.updateDisplay();
+                        this.isMoving = (speed !== null && speed > 0.5) || distance > 2;
+                        
+                        this.elements.distance.classList.add('pulse');
+                        setTimeout(() => {
+                            this.elements.distance.classList.remove('pulse');
+                        }, 500);
+                    }
+                }
+
+                this.lastPosition = {
+                    latitude: lat,
+                    longitude: lng,
+                    accuracy: accuracy,
+                    timestamp: position.timestamp,
+                    speed: speed
+                };
+
+                this.updateFare();
+                
+                // Update last update time
+                this.elements.lastUpdate.textContent = 'Last: ' + new Date().toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit' 
+                });
+            }
+
+            getSmoothedPosition() {
+                if (this.positionHistory.length === 0) return null;
+                
+                let totalLat = 0;
+                let totalLng = 0;
+                let totalWeight = 0;
+                
+                for (let i = 0; i < this.positionHistory.length; i++) {
+                    const pos = this.positionHistory[i];
+                    const weight = 1 / (pos.accuracy || 1);
+                    totalLat += pos.latitude * weight;
+                    totalLng += pos.longitude * weight;
+                    totalWeight += weight;
+                }
+                
+                return {
+                    latitude: totalLat / totalWeight,
+                    longitude: totalLng / totalWeight
+                };
+            }
+
+            isValidDistance(distance, accuracy) {
+                const maxReasonableDistance = accuracy * 2;
+                return distance > 0 && distance <= maxReasonableDistance && distance >= this.MIN_DISTANCE;
+            }
+
+            updateDistanceIndicator(accuracy) {
+                let status = '', indicatorClass = '';
+                
+                if (accuracy <= 10) {
+                    status = 'Sangat Baik';
+                    indicatorClass = 'bg-success';
+                } else if (accuracy <= 20) {
+                    status = 'Baik';
+                    indicatorClass = 'bg-green-500';
+                } else if (accuracy <= 30) {
+                    status = 'Cukup';
+                    indicatorClass = 'bg-warning';
+                } else {
+                    status = 'Kurang';
+                    indicatorClass = 'bg-danger';
+                }
+
+                this.elements.distanceStatus.textContent = status;
+                this.elements.distanceIndicator.className = `w-2 h-2 rounded-full ${indicatorClass}`;
+            }
+
+            calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371000;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c;
+            }
+
+            updateDisplay() {
+                this.elements.distance.textContent = this.totalDistance.toFixed(2);
+                
+                if (this.lastPosition && this.lastPosition.speed !== null && this.lastPosition.speed > 0) {
+                    this.elements.speed.textContent = (this.lastPosition.speed * 3.6).toFixed(1);
+                }
+            }
+
+            updateFare() {
+                const distanceFare = Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE;
+                const waitingFare = Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
+                const totalFare = this.BASE_FARE + distanceFare + waitingFare;
+
+                this.elements.baseFare.textContent = this.formatCurrency(this.BASE_FARE);
+                this.elements.distanceFare.textContent = this.formatCurrency(distanceFare);
+                this.elements.waitingFare.textContent = this.formatCurrency(waitingFare);
+                this.elements.totalFare.textContent = this.formatCurrency(totalFare);
+                this.elements.amountDisplay.textContent = this.formatCurrency(totalFare);
+
+                // Auto-generate QR code dengan nominal baru
+                this.generateQRCode(totalFare);
+
+                // Update trip data in Firebase
+                if (this.isTracking && this.currentTripId) {
+                    const tripUpdate = {
+                        totalDistance: parseFloat(this.totalDistance.toFixed(2)),
+                        totalDuration: Math.floor((Date.now() - this.startTime) / 1000),
+                        waitingTime: this.waitingTime,
+                        totalFare: totalFare,
+                        distanceFare: distanceFare,
+                        waitingFare: waitingFare,
+                        currentSpeed: this.lastPosition ? (this.lastPosition.speed * 3.6).toFixed(1) : 0,
+                        lastLocation: this.lastPosition ? {
+                            latitude: this.lastPosition.latitude,
+                            longitude: this.lastPosition.longitude,
+                            accuracy: this.lastPosition.accuracy
+                        } : null
+                    };
+
+                    this.updateTripInFirebase(tripUpdate);
+                }
+            }
+
+            startTimer() {
+                this.startTime = new Date();
+                this.timerInterval = setInterval(() => {
+                    const now = new Date();
+                    const elapsed = new Date(now - this.startTime);
+                    const hours = String(elapsed.getUTCHours()).padStart(2, '0');
+                    const minutes = String(elapsed.getUTCMinutes()).padStart(2, '0');
+                    const seconds = String(elapsed.getUTCSeconds()).padStart(2, '0');
+                    this.elements.duration.textContent = `${hours}:${minutes}:${seconds}`;
+                }, 1000);
+            }
+
+            startWaitingTimer() {
+                this.waitingTimerInterval = setInterval(() => {
+                    if (!this.isMoving && this.isTracking) {
+                        this.waitingTime++;
+                        const minutes = Math.floor(this.waitingTime / 60);
+                        const seconds = this.waitingTime % 60;
+                        this.elements.waitingTime.textContent = 
+                            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                        this.updateFare();
+                    }
+                }, 1000);
+            }
+
+            stopTracking() {
+                this.isTracking = false;
+                
+                this.elements.startBtn.innerHTML = '<i class="fas fa-play mr-1"></i>MULAI';
+                this.elements.startBtn.className = 'flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
+                this.elements.resetBtn.disabled = false;
+                this.elements.driverStatus.textContent = 'Online';
+                this.elements.driverStatus.className = 'text-green-600 font-bold';
+
+                clearInterval(this.timerInterval);
+                clearInterval(this.waitingTimerInterval);
+
+                if (this.watchId !== null) {
+                    navigator.geolocation.clearWatch(this.watchId);
+                    this.watchId = null;
+                }
+
+                const finalFare = this.BASE_FARE + Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE + Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
+                
+                // Update final trip data in Firebase
+                if (this.currentTripId) {
+                    const finalTripData = {
+                        status: "completed",
+                        endTime: new Date(),
+                        totalDistance: parseFloat(this.totalDistance.toFixed(2)),
+                        totalDuration: Math.floor((Date.now() - this.startTime) / 1000),
+                        waitingTime: this.waitingTime,
+                        totalFare: finalFare,
+                        distanceFare: Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE,
+                        waitingFare: Math.floor(this.waitingTime / 600) * this.WAITING_RATE
+                    };
+
+                    this.updateTripInFirebase(finalTripData);
+                }
+
+                this.showNotification('Perjalanan selesai! Total: ' + this.formatCurrency(finalFare));
+                this.elements.gpsStatus.textContent = 'Nonaktif';
+            }
+
+            resetTracking() {
+                this.totalDistance = 0;
+                this.lastPosition = null;
+                this.validPoints = 0;
+                this.waitingTime = 0;
+                this.positionHistory = [];
+                this.currentTripId = null;
+                this.updateDisplay();
+                this.updateFare();
+                this.elements.duration.textContent = '00:00:00';
+                this.elements.waitingTime.textContent = '00:00';
+                this.elements.validPoints.textContent = '0';
+                this.elements.speed.textContent = '0.0';
+                this.elements.tripId.textContent = '-';
+                this.showNotification('Data direset', false);
+            }
+
+            handleGeolocationError(error) {
+                let message = 'GPS Error: ';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message += 'Akses ditolak';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message += 'Posisi tidak tersedia';
+                        break;
+                    case error.TIMEOUT:
+                        message += 'Timeout';
+                        break;
+                    default:
+                        message += 'Error tidak diketahui';
+                }
+                this.showNotification(message, true);
+                this.elements.gpsStatus.textContent = 'Error';
+            }
+
+            initBattery() {
+                if ('getBattery' in navigator) {
+                    navigator.getBattery().then(battery => {
+                        this.updateBatteryLevel(battery);
+                        battery.addEventListener('levelchange', () => this.updateBatteryLevel(battery));
+                    });
+                } else {
+                    this.elements.batteryLevel.textContent = 'N/A';
+                }
+            }
+
+            updateBatteryLevel(battery) {
+                const level = Math.round(battery.level * 100);
+                this.elements.batteryLevel.textContent = `${level}%`;
             }
         }
 
-        function updateBatteryLevel(battery) {
-            const level = Math.round(battery.level * 100);
-            elements.batteryLevel.textContent = `${level}%`;
-        }
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            window.taximeter = new Taximeter();
+        });
     </script>
 </body>
 </html>
