@@ -15,8 +15,8 @@
     <link rel="apple-touch-icon" sizes="152x152" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUyIiBoZWlnaHQ9IjE1MiIgdmlld0JveD0iMCAwIDE1MiAxNTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTIiIGhlaWdodD0iMTUyIiByeD0iMTgiIGZpbGw9IiMzYjgyZjYiLz4KPHBhdGggZD0iTTc2IDM4Qzg5LjQgMzggMTAwLjIgMjcuMiAxMDAuMiAxMy44Uzg5LjQgMCA3NiAwUzUxLjggMTAuOCA1MS44IDI0LjJTNjIuNiAzOCA3NiAzOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xMjcgMTE0VjgyLjVDMTI3IDY5LjEgMTE1LjcgNTggMTAyLjMgNThINjBDNDYuNiA1OCAzNS4zIDY5LjMgMzUuMyA4Mi41VjExNEMzNS4zIDEyNy40IDQ2LjYgMTM4LjggNjAgMTM4LjhIMTAyLjNDMTE1LjcgMTM4LjggMTI3IDEyNy40IDEyNyAxMTRaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
     <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiByeD0iMjIiIGZpbGw9IiMzYjgyZjYiLz4KPHBhdGggZD0iTTkwIDQ1QzEwNi41IDQ1IDEyMCAzMS41IDEyMCAxNVMxMDYuNSAwIDkwIDBTNjAgMTMuNSA2MCAzMFM3My41IDQ1IDkwIDQ1WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE1MCAxMzVWOTcuNUMxNTAgODEgMTM2LjUgNjcuNSAxMjAgNjcuNUg2MEM0My41IDY3LjUgMzAgODEgMzAgOTcuNVYxMzVDMzAgMTUxLjUgNDMuNSAxNjUgNjAgMTY1SDEyMEMxMzYuNSAxNjUgMTUwIDE1MS41IDE1MCAxMzVaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
     
-    <!-- Splash Screen untuk iPhone -->
-    <link rel="apple-touch-startup-image" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTE3MCIgaGVpZ2h0PSIyNTMyIiB2aWV3Qm94PSIwIDAgMTE3MCAyNTMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTE3MCIgaGVpZ2h0PSIyNTMyIiBmaWxsPSIjM2I4MmY2Ii8+Cjx0ZXh0IHg9IjU4NSIgeT0iMTI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjcyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SVBPTiBUcmFja2VyPC90ZXh0Pgo8L3N2Zz4K">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -43,6 +43,28 @@
         /* Smooth transitions untuk iOS */
         * {
             -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Leaflet Map Container */
+        #map {
+            height: 300px;
+            border-radius: 12px;
+            z-index: 1;
+        }
+        
+        /* Custom leaflet popup */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+        }
+        
+        /* Tab styling */
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: white;
         }
     </style>
 </head>
@@ -102,78 +124,116 @@
             </div>
         </div>
         
+        <!-- Tabs -->
+        <div class="bg-white rounded-2xl shadow-lg p-1 mb-6 flex">
+            <button id="statsTab" class="tab-button flex-1 py-3 px-4 rounded-xl font-medium text-center active">Stats & Chart</button>
+            <button id="mapTab" class="tab-button flex-1 py-3 px-4 rounded-xl font-medium text-center">Peta</button>
+        </div>
+        
         <!-- Main Content -->
-        <main class="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-blue-50 rounded-xl p-4 text-center">
-                    <div class="text-2xl font-bold text-blue-600" id="totalDistance">0.00</div>
-                    <div class="text-xs text-blue-500 mt-1">Total Jarak (m)</div>
-                </div>
-                <div class="bg-green-50 rounded-xl p-4 text-center">
-                    <div class="text-2xl font-bold text-green-600" id="pointCount">0</div>
-                    <div class="text-xs text-green-500 mt-1">Titik Terekam</div>
-                </div>
-            </div>
-            
-            <!-- Control Buttons -->
-            <div class="flex flex-col gap-3 mb-6">
-                <button id="startBtn" class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm flex items-center justify-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Mulai Tracking
-                </button>
-                
-                <div class="flex gap-3">
-                    <button id="pauseBtn" disabled class="flex-1 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Jeda
-                    </button>
+        <main>
+            <!-- Stats & Chart Tab Content -->
+            <div id="statsContent" class="tab-content">
+                <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="totalDistance">0.00 m</div>
+                            <div class="text-xs text-blue-500 mt-1">Total Jarak</div>
+                        </div>
+                        <div class="bg-green-50 rounded-xl p-4 text-center">
+                            <div class="text-2xl font-bold text-green-600" id="pointCount">0</div>
+                            <div class="text-xs text-green-500 mt-1">Titik Terekam</div>
+                        </div>
+                    </div>
                     
-                    <button id="stopBtn" disabled class="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
-                        </svg>
-                        Berhenti
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Status Log -->
-            <div class="bg-gray-50 rounded-xl p-4 mb-6">
-                <div id="log" class="text-gray-700">
-                    <div class="flex items-center">
-                        <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <span>Status: Menunggu untuk memulai tracking...</span>
+                    <!-- Control Buttons -->
+                    <div class="flex flex-col gap-3 mb-6">
+                        <button id="startBtn" class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Mulai Tracking
+                        </button>
+                        
+                        <div class="flex gap-3">
+                            <button id="pauseBtn" disabled class="flex-1 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Jeda
+                            </button>
+                            
+                            <button id="stopBtn" disabled class="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                                </svg>
+                                Berhenti
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Log -->
+                    <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                        <div id="log" class="text-gray-700">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>Status: Menunggu untuk memulai tracking...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Location Info -->
+                    <div id="locationInfo" class="bg-blue-50 rounded-xl p-4 mb-6 hidden">
+                        <div class="flex items-center text-blue-700 mb-2">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            </svg>
+                            <span class="font-medium">Lokasi Saat Ini</span>
+                        </div>
+                        <div class="text-sm text-blue-600 grid grid-cols-2 gap-2">
+                            <div>Latitude: <span id="currentLat">-</span></div>
+                            <div>Longitude: <span id="currentLng">-</span></div>
+                            <div>Akurasi: <span id="currentAccuracy">-</span>m</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Chart -->
+                    <div class="bg-white border border-gray-200 rounded-xl p-4">
+                        <canvas id="chart" height="150"></canvas>
                     </div>
                 </div>
             </div>
             
-            <!-- Current Location Info -->
-            <div id="locationInfo" class="bg-blue-50 rounded-xl p-4 mb-6 hidden">
-                <div class="flex items-center text-blue-700 mb-2">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    </svg>
-                    <span class="font-medium">Lokasi Saat Ini</span>
+            <!-- Map Tab Content -->
+            <div id="mapContent" class="tab-content hidden">
+                <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                        </svg>
+                        <h2 class="text-lg font-bold text-gray-800">Peta Perjalanan</h2>
+                    </div>
+                    
+                    <div id="map" class="mb-4"></div>
+                    
+                    <div class="bg-gray-50 rounded-xl p-4">
+                        <div class="text-sm text-gray-600">
+                            <div class="flex items-center mb-2">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                <span>Lokasi saat ini</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                <span>Titik awal</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="text-sm text-blue-600 grid grid-cols-2 gap-2">
-                    <div>Latitude: <span id="currentLat">-</span></div>
-                    <div>Longitude: <span id="currentLng">-</span></div>
-                    <div>Akurasi: <span id="currentAccuracy">-</span>m</div>
-                </div>
-            </div>
-            
-            <!-- Chart -->
-            <div class="bg-white border border-gray-200 rounded-xl p-4">
-                <canvas id="chart" height="150"></canvas>
             </div>
         </main>
         
@@ -202,6 +262,9 @@
             <p class="mt-1">Optimized for iPhone</p>
         </footer>
     </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
         // ===========================================
@@ -234,6 +297,127 @@
         });
 
         // ===========================================
+        // TAB MANAGEMENT
+        // ===========================================
+        const statsTab = document.getElementById('statsTab');
+        const mapTab = document.getElementById('mapTab');
+        const statsContent = document.getElementById('statsContent');
+        const mapContent = document.getElementById('mapContent');
+
+        statsTab.addEventListener('click', () => {
+            statsTab.classList.add('active');
+            mapTab.classList.remove('active');
+            statsContent.classList.remove('hidden');
+            mapContent.classList.add('hidden');
+        });
+
+        mapTab.addEventListener('click', () => {
+            mapTab.classList.add('active');
+            statsTab.classList.remove('active');
+            mapContent.classList.remove('hidden');
+            statsContent.classList.add('hidden');
+        });
+
+        // ===========================================
+        // MAP INITIALIZATION
+        // ===========================================
+        let map = null;
+        let currentMarker = null;
+        let startMarker = null;
+        let trackPolyline = null;
+        let trackPoints = [];
+
+        function initializeMap() {
+            if (map) return;
+            
+            map = L.map('map').setView([-6.2088, 106.8456], 13); // Default to Jakarta
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function updateMap(lat, lng) {
+            if (!map) initializeMap();
+            
+            // Update map view to current location
+            map.setView([lat, lng], 16);
+            
+            // Remove existing current marker
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+            }
+            
+            // Add current location marker
+            currentMarker = L.marker([lat, lng])
+                .addTo(map)
+                .bindPopup('Lokasi Anda Saat Ini')
+                .openPopup();
+            
+            // Add start marker if this is the first point
+            if (trackPoints.length === 0 && startMarker === null) {
+                startMarker = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'start-marker',
+                        html: '<div style="background-color: red; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    })
+                }).addTo(map)
+                .bindPopup('Titik Mulai');
+            }
+            
+            // Add point to track
+            trackPoints.push([lat, lng]);
+            
+            // Remove existing polyline
+            if (trackPolyline) {
+                map.removeLayer(trackPolyline);
+            }
+            
+            // Add new polyline if we have at least 2 points
+            if (trackPoints.length >= 2) {
+                trackPolyline = L.polyline(trackPoints, {
+                    color: '#3b82f6',
+                    weight: 4,
+                    opacity: 0.7
+                }).addTo(map);
+            }
+        }
+
+        function clearMap() {
+            if (map) {
+                if (currentMarker) map.removeLayer(currentMarker);
+                if (startMarker) map.removeLayer(startMarker);
+                if (trackPolyline) map.removeLayer(trackPolyline);
+                
+                currentMarker = null;
+                startMarker = null;
+                trackPolyline = null;
+                trackPoints = [];
+            }
+        }
+
+        // ===========================================
+        // DISTANCE FORMATTER
+        // ===========================================
+        function formatDistance(meters) {
+            if (meters >= 1000) {
+                return (meters / 1000).toFixed(2) + ' km';
+            } else {
+                return meters.toFixed(2) + ' m';
+            }
+        }
+
+        function formatDistanceForChart(meters) {
+            if (meters >= 1000) {
+                return (meters / 1000).toFixed(1) + 'km';
+            } else {
+                return meters.toFixed(0) + 'm';
+            }
+        }
+
+        // ===========================================
         // CHART SETUP
         // ===========================================
         const ctx = document.getElementById('chart').getContext('2d');
@@ -242,7 +426,7 @@
             data: {
                 labels: [],
                 datasets: [{
-                    label: 'Total Jarak (meter)',
+                    label: 'Total Jarak',
                     data: [],
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -262,6 +446,13 @@
                     legend: {
                         display: true,
                         position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return formatDistanceForChart(context.parsed.y);
+                            }
+                        }
                     }
                 },
                 scales: { 
@@ -272,7 +463,7 @@
                         },
                         ticks: {
                             callback: function(value) {
-                                return value + 'm';
+                                return formatDistanceForChart(value);
                             }
                         }
                     },
@@ -412,7 +603,7 @@
         }
 
         function updateStats() {
-            document.getElementById('totalDistance').textContent = totalMeter.toFixed(2);
+            document.getElementById('totalDistance').textContent = formatDistance(totalMeter);
             document.getElementById('pointCount').textContent = pointCount;
         }
 
@@ -460,6 +651,9 @@
 
             updateLog("Tracking berjalan... Bergerak untuk mencatat jarak.", "success");
 
+            // Initialize map if not already
+            initializeMap();
+
             // live location watcher dengan optimasi untuk iOS
             watchId = navigator.geolocation.watchPosition(
                 async (pos) => {
@@ -473,6 +667,9 @@
 
                     // Update location info
                     updateLocationInfo(current.lat, current.lon, current.accuracy);
+
+                    // Update map
+                    updateMap(current.lat, current.lon);
 
                     if (titikSebelumnya) {
                         const jarak = await getDistanceOSRM(
@@ -488,7 +685,7 @@
                             updateStats();
 
                             // update log realtime
-                            updateLog(`Tracking aktif | Jarak: ${totalMeter.toFixed(2)}m | Titik: ${pointCount}`, "success");
+                            updateLog(`Tracking aktif | Jarak: ${formatDistance(totalMeter)} | Titik: ${pointCount}`, "success");
 
                             // update grafik realtime
                             const now = new Date();
@@ -542,7 +739,7 @@
                     Lanjutkan
                 `;
                 
-                updateLog(`Tracking dijeda | Total: ${totalMeter.toFixed(2)}m`, "warning");
+                updateLog(`Tracking dijeda | Total: ${formatDistance(totalMeter)}`, "warning");
             } else {
                 document.getElementById("pauseBtn").innerHTML = `
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -578,13 +775,16 @@
                 Jeda
             `;
 
-            updateLog(`Perjalanan selesai! Total: ${totalMeter.toFixed(2)}m dalam ${pointCount} titik`, "success");
+            updateLog(`Perjalanan selesai! Total: ${formatDistance(totalMeter)} dalam ${pointCount} titik`, "success");
 
             // Hide location info
             document.getElementById('locationInfo').classList.add('hidden');
 
             // reset titik
             titikSebelumnya = null;
+            
+            // Clear map for next session
+            clearMap();
         };
 
         // ===========================================
@@ -596,6 +796,9 @@
             
             // Update stats initially
             updateStats();
+            
+            // Initialize map
+            initializeMap();
             
             // Add safe area inset for iPhone notch
             document.body.style.paddingTop = 'env(safe-area-inset-top)';
