@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e88e5">
-    <title>Bluebird PWA - Taxi Meter</title>
+    <title>VLCrave Taxi - Taxi Meter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
@@ -29,77 +29,27 @@
     </script>
     
     <style>
-        /* Force landscape orientation */
         body {
             margin: 0;
             padding: 0;
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-        }
-        
-        .orientation-warning {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
             background: linear-gradient(135deg, #1e88e5, #0d47a1);
-            color: white;
-            z-index: 1000;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 20px;
         }
         
-        .app-content {
-            display: none;
+        .app-container {
             width: 100%;
             height: 100%;
-            overflow-y: auto;
-        }
-        
-        /* Always show content in landscape, hide warning */
-        @media (orientation: landscape) {
-            .orientation-warning {
-                display: none !important;
-            }
-            .app-content {
-                display: block !important;
-            }
-        }
-        
-        /* Show warning in portrait */
-        @media (orientation: portrait) {
-            .orientation-warning {
-                display: flex !important;
-            }
-            .app-content {
-                display: none !important;
-            }
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         
         .accuracy-excellent { background-color: #4caf50; }
         .accuracy-good { background-color: #8bc34a; }
         .accuracy-fair { background-color: #ff9800; }
         .accuracy-poor { background-color: #f44336; }
-        
-        /* Custom scrollbar for webkit */
-        .app-content::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .app-content::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        
-        .app-content::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
         
         /* Animation for location update */
         @keyframes locationUpdate {
@@ -111,27 +61,40 @@
         .location-update {
             animation: locationUpdate 0.5s ease-in-out;
         }
+        
+        /* Custom scrollbar */
+        .scroll-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        /* Notification animation */
+        @keyframes slideIn {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .notification {
+            animation: slideIn 0.3s ease-out;
+        }
     </style>
 </head>
-<body class="bg-gray-100">
-    <!-- Portrait Mode Warning -->
-    <div class="orientation-warning">
-        <i class="fas fa-rotate-right text-6xl mb-6 animate-spin"></i>
-        <h2 class="text-2xl font-bold mb-4">Putar Perangkat Anda</h2>
-        <p class="text-lg mb-2">Aplikasi ini membutuhkan mode landscape</p>
-        <p class="text-sm">Silakan putar iPhone Anda ke samping</p>
-        <div class="mt-6 p-3 bg-white bg-opacity-20 rounded-lg">
-            <p class="text-sm">Status: <span id="orientation-status">Mendeteksi orientasi...</span></p>
-        </div>
-    </div>
-
-    <!-- Main App Content -->
-    <div class="app-content">
+<body>
+    <!-- Main App Container -->
+    <div class="app-container">
         <!-- Header -->
-        <header class="bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 shadow-lg sticky top-0 z-10">
+        <header class="bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 shadow-lg">
             <div class="flex items-center justify-center space-x-3">
                 <i class="fas fa-taxi text-2xl"></i>
-                <h1 class="text-xl font-bold">Bluebird PWA</h1>
+                <h1 class="text-xl font-bold">VLCrave Taxi</h1>
             </div>
             <p class="text-center text-sm opacity-90 mt-1">Taxi Meter dengan QRIS</p>
         </header>
@@ -152,124 +115,127 @@
             </div>
         </div>
 
-        <div class="p-4 space-y-4 pb-20">
-            <!-- Distance Card -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold text-primary flex items-center">
-                        <i class="fas fa-road mr-2"></i>
-                        Jarak Tempuh
-                    </h2>
-                    <div class="flex items-center space-x-2">
-                        <span id="accuracy-status" class="text-xs font-medium">-</span>
-                        <span id="accuracy-indicator" class="w-3 h-3 rounded-full"></span>
-                    </div>
-                </div>
-                
-                <div class="text-center py-4">
-                    <div id="distance" class="text-5xl font-bold text-primary mb-1">0.00</div>
-                    <div class="text-gray-600">meter</div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 mt-4">
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="duration" class="text-xl font-bold text-primary">00:00:00</div>
-                        <div class="text-xs text-gray-600">Durasi</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="speed" class="text-xl font-bold text-primary">0.0</div>
-                        <div class="text-xs text-gray-600">km/jam</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="valid-points" class="text-xl font-bold text-primary">0</div>
-                        <div class="text-xs text-gray-600">Data Valid</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="waiting-time" class="text-xl font-bold text-primary">00:00</div>
-                        <div class="text-xs text-gray-600">Waktu Tunggu</div>
-                    </div>
-                </div>
-
-                <div id="accuracy-warning" class="hidden bg-warning text-white p-3 rounded-lg mt-4 text-center text-sm">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    Menunggu akurasi GPS yang lebih baik...
-                </div>
-
-                <div class="flex space-x-3 mt-6">
-                    <button id="start-btn" class="flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
-                        <i class="fas fa-play mr-2"></i>
-                        Mulai Perjalanan
-                    </button>
-                    <button id="reset-btn" disabled class="flex-1 bg-gray-300 text-gray-600 py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
-                        <i class="fas fa-redo mr-2"></i>
-                        Selesai
-                    </button>
-                </div>
-            </div>
-
-            <!-- Fare Calculation -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
-                    <i class="fas fa-money-bill-wave mr-2"></i>
-                    Perhitungan Ongkos
-                </h2>
-
-                <div class="bg-gradient-to-r from-success to-green-700 text-white p-4 rounded-xl text-center mb-4">
-                    <div id="total-fare" class="text-3xl font-bold">Rp 5.000</div>
-                    <div class="text-sm">Total Biaya Perjalanan</div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="base-fare" class="text-lg font-bold text-primary">Rp 5.000</div>
-                        <div class="text-xs text-gray-600">Tarif Awal</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="distance-fare" class="text-lg font-bold text-primary">Rp 0</div>
-                        <div class="text-xs text-gray-600">Biaya Jarak</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="waiting-fare" class="text-lg font-bold text-primary">Rp 0</div>
-                        <div class="text-xs text-gray-600">Biaya Tunggu</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3 text-center">
-                        <div id="distance-traveled" class="text-lg font-bold text-primary">0 m</div>
-                        <div class="text-xs text-gray-600">Jarak Tempuh</div>
-                    </div>
-                </div>
-
-                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <div class="text-xs text-gray-600 text-center">
-                        <div>Tarif: Rp 5.000 (awal) + Rp 200/100m + Rp 2.500/10 menit tunggu</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- QR Code Payment -->
-            <div class="bg-white rounded-2xl shadow-lg p-6">
-                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
-                    <i class="fas fa-qrcode mr-2"></i>
-                    Pembayaran QRIS
-                </h2>
-
-                <div class="flex flex-col items-center">
-                    <p class="text-gray-600 text-center mb-4">Scan QR code berikut untuk pembayaran</p>
-                    <div id="qrcode" class="bg-white p-4 rounded-xl shadow-inner mb-3 border-2 border-gray-200">
-                        <div class="w-48 h-48 flex items-center justify-center text-gray-400">
-                            <i class="fas fa-qrcode text-4xl"></i>
+        <!-- Main Content -->
+        <div class="flex-1 p-4 overflow-y-auto scroll-container">
+            <div class="space-y-4">
+                <!-- Distance Card -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-primary flex items-center">
+                            <i class="fas fa-road mr-2"></i>
+                            Jarak Tempuh
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            <span id="accuracy-status" class="text-xs font-medium">-</span>
+                            <span id="accuracy-indicator" class="w-3 h-3 rounded-full"></span>
                         </div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-sm text-gray-600">Total Pembayaran:</div>
-                        <div id="amount-display" class="text-xl font-bold text-primary">Rp 5.000</div>
+                    
+                    <div class="text-center py-4">
+                        <div id="distance" class="text-5xl font-bold text-primary mb-1">0.00</div>
+                        <div class="text-gray-600">meter</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="duration" class="text-xl font-bold text-primary">00:00:00</div>
+                            <div class="text-xs text-gray-600">Durasi</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="speed" class="text-xl font-bold text-primary">0.0</div>
+                            <div class="text-xs text-gray-600">km/jam</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="valid-points" class="text-xl font-bold text-primary">0</div>
+                            <div class="text-xs text-gray-600">Data Valid</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="waiting-time" class="text-xl font-bold text-primary">00:00</div>
+                            <div class="text-xs text-gray-600">Waktu Tunggu</div>
+                        </div>
+                    </div>
+
+                    <div id="accuracy-warning" class="hidden bg-warning text-white p-3 rounded-lg mt-4 text-center text-sm">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Menunggu akurasi GPS yang lebih baik...
+                    </div>
+
+                    <div class="flex space-x-3 mt-6">
+                        <button id="start-btn" class="flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
+                            <i class="fas fa-play mr-2"></i>
+                            Mulai Perjalanan
+                        </button>
+                        <button id="reset-btn" disabled class="flex-1 bg-gray-300 text-gray-600 py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
+                            <i class="fas fa-redo mr-2"></i>
+                            Selesai
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Fare Calculation -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                        <i class="fas fa-money-bill-wave mr-2"></i>
+                        Perhitungan Ongkos
+                    </h2>
+
+                    <div class="bg-gradient-to-r from-success to-green-700 text-white p-4 rounded-xl text-center mb-4">
+                        <div id="total-fare" class="text-3xl font-bold">Rp 5.000</div>
+                        <div class="text-sm">Total Biaya Perjalanan</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="base-fare" class="text-lg font-bold text-primary">Rp 5.000</div>
+                            <div class="text-xs text-gray-600">Tarif Awal</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="distance-fare" class="text-lg font-bold text-primary">Rp 0</div>
+                            <div class="text-xs text-gray-600">Biaya Jarak</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="waiting-fare" class="text-lg font-bold text-primary">Rp 0</div>
+                            <div class="text-xs text-gray-600">Biaya Tunggu</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-3 text-center">
+                            <div id="distance-traveled" class="text-lg font-bold text-primary">0 m</div>
+                            <div class="text-xs text-gray-600">Jarak Tempuh</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <div class="text-xs text-gray-600 text-center">
+                            <div>Tarif: Rp 5.000 (awal) + Rp 200/100m + Rp 2.500/10 menit tunggu</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Payment -->
+                <div class="bg-white rounded-2xl shadow-lg p-6">
+                    <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                        <i class="fas fa-qrcode mr-2"></i>
+                        Pembayaran QRIS
+                    </h2>
+
+                    <div class="flex flex-col items-center">
+                        <p class="text-gray-600 text-center mb-4">Scan QR code berikut untuk pembayaran</p>
+                        <div id="qrcode" class="bg-white p-4 rounded-xl shadow-inner mb-3 border-2 border-gray-200">
+                            <div class="w-48 h-48 flex items-center justify-center text-gray-400">
+                                <i class="fas fa-qrcode text-4xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600">Total Pembayaran:</div>
+                            <div id="amount-display" class="text-xl font-bold text-primary">Rp 5.000</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
-        <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-3 px-6 text-center">
-            <p class="text-gray-600 text-sm">Bluebird PWA &copy; 2023 - Mode Landscape</p>
+        <footer class="bg-white border-t border-gray-200 py-3 px-6 text-center">
+            <p class="text-gray-600 text-sm">VLCrave Taxi &copy; 2023</p>
         </footer>
     </div>
 
@@ -279,25 +245,6 @@
     </div>
 
     <script>
-        // Deteksi orientasi
-        function checkOrientation() {
-            const orientationStatus = document.getElementById('orientation-status');
-            const isPortrait = window.innerHeight > window.innerWidth;
-            
-            if (isPortrait) {
-                orientationStatus.textContent = 'Portrait - Putar ke Landscape';
-                orientationStatus.className = 'text-warning';
-            } else {
-                orientationStatus.textContent = 'Landscape - Siap Digunakan';
-                orientationStatus.className = 'text-success';
-            }
-        }
-
-        // Panggil saat load dan resize
-        window.addEventListener('load', checkOrientation);
-        window.addEventListener('resize', checkOrientation);
-        window.addEventListener('orientationchange', checkOrientation);
-
         // Variabel global
         let isTracking = false;
         let startTime = null;
@@ -345,9 +292,51 @@
             locationUpdateStatus: document.getElementById('location-update-status')
         };
 
+        // Template payload QRIS (tetap ada di kode, tapi tidak ditampilkan)
+        const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Vistra Pedia6011Kab. Bangka610533253621960150011ID.DANA.WWW630491F1";
+
+        // Utility: replace or insert tag (EMV style: tag(2) + length(2) + value)
+        function replaceTag(payload, tag, newValue) {
+          const pos = payload.indexOf(tag);
+          if (pos !== -1) {
+            const oldLen = parseInt(payload.substr(pos+2,2), 10);
+            const start = pos;
+            const end = pos + 2 + 2 + oldLen;
+            const newLen = newValue.length.toString().padStart(2,'0');
+            return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
+          } else {
+            // insert before CRC tag '63' if exists, otherwise append
+            const crcPos = payload.indexOf('63');
+            const newLen = newValue.length.toString().padStart(2,'0');
+            const insert = tag + newLen + newValue;
+            if (crcPos !== -1) {
+              return payload.slice(0,crcPos) + insert + payload.slice(crcPos);
+            } else {
+              return payload + insert;
+            }
+          }
+        }
+
+        // CRC16-CCITT (0x1021) with initial value 0xFFFF, process bytes of ASCII characters
+        function crc16_ccitt(input) {
+          let crc = 0xFFFF;
+          for (let i=0;i<input.length;i++){
+            crc ^= (input.charCodeAt(i) & 0xFF) << 8;
+            for (let j=0;j<8;j++){
+              if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+              else crc = (crc << 1) & 0xFFFF;
+            }
+          }
+          return crc & 0xFFFF;
+        }
+
+        function toHex4(n) {
+          return n.toString(16).toUpperCase().padStart(4,'0');
+        }
+
         // Inisialisasi
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Aplikasi loaded dalam mode:', window.innerWidth > window.innerHeight ? 'Landscape' : 'Portrait');
+            console.log('Aplikasi VLCrave Taxi loaded');
             initBattery();
             elements.startBtn.addEventListener('click', toggleTracking);
             elements.resetBtn.addEventListener('click', resetTracking);
@@ -355,7 +344,7 @@
             
             // Test notification
             setTimeout(() => {
-                showNotification('Aplikasi siap digunakan! Putar ke landscape jika belum', false);
+                showNotification('Aplikasi VLCrave Taxi siap digunakan!', false);
             }, 1000);
         });
 
@@ -704,28 +693,22 @@
 
         // QR Code Functions
         function updateQRCode(amount = 5000) {
-            const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405" + 
-                           String(amount).padStart(5, '0') + "5802ID5912Bluebird Taxi6011Jakarta Pusat610533253621960150011ID.DANA.WWW6304";
+            let amountValue = amount.toString().padStart(5, '0');
 
-            function crc16_ccitt(input) {
-                let crc = 0xFFFF;
-                for (let i=0;i<input.length;i++){
-                    crc ^= (input.charCodeAt(i) & 0xFF) << 8;
-                    for (let j=0;j<8;j++){
-                        if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
-                        else crc = (crc << 1) & 0xFFFF;
-                    }
-                }
-                return crc & 0xFFFF;
+            // Replace tag 54
+            let newPayload = replaceTag(template, '54', amountValue);
+
+            // Remove existing CRC (tag 63) if any
+            const crcTagPos = newPayload.indexOf('63');
+            if (crcTagPos !== -1) {
+                newPayload = newPayload.slice(0, crcTagPos);
             }
-
-            function toHex4(n) {
-                return n.toString(16).toUpperCase().padStart(4,'0');
-            }
-
-            const crc = crc16_ccitt(template);
+            
+            // Append CRC placeholder
+            const toCrc = newPayload + '63' + '04';
+            const crc = crc16_ccitt(toCrc);
             const crcHex = toHex4(crc);
-            const finalPayload = template + crcHex;
+            const finalPayload = toCrc + crcHex;
 
             generateQRCode(finalPayload);
         }
