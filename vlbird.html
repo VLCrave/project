@@ -106,6 +106,29 @@
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-600 to-blue-800 min-h-screen overflow-x-auto">
@@ -138,8 +161,8 @@
             <!-- Main Content - Horizontal Layout dengan Scroll -->
             <div class="flex-1 flex overflow-x-auto thin-scrollbar">
                 
-                <!-- QR Code Section -->
-                <div class="w-64 min-w-[200px] flex flex-col border-r border-gray-200">
+                <!-- QR Code Section - Hanya tampil setelah trip selesai -->
+                <div id="payment-section" class="w-64 min-w-[200px] flex flex-col border-r border-gray-200 hidden">
                     <div class="p-3 border-b border-gray-200">
                         <h2 class="text-sm font-bold text-gray-800 flex items-center">
                             <i class="fas fa-qrcode mr-1 text-primary text-xs"></i>
@@ -158,7 +181,7 @@
                         
                         <div class="text-center">
                             <div class="text-xs text-gray-600 font-semibold mb-1">TOTAL BAYAR</div>
-                            <div id="amount-display" class="text-lg font-bold text-primary">Rp 5.000</div>
+                            <div id="amount-display" class="text-lg font-bold text-primary">Rp 0</div>
                         </div>
 
                         <!-- Trip ID Display -->
@@ -170,7 +193,7 @@
                 </div>
 
                 <!-- Middle Section - Distance, Fare & Controls -->
-                <div class="w-2/3 min-w-[500px] flex flex-col border-r border-gray-200">
+                <div class="w-full min-w-[500px] flex flex-col border-r border-gray-200">
                     
                     <!-- Compact Distance Display -->
                     <div class="p-3 border-b border-gray-200">
@@ -298,6 +321,33 @@
         </div>
     </div>
 
+    <!-- Modal Pembayaran -->
+    <div id="payment-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="text-center mb-4">
+                <h2 class="text-lg font-bold text-gray-800">Pilih Metode Pembayaran</h2>
+                <p class="text-sm text-gray-600 mt-1">Total yang harus dibayar:</p>
+                <div id="modal-total-fare" class="text-xl font-bold text-primary mt-1">Rp 0</div>
+            </div>
+            
+            <div class="space-y-3">
+                <button id="cash-payment" class="w-full bg-primary hover:bg-primary-dark text-white py-3 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow">
+                    <i class="fas fa-money-bill-wave mr-2"></i>
+                    Bayar Cash
+                </button>
+                
+                <button id="qris-payment" class="w-full bg-success hover:bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow">
+                    <i class="fas fa-qrcode mr-2"></i>
+                    Bayar dengan QRIS
+                </button>
+            </div>
+            
+            <button id="close-modal" class="w-full mt-4 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 rounded-lg font-bold transition-all duration-200 active:scale-95">
+                Tutup
+            </button>
+        </div>
+    </div>
+
     <!-- Compact Notification -->
     <div id="notification" class="fixed top-2 left-1/2 transform -translate-x-1/2 -translate-y-20 bg-success text-white px-4 py-2 rounded-full shadow-lg z-50 transition-all duration-300 flex items-center space-x-2 text-xs">
         <i class="fas fa-check-circle"></i>
@@ -374,7 +424,13 @@
                     tripId: document.getElementById('trip-id'),
                     firebaseStatus: document.getElementById('firebase-status'),
                     driverStatus: document.getElementById('driver-status'),
-                    qrPlaceholderText: document.getElementById('qr-placeholder-text')
+                    qrPlaceholderText: document.getElementById('qr-placeholder-text'),
+                    paymentSection: document.getElementById('payment-section'),
+                    paymentModal: document.getElementById('payment-modal'),
+                    modalTotalFare: document.getElementById('modal-total-fare'),
+                    cashPayment: document.getElementById('cash-payment'),
+                    qrisPayment: document.getElementById('qris-payment'),
+                    closeModal: document.getElementById('close-modal')
                 };
                 
                 // Initialize
@@ -492,9 +548,57 @@
             
             bindEvents() {
                 this.elements.startBtn.addEventListener('click', () => this.toggleTracking());
-                this.elements.resetBtn.addEventListener('click', () => this.resetTracking());
+                this.elements.resetBtn.addEventListener('click', () => this.showPaymentModal());
+                
+                // Modal events
+                this.elements.cashPayment.addEventListener('click', () => this.processCashPayment());
+                this.elements.qrisPayment.addEventListener('click', () => this.processQRISPayment());
+                this.elements.closeModal.addEventListener('click', () => this.hidePaymentModal());
+                
+                // Close modal when clicking outside
+                this.elements.paymentModal.addEventListener('click', (e) => {
+                    if (e.target === this.elements.paymentModal) {
+                        this.hidePaymentModal();
+                    }
+                });
             }
             
+            // Show payment modal
+            showPaymentModal() {
+                this.elements.modalTotalFare.textContent = this.formatCurrency(this.finalFare);
+                this.elements.paymentModal.classList.remove('hidden');
+            }
+            
+            // Hide payment modal
+            hidePaymentModal() {
+                this.elements.paymentModal.classList.add('hidden');
+            }
+            
+            // Process cash payment
+            processCashPayment() {
+                this.hidePaymentModal();
+                this.showNotification('Pembayaran Cash berhasil diproses!');
+                this.resetTracking();
+            }
+            
+            // Process QRIS payment
+            processQRISPayment() {
+                this.hidePaymentModal();
+                this.showNotification('QRIS berhasil dibuat! Silakan scan QR Code.');
+                this.showPaymentSection();
+                this.generateQRCode(this.finalFare);
+            }
+            
+            // Show payment section
+            showPaymentSection() {
+                this.elements.paymentSection.classList.remove('hidden');
+            }
+            
+            // Hide payment section
+            hidePaymentSection() {
+                this.elements.paymentSection.classList.add('hidden');
+            }
+
             // QR Code Generator dengan Canvas
             generateQRCode(amount = 5000) {
                 try {
@@ -662,8 +766,8 @@
                 this.elements.driverStatus.className = 'text-blue-600 font-bold';
                 this.elements.tripId.textContent = this.currentTripId;
 
-                // Show QR placeholder selama trip berlangsung
-                this.showQRPlaceholder();
+                // Hide payment section selama trip berlangsung
+                this.hidePaymentSection();
 
                 this.totalDistance = 0;
                 this.lastPosition = null;
@@ -927,9 +1031,6 @@
 
                 this.finalFare = this.BASE_FARE + Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE + Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
                 
-                // Generate QR Code setelah trip selesai
-                this.generateQRCode(this.finalFare);
-                
                 // Update final trip data in Firebase
                 if (this.currentTripId) {
                     const finalTripData = {
@@ -946,7 +1047,7 @@
                     this.updateTripInFirebase(finalTripData);
                 }
 
-                this.showNotification('Perjalanan selesai! QR Code telah dibuat. Total: ' + this.formatCurrency(this.finalFare));
+                this.showNotification('Perjalanan selesai! Silakan pilih metode pembayaran.');
                 this.elements.gpsStatus.textContent = 'Nonaktif';
             }
 
@@ -966,8 +1067,8 @@
                 this.elements.speed.textContent = '0.0';
                 this.elements.tripId.textContent = '-';
                 
-                // Show QR placeholder lagi
-                this.showQRPlaceholder();
+                // Hide payment section
+                this.hidePaymentSection();
                 
                 this.showNotification('Data direset', false);
             }
