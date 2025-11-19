@@ -15,6 +15,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
+    <!-- Leaflet Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <script>
         tailwind.config = {
             theme: {
@@ -129,6 +133,38 @@
             max-width: 400px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         }
+        
+        /* Map container */
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 8px;
+            z-index: 1;
+        }
+        
+        /* Tab styles */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .tab-button {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: #1e88e5;
+            color: #1e88e5;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-600 to-blue-800 min-h-screen overflow-x-auto">
@@ -158,146 +194,205 @@
                 </div>
             </div>
 
-            <!-- Main Content - Horizontal Layout dengan Scroll -->
-            <div class="flex-1 flex overflow-x-auto thin-scrollbar">
-                
-                <!-- QR Code Section - Hanya tampil setelah trip selesai -->
-                <div id="payment-section" class="w-64 min-w-[200px] flex flex-col border-r border-gray-200 hidden">
-                    <div class="p-3 border-b border-gray-200">
-                        <h2 class="text-sm font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-qrcode mr-1 text-primary text-xs"></i>
-                            PEMBAYARAN QRIS
-                        </h2>
-                    </div>
-                    
-                    <div class="flex-1 flex flex-col items-center justify-center p-3">
-                        <div class="bg-white p-2 rounded-lg shadow-inner border border-gray-200 mb-3 qr-placeholder">
-                            <canvas id="qrcode-canvas" width="128" height="128" class="w-32 h-32"></canvas>
-                            <div id="qr-placeholder-text" class="absolute inset-0 flex items-center justify-center flex-col">
-                                <div class="loader mb-2"></div>
-                                <div class="text-xs text-gray-500 text-center">QR Code akan muncul<br>setelah trip selesai</div>
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-gray-200 bg-gray-50">
+                <button class="tab-button active" data-tab="taximeter">
+                    <i class="fas fa-taxi mr-1"></i>Taximeter
+                </button>
+                <button class="tab-button" data-tab="maps">
+                    <i class="fas fa-map mr-1"></i>Peta
+                </button>
+                <button class="tab-button" data-tab="history">
+                    <i class="fas fa-history mr-1"></i>Riwayat
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="flex-1 overflow-hidden">
+                <!-- Taximeter Tab -->
+                <div id="taximeter-tab" class="tab-content active h-full">
+                    <div class="flex-1 flex overflow-x-auto thin-scrollbar h-full">
+                        
+                        <!-- QR Code Section - Hanya tampil setelah trip selesai -->
+                        <div id="payment-section" class="w-64 min-w-[200px] flex flex-col border-r border-gray-200 hidden">
+                            <div class="p-3 border-b border-gray-200">
+                                <h2 class="text-sm font-bold text-gray-800 flex items-center">
+                                    <i class="fas fa-qrcode mr-1 text-primary text-xs"></i>
+                                    PEMBAYARAN QRIS
+                                </h2>
+                            </div>
+                            
+                            <div class="flex-1 flex flex-col items-center justify-center p-3">
+                                <div class="bg-white p-2 rounded-lg shadow-inner border border-gray-200 mb-3 qr-placeholder">
+                                    <canvas id="qrcode-canvas" width="128" height="128" class="w-32 h-32"></canvas>
+                                    <div id="qr-placeholder-text" class="absolute inset-0 flex items-center justify-center flex-col">
+                                        <div class="loader mb-2"></div>
+                                        <div class="text-xs text-gray-500 text-center">QR Code akan muncul<br>setelah trip selesai</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <div class="text-xs text-gray-600 font-semibold mb-1">TOTAL BAYAR</div>
+                                    <div id="amount-display" class="text-lg font-bold text-primary">Rp 0</div>
+                                </div>
+
+                                <!-- Trip ID Display -->
+                                <div class="mt-3 text-center">
+                                    <div class="text-xs text-gray-600 font-semibold mb-1">TRIP ID</div>
+                                    <div id="trip-id" class="text-sm font-bold text-gray-800">-</div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="text-center">
-                            <div class="text-xs text-gray-600 font-semibold mb-1">TOTAL BAYAR</div>
-                            <div id="amount-display" class="text-lg font-bold text-primary">Rp 0</div>
-                        </div>
 
-                        <!-- Trip ID Display -->
-                        <div class="mt-3 text-center">
-                            <div class="text-xs text-gray-600 font-semibold mb-1">TRIP ID</div>
-                            <div id="trip-id" class="text-sm font-bold text-gray-800">-</div>
+                        <!-- Middle Section - Distance, Fare & Controls -->
+                        <div class="w-full min-w-[500px] flex flex-col border-r border-gray-200">
+                            
+                            <!-- Compact Distance Display -->
+                            <div class="p-3 border-b border-gray-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h2 class="text-sm font-bold text-gray-800 flex items-center">
+                                        <i class="fas fa-road mr-1 text-primary text-xs"></i>
+                                        Jarak Tempuh
+                                    </h2>
+                                    <div class="flex items-center space-x-1">
+                                        <span id="distance-status" class="text-xs font-medium">-</span>
+                                        <span id="distance-indicator" class="w-2 h-2 rounded-full"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center mb-3">
+                                    <div id="distance" class="text-3xl font-bold text-primary mb-1">0.00</div>
+                                    <div class="text-xs text-gray-600 font-semibold">KILOMETER</div>
+                                </div>
+
+                                <!-- Compact Stats Grid -->
+                                <div class="grid grid-cols-4 gap-2 mb-3">
+                                    <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
+                                        <div id="duration" class="text-base font-bold text-primary">00:00:00</div>
+                                        <div class="text-[10px] text-gray-600 font-semibold mt-1">DURASI</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
+                                        <div id="speed" class="text-base font-bold text-primary">0.0</div>
+                                        <div class="text-[10px] text-gray-600 font-semibold mt-1">KM/JAM</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
+                                        <div id="valid-points" class="text-base font-bold text-primary">0</div>
+                                        <div class="text-[10px] text-gray-600 font-semibold mt-1">DATA VALID</div>
+                                    </div>
+                                    <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
+                                        <div id="waiting-time" class="text-base font-bold text-primary">00:00</div>
+                                        <div class="text-[10px] text-gray-600 font-semibold mt-1">WAKTU TUNGGU</div>
+                                    </div>
+                                </div>
+
+                                <!-- Perhitungan Tarif -->
+                                <div class="bg-gradient-to-r from-success to-green-600 text-white p-3 rounded-lg text-center mb-3 shadow">
+                                    <div id="total-fare" class="text-xl font-bold mb-1">Rp 5.000</div>
+                                    <div class="text-xs opacity-90 font-semibold">TOTAL TARIF</div>
+                                </div>
+
+                                <!-- Compact Tarif Breakdown -->
+                                <div class="grid grid-cols-3 gap-2 mb-3">
+                                    <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                                        <div class="text-xs font-semibold text-gray-600 mb-1">Tarif Awal</div>
+                                        <div id="base-fare" class="text-sm font-bold text-primary">Rp 5.000</div>
+                                    </div>
+                                    <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                                        <div class="text-xs font-semibold text-gray-600 mb-1">Biaya Jarak</div>
+                                        <div id="distance-fare" class="text-sm font-bold text-primary">Rp 0</div>
+                                    </div>
+                                    <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                                        <div class="text-xs font-semibold text-gray-600 mb-1">Biaya Tunggu</div>
+                                        <div id="waiting-fare" class="text-sm font-bold text-primary">Rp 0</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Controls Section -->
+                            <div class="flex-1 p-3 bg-gray-50 flex flex-col">
+                                <!-- Status Information -->
+                                <div class="bg-blue-50 rounded-lg p-3 border border-blue-200 mb-3">
+                                    <div class="text-xs font-bold text-blue-800 mb-2 flex items-center">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        STATUS SISTEM
+                                    </div>
+                                    <div class="text-[11px] text-blue-700 space-y-1">
+                                        <div class="flex justify-between">
+                                            <span class="font-semibold">Status Trip:</span>
+                                            <span id="trip-status" class="text-green-600 font-bold">Siap</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="font-semibold">Trip ID:</span>
+                                            <span id="current-trip-id" class="font-mono">-</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="font-semibold">Mode:</span>
+                                            <span id="trip-mode" class="text-primary font-bold">Standby</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="distance-warning" class="hidden bg-warning text-white p-2 rounded text-center text-xs mb-3">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                                    Menunggu akurasi GPS...
+                                </div>
+
+                                <div class="flex space-x-2 mt-auto">
+                                    <button id="start-btn" class="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs">
+                                        <i class="fas fa-play mr-1"></i>
+                                        MULAI
+                                    </button>
+                                    <button id="reset-btn" disabled class="flex-1 bg-gray-400 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs">
+                                        <i class="fas fa-redo mr-1"></i>
+                                        SELESAI
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Middle Section - Distance, Fare & Controls -->
-                <div class="w-full min-w-[500px] flex flex-col border-r border-gray-200">
-                    
-                    <!-- Compact Distance Display -->
-                    <div class="p-3 border-b border-gray-200">
-                        <div class="flex justify-between items-center mb-2">
-                            <h2 class="text-sm font-bold text-gray-800 flex items-center">
-                                <i class="fas fa-road mr-1 text-primary text-xs"></i>
-                                Jarak Tempuh
-                            </h2>
-                            <div class="flex items-center space-x-1">
-                                <span id="distance-status" class="text-xs font-medium">-</span>
-                                <span id="distance-indicator" class="w-2 h-2 rounded-full"></span>
+                <!-- Maps Tab -->
+                <div id="maps-tab" class="tab-content h-full p-4">
+                    <div class="bg-white rounded-lg shadow p-4 h-full">
+                        <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fas fa-map-marked-alt mr-2 text-primary"></i>
+                            Peta Perjalanan
+                        </h2>
+                        <div id="map" class="w-full h-3/4 mb-3"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <div class="text-xs font-semibold text-gray-600 mb-1">Lokasi Saat Ini</div>
+                                <div id="current-location" class="text-sm font-medium text-gray-800">-</div>
                             </div>
-                        </div>
-                        
-                        <div class="text-center mb-3">
-                            <div id="distance" class="text-3xl font-bold text-primary mb-1">0.00</div>
-                            <div class="text-xs text-gray-600 font-semibold">METER</div>
-                        </div>
-
-                        <!-- Compact Stats Grid -->
-                        <div class="grid grid-cols-4 gap-2 mb-3">
-                            <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
-                                <div id="duration" class="text-base font-bold text-primary">00:00:00</div>
-                                <div class="text-[10px] text-gray-600 font-semibold mt-1">DURASI</div>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
-                                <div id="speed" class="text-base font-bold text-primary">0.0</div>
-                                <div class="text-[10px] text-gray-600 font-semibold mt-1">KM/JAM</div>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
-                                <div id="valid-points" class="text-base font-bold text-primary">0</div>
-                                <div class="text-[10px] text-gray-600 font-semibold mt-1">DATA VALID</div>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-2 text-center border border-gray-200">
-                                <div id="waiting-time" class="text-base font-bold text-primary">00:00</div>
-                                <div class="text-[10px] text-gray-600 font-semibold mt-1">WAKTU TUNGGU</div>
-                            </div>
-                        </div>
-
-                        <!-- Perhitungan Tarif -->
-                        <div class="bg-gradient-to-r from-success to-green-600 text-white p-3 rounded-lg text-center mb-3 shadow">
-                            <div id="total-fare" class="text-xl font-bold mb-1">Rp 5.000</div>
-                            <div class="text-xs opacity-90 font-semibold">TOTAL TARIF</div>
-                        </div>
-
-                        <!-- Compact Tarif Breakdown -->
-                        <div class="grid grid-cols-3 gap-2 mb-3">
-                            <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                                <div class="text-xs font-semibold text-gray-600 mb-1">Tarif Awal</div>
-                                <div id="base-fare" class="text-sm font-bold text-primary">Rp 5.000</div>
-                            </div>
-                            <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                                <div class="text-xs font-semibold text-gray-600 mb-1">Biaya Jarak</div>
-                                <div id="distance-fare" class="text-sm font-bold text-primary">Rp 0</div>
-                            </div>
-                            <div class="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                                <div class="text-xs font-semibold text-gray-600 mb-1">Biaya Tunggu</div>
-                                <div id="waiting-fare" class="text-sm font-bold text-primary">Rp 0</div>
+                            <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                                <div class="text-xs font-semibold text-gray-600 mb-1">Status GPS</div>
+                                <div id="map-gps-status" class="text-sm font-medium text-green-600">Mencari...</div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Driver Information & Controls -->
-                    <div class="flex-1 p-3 bg-gray-50 flex flex-col">
-                        <!-- Informasi Driver -->
-                        <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200 mb-3">
-                            <div class="text-xs font-bold text-yellow-800 mb-2 flex items-center">
-                                <i class="fas fa-id-card mr-1"></i>
-                                INFORMASI DRIVER
-                            </div>
-                            <div class="text-[11px] text-yellow-700 space-y-1">
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">Nama:</span>
-                                    <span>Vicky Satria Lindy</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">ID Driver:</span>
-                                    <span>VL-001</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">Status:</span>
-                                    <span id="driver-status" class="text-green-600 font-bold">Online</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">Kendaraan:</span>
-                                    <span>VLCrave Taxi</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="distance-warning" class="hidden bg-warning text-white p-2 rounded text-center text-xs mb-3">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>
-                            Menunggu akurasi GPS...
-                        </div>
-
-                        <div class="flex space-x-2 mt-auto">
-                            <button id="start-btn" class="flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs">
-                                <i class="fas fa-play mr-1"></i>
-                                MULAI
+                <!-- History Tab -->
+                <div id="history-tab" class="tab-content h-full p-4">
+                    <div class="bg-white rounded-lg shadow p-4 h-full flex flex-col">
+                        <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fas fa-history mr-2 text-primary"></i>
+                            Riwayat Perjalanan
+                        </h2>
+                        <div class="flex space-x-2 mb-3">
+                            <button id="refresh-history" class="bg-primary text-white px-3 py-1 rounded text-xs flex items-center">
+                                <i class="fas fa-sync-alt mr-1"></i> Refresh
                             </button>
-                            <button id="reset-btn" disabled class="flex-1 bg-gray-400 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs">
-                                <i class="fas fa-redo mr-1"></i>
-                                SELESAI
+                            <button id="clear-history" class="bg-gray-500 text-white px-3 py-1 rounded text-xs flex items-center">
+                                <i class="fas fa-trash mr-1"></i> Hapus
                             </button>
+                        </div>
+                        <div id="history-list" class="flex-1 overflow-y-auto thin-scrollbar space-y-2">
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-history text-3xl mb-2 opacity-50"></i>
+                                <p>Belum ada riwayat perjalanan</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -377,7 +472,7 @@
                 this.startTime = null;
                 this.timerInterval = null;
                 this.waitingTimerInterval = null;
-                this.totalDistance = 0;
+                this.totalDistance = 0; // Dalam meter
                 this.lastPosition = null;
                 this.watchId = null;
                 this.validPoints = 0;
@@ -388,12 +483,17 @@
                 this.currentTripId = null;
                 this.firebaseConnected = false;
                 this.finalFare = 0;
+                this.map = null;
+                this.marker = null;
+                this.path = null;
+                this.routeCoordinates = [];
                 
-                // Settings
+                // Settings - Hitung per 100 meter (0.1 KM)
                 this.MIN_ACCURACY = 15;
-                this.MIN_DISTANCE = 3;
+                this.MIN_DISTANCE = 3; // Minimal 3 meter untuk dianggap valid
+                this.DISTANCE_INCREMENT = 100; // Hitung setiap 100 meter
                 this.BASE_FARE = 5000;
-                this.DISTANCE_RATE = 200;
+                this.DISTANCE_RATE = 200; // Biaya per 100 meter
                 this.WAITING_RATE = 2500;
                 this.UPDATE_INTERVAL = 500;
                 
@@ -423,14 +523,21 @@
                     qrCanvas: document.getElementById('qrcode-canvas'),
                     tripId: document.getElementById('trip-id'),
                     firebaseStatus: document.getElementById('firebase-status'),
-                    driverStatus: document.getElementById('driver-status'),
+                    tripStatus: document.getElementById('trip-status'),
+                    currentTripId: document.getElementById('current-trip-id'),
+                    tripMode: document.getElementById('trip-mode'),
                     qrPlaceholderText: document.getElementById('qr-placeholder-text'),
                     paymentSection: document.getElementById('payment-section'),
                     paymentModal: document.getElementById('payment-modal'),
                     modalTotalFare: document.getElementById('modal-total-fare'),
                     cashPayment: document.getElementById('cash-payment'),
                     qrisPayment: document.getElementById('qris-payment'),
-                    closeModal: document.getElementById('close-modal')
+                    closeModal: document.getElementById('close-modal'),
+                    currentLocation: document.getElementById('current-location'),
+                    mapGpsStatus: document.getElementById('map-gps-status'),
+                    refreshHistory: document.getElementById('refresh-history'),
+                    clearHistory: document.getElementById('clear-history'),
+                    historyList: document.getElementById('history-list')
                 };
                 
                 // Initialize
@@ -441,7 +548,9 @@
                 console.log('VLCrave Taxi - Compact Horizontal Taximeter Loaded');
                 this.initFirebase();
                 this.initBattery();
+                this.initMap();
                 this.bindEvents();
+                this.loadTripHistory();
                 
                 // Update waktu
                 this.updateCurrentTime();
@@ -451,6 +560,56 @@
                 this.showQRPlaceholder();
                 
                 this.showNotification('Sistem siap digunakan!', false);
+            }
+
+            // Initialize Map
+            initMap() {
+                // Default location (Jakarta)
+                const defaultLocation = [-6.2088, 106.8456];
+                
+                this.map = L.map('map').setView(defaultLocation, 13);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.map);
+                
+                // Add marker
+                this.marker = L.marker(defaultLocation).addTo(this.map)
+                    .bindPopup('Lokasi saat ini')
+                    .openPopup();
+                
+                // Initialize path
+                this.path = L.polyline([], {color: 'blue'}).addTo(this.map);
+            }
+
+            // Update map with current position
+            updateMap(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const newLatLng = [lat, lng];
+                
+                // Update marker position
+                this.marker.setLatLng(newLatLng);
+                
+                // Add to route if tracking
+                if (this.isTracking) {
+                    this.routeCoordinates.push(newLatLng);
+                    this.path.setLatLngs(this.routeCoordinates);
+                    
+                    // Adjust map view to show the route
+                    if (this.routeCoordinates.length === 1) {
+                        this.map.setView(newLatLng, 15);
+                    } else {
+                        this.map.fitBounds(this.path.getBounds());
+                    }
+                } else {
+                    this.map.setView(newLatLng, 15);
+                }
+                
+                // Update location text
+                this.elements.currentLocation.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                this.elements.mapGpsStatus.textContent = 'Aktif';
+                this.elements.mapGpsStatus.className = 'text-sm font-medium text-green-600';
             }
 
             // Show QR Placeholder
@@ -509,27 +668,57 @@
                 return `VL-${timestamp}-${random}`.toUpperCase();
             }
 
-            // Save trip data to Firebase
-            async saveTripToFirebase(tripData) {
+            // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
+            convertRouteForFirebase(routeCoordinates) {
+                // Konversi array of arrays [[lat,lng], [lat,lng]] 
+                // menjadi array of objects [{lat: number, lng: number}]
+                return routeCoordinates.map(coord => ({
+                    lat: coord[0],
+                    lng: coord[1]
+                }));
+            }
+
+            // PERBAIKAN: Buat trip baru dengan semua field yang diperlukan
+            async createNewTrip() {
                 if (!this.firebaseConnected) {
-                    console.warn('Firebase not connected, skipping save');
+                    console.warn('Firebase not connected, skipping create trip');
                     return;
                 }
 
                 try {
-                    const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
-                    await tripRef.set({
-                        ...tripData,
+                    const tripData = {
+                        tripId: this.currentTripId,
+                        status: "active",
+                        startTime: new Date(),
+                        baseFare: this.BASE_FARE,
+                        distanceRate: this.DISTANCE_RATE,
+                        waitingRate: this.WAITING_RATE,
+                        totalDistance: 0,
+                        totalDuration: 0,
+                        waitingTime: 0,
+                        totalFare: this.BASE_FARE,
+                        distanceFare: 0,
+                        waitingFare: 0,
+                        currentSpeed: 0,
+                        locations: [],
+                        // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
+                        routeCoordinates: this.convertRouteForFirebase(this.routeCoordinates),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    console.log('Trip data saved to Firebase');
+                    };
+
+                    const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
+                    await tripRef.set(tripData);
+                    console.log('New trip created in Firebase:', this.currentTripId);
+                    return true;
                 } catch (error) {
-                    console.error('Error saving to Firebase:', error);
-                    this.showNotification('Error menyimpan data ke cloud', true);
+                    console.error('Error creating trip in Firebase:', error);
+                    this.showNotification('Error membuat trip baru di cloud', true);
+                    return false;
                 }
             }
 
-            // Update trip data in Firebase
+            // PERBAIKAN: Update trip data dengan error handling yang lebih baik
             async updateTripInFirebase(updateData) {
                 if (!this.firebaseConnected || !this.currentTripId) {
                     return;
@@ -537,12 +726,35 @@
 
                 try {
                     const tripRef = db.collection('taxi_trips').doc(this.currentTripId);
+                    
+                    // Cek apakah dokumen sudah ada
+                    const doc = await tripRef.get();
+                    if (!doc.exists) {
+                        console.log('Document does not exist, creating new one...');
+                        await this.createNewTrip();
+                    }
+                    
+                    // PERBAIKAN: Konversi routeCoordinates jika ada di updateData
+                    if (updateData.routeCoordinates) {
+                        updateData.routeCoordinates = this.convertRouteForFirebase(updateData.routeCoordinates);
+                    }
+                    
+                    // Update dengan data baru
                     await tripRef.update({
                         ...updateData,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
+                    
+                    console.log('Trip data updated successfully');
                 } catch (error) {
                     console.error('Error updating trip in Firebase:', error);
+                    // Coba buat ulang dokumen jika error
+                    try {
+                        await this.createNewTrip();
+                        console.log('Recreated trip document after update error');
+                    } catch (createError) {
+                        console.error('Failed to recreate trip document:', createError);
+                    }
                 }
             }
             
@@ -555,12 +767,46 @@
                 this.elements.qrisPayment.addEventListener('click', () => this.processQRISPayment());
                 this.elements.closeModal.addEventListener('click', () => this.hidePaymentModal());
                 
+                // Tab events
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const tab = button.getAttribute('data-tab');
+                        this.switchTab(tab);
+                    });
+                });
+                
+                // History events
+                this.elements.refreshHistory.addEventListener('click', () => this.loadTripHistory());
+                this.elements.clearHistory.addEventListener('click', () => this.clearTripHistory());
+                
                 // Close modal when clicking outside
                 this.elements.paymentModal.addEventListener('click', (e) => {
                     if (e.target === this.elements.paymentModal) {
                         this.hidePaymentModal();
                     }
                 });
+            }
+
+            // Switch between tabs
+            switchTab(tabName) {
+                // Update active tab button
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+                document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+                
+                // Update active tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+                
+                // Refresh map if needed
+                if (tabName === 'maps' && this.map) {
+                    setTimeout(() => {
+                        this.map.invalidateSize();
+                    }, 100);
+                }
             }
             
             // Show payment modal
@@ -578,6 +824,7 @@
             processCashPayment() {
                 this.hidePaymentModal();
                 this.showNotification('Pembayaran Cash berhasil diproses!');
+                this.saveTripToHistory();
                 this.resetTracking();
             }
             
@@ -587,6 +834,7 @@
                 this.showNotification('QRIS berhasil dibuat! Silakan scan QR Code.');
                 this.showPaymentSection();
                 this.generateQRCode(this.finalFare);
+                this.saveTripToHistory();
             }
             
             // Show payment section
@@ -597,6 +845,81 @@
             // Hide payment section
             hidePaymentSection() {
                 this.elements.paymentSection.classList.add('hidden');
+            }
+
+            // Save trip to local history
+            saveTripToHistory() {
+                const tripData = {
+                    id: this.currentTripId,
+                    date: new Date().toLocaleString('id-ID'),
+                    distance: (this.totalDistance / 1000).toFixed(2), // Convert to KM
+                    duration: this.elements.duration.textContent,
+                    fare: this.finalFare,
+                    status: 'Selesai'
+                };
+                
+                let history = JSON.parse(localStorage.getItem('taxi_trip_history') || '[]');
+                history.unshift(tripData);
+                
+                // Keep only last 50 trips
+                if (history.length > 50) {
+                    history = history.slice(0, 50);
+                }
+                
+                localStorage.setItem('taxi_trip_history', JSON.stringify(history));
+                this.loadTripHistory();
+            }
+
+            // Load trip history from localStorage
+            loadTripHistory() {
+                const history = JSON.parse(localStorage.getItem('taxi_trip_history') || '[]');
+                const historyList = this.elements.historyList;
+                
+                if (history.length === 0) {
+                    historyList.innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-history text-3xl mb-2 opacity-50"></i>
+                            <p>Belum ada riwayat perjalanan</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                historyList.innerHTML = history.map(trip => `
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-bold text-primary">${trip.id}</div>
+                            <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">${trip.status}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                            <div>
+                                <i class="fas fa-calendar mr-1"></i>
+                                ${trip.date}
+                            </div>
+                            <div>
+                                <i class="fas fa-road mr-1"></i>
+                                ${trip.distance} KM
+                            </div>
+                            <div>
+                                <i class="fas fa-clock mr-1"></i>
+                                ${trip.duration}
+                            </div>
+                            <div class="font-bold text-primary">
+                                <i class="fas fa-money-bill-wave mr-1"></i>
+                                ${this.formatCurrency(trip.fare)}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Clear trip history
+            clearTripHistory() {
+                if (confirm('Apakah Anda yakin ingin menghapus semua riwayat perjalanan?')) {
+                    localStorage.removeItem('taxi_trip_history');
+                    this.loadTripHistory();
+                    this.showNotification('Riwayat perjalanan telah dihapus');
+                }
             }
 
             // QR Code Generator dengan Canvas
@@ -758,12 +1081,15 @@
                 this.startTime = new Date();
                 this.lastUpdateTime = Date.now();
                 this.currentTripId = this.generateTripId();
+                this.routeCoordinates = []; // Reset route
                 
                 this.elements.startBtn.innerHTML = '<i class="fas fa-pause mr-1"></i>BERHENTI';
                 this.elements.startBtn.className = 'flex-1 bg-secondary hover:bg-gray-600 text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
                 this.elements.resetBtn.disabled = true;
-                this.elements.driverStatus.textContent = 'On Trip';
-                this.elements.driverStatus.className = 'text-blue-600 font-bold';
+                this.elements.tripStatus.textContent = 'Berjalan';
+                this.elements.tripStatus.className = 'text-blue-600 font-bold';
+                this.elements.currentTripId.textContent = this.currentTripId;
+                this.elements.tripMode.textContent = 'On Trip';
                 this.elements.tripId.textContent = this.currentTripId;
 
                 // Hide payment section selama trip berlangsung
@@ -776,25 +1102,8 @@
                 this.positionHistory = [];
                 this.updateDisplay();
 
-                // Save initial trip data to Firebase
-                const initialTripData = {
-                    tripId: this.currentTripId,
-                    driverName: "Vicky Satria Lindy",
-                    driverId: "VL-001",
-                    status: "active",
-                    startTime: this.startTime,
-                    baseFare: this.BASE_FARE,
-                    distanceRate: this.DISTANCE_RATE,
-                    waitingRate: this.WAITING_RATE,
-                    totalDistance: 0,
-                    totalDuration: 0,
-                    waitingTime: 0,
-                    totalFare: this.BASE_FARE,
-                    locations: [],
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                this.saveTripToFirebase(initialTripData);
+                // PERBAIKAN: Buat trip baru di Firebase dengan semua field
+                this.createNewTrip();
 
                 this.startTimer();
                 this.startWaitingTimer();
@@ -829,6 +1138,7 @@
                 const speed = position.coords.speed;
 
                 this.updateDistanceIndicator(accuracy);
+                this.updateMap(position);
 
                 if (accuracy > this.MIN_ACCURACY) {
                     this.elements.distanceWarning.classList.remove('hidden');
@@ -860,7 +1170,10 @@
                     );
 
                     if (this.isValidDistance(distance, accuracy)) {
+                        // Tambahkan jarak ke total
                         this.totalDistance += distance;
+                        
+                        // Update display dengan konversi ke kilometer
                         this.updateDisplay();
                         this.isMoving = (speed !== null && speed > 0.5) || distance > 2;
                         
@@ -937,18 +1250,20 @@
             }
 
             calculateDistance(lat1, lon1, lat2, lon2) {
-                const R = 6371000;
+                const R = 6371000; // Radius bumi dalam meter
                 const dLat = (lat2 - lat1) * Math.PI / 180;
                 const dLon = (lon2 - lon1) * Math.PI / 180;
                 const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                           Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
                           Math.sin(dLon/2) * Math.sin(dLon/2);
                 const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                return R * c;
+                return R * c; // Jarak dalam meter
             }
 
             updateDisplay() {
-                this.elements.distance.textContent = this.totalDistance.toFixed(2);
+                // Tampilkan dalam kilometer dengan 2 desimal
+                const distanceInKm = this.totalDistance / 1000;
+                this.elements.distance.textContent = distanceInKm.toFixed(2);
                 
                 if (this.lastPosition && this.lastPosition.speed !== null && this.lastPosition.speed > 0) {
                     this.elements.speed.textContent = (this.lastPosition.speed * 3.6).toFixed(1);
@@ -956,7 +1271,9 @@
             }
 
             updateFare() {
-                const distanceFare = Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE;
+                // Hitung biaya jarak per 100 meter
+                const distanceUnits = Math.floor(this.totalDistance / this.DISTANCE_INCREMENT);
+                const distanceFare = distanceUnits * this.DISTANCE_RATE;
                 const waitingFare = Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
                 const totalFare = this.BASE_FARE + distanceFare + waitingFare;
 
@@ -969,7 +1286,7 @@
                 // Update trip data in Firebase
                 if (this.isTracking && this.currentTripId) {
                     const tripUpdate = {
-                        totalDistance: parseFloat(this.totalDistance.toFixed(2)),
+                        totalDistance: parseFloat((this.totalDistance / 1000).toFixed(2)), // Dalam KM
                         totalDuration: Math.floor((Date.now() - this.startTime) / 1000),
                         waitingTime: this.waitingTime,
                         totalFare: totalFare,
@@ -980,7 +1297,9 @@
                             latitude: this.lastPosition.latitude,
                             longitude: this.lastPosition.longitude,
                             accuracy: this.lastPosition.accuracy
-                        } : null
+                        } : null,
+                        // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
+                        routeCoordinates: this.convertRouteForFirebase(this.routeCoordinates)
                     };
 
                     this.updateTripInFirebase(tripUpdate);
@@ -1018,8 +1337,9 @@
                 this.elements.startBtn.innerHTML = '<i class="fas fa-play mr-1"></i>MULAI';
                 this.elements.startBtn.className = 'flex-1 bg-primary hover:bg-primary-dark text-white py-2 rounded-lg font-bold flex items-center justify-center transition-all duration-200 active:scale-95 shadow text-xs';
                 this.elements.resetBtn.disabled = false;
-                this.elements.driverStatus.textContent = 'Online';
-                this.elements.driverStatus.className = 'text-green-600 font-bold';
+                this.elements.tripStatus.textContent = 'Siap';
+                this.elements.tripStatus.className = 'text-green-600 font-bold';
+                this.elements.tripMode.textContent = 'Standby';
 
                 clearInterval(this.timerInterval);
                 clearInterval(this.waitingTimerInterval);
@@ -1029,19 +1349,23 @@
                     this.watchId = null;
                 }
 
-                this.finalFare = this.BASE_FARE + Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE + Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
+                // Hitung final fare dengan sistem per 100 meter
+                const distanceUnits = Math.floor(this.totalDistance / this.DISTANCE_INCREMENT);
+                this.finalFare = this.BASE_FARE + (distanceUnits * this.DISTANCE_RATE) + Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
                 
                 // Update final trip data in Firebase
                 if (this.currentTripId) {
                     const finalTripData = {
                         status: "completed",
                         endTime: new Date(),
-                        totalDistance: parseFloat(this.totalDistance.toFixed(2)),
+                        totalDistance: parseFloat((this.totalDistance / 1000).toFixed(2)), // Dalam KM
                         totalDuration: Math.floor((Date.now() - this.startTime) / 1000),
                         waitingTime: this.waitingTime,
                         totalFare: this.finalFare,
-                        distanceFare: Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE,
-                        waitingFare: Math.floor(this.waitingTime / 600) * this.WAITING_RATE
+                        distanceFare: distanceUnits * this.DISTANCE_RATE,
+                        waitingFare: Math.floor(this.waitingTime / 600) * this.WAITING_RATE,
+                        // PERBAIKAN: Konversi routeCoordinates ke format yang didukung Firebase
+                        routeCoordinates: this.convertRouteForFirebase(this.routeCoordinates)
                     };
 
                     this.updateTripInFirebase(finalTripData);
@@ -1059,6 +1383,7 @@
                 this.positionHistory = [];
                 this.currentTripId = null;
                 this.finalFare = 0;
+                this.routeCoordinates = [];
                 this.updateDisplay();
                 this.updateFare();
                 this.elements.duration.textContent = '00:00:00';
@@ -1066,6 +1391,12 @@
                 this.elements.validPoints.textContent = '0';
                 this.elements.speed.textContent = '0.0';
                 this.elements.tripId.textContent = '-';
+                this.elements.currentTripId.textContent = '-';
+                
+                // Reset map
+                if (this.path) {
+                    this.path.setLatLngs([]);
+                }
                 
                 // Hide payment section
                 this.hidePaymentSection();
@@ -1090,6 +1421,8 @@
                 }
                 this.showNotification(message, true);
                 this.elements.gpsStatus.textContent = 'Error';
+                this.elements.mapGpsStatus.textContent = 'Error';
+                this.elements.mapGpsStatus.className = 'text-sm font-medium text-red-600';
             }
 
             initBattery() {
