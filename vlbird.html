@@ -97,6 +97,15 @@
                 min-width: 700px;
             }
         }
+
+        .qr-placeholder {
+            background: linear-gradient(45deg, #f3f4f6 25%, transparent 25%), 
+                        linear-gradient(-45deg, #f3f4f6 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #f3f4f6 75%), 
+                        linear-gradient(-45deg, transparent 75%, #f3f4f6 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-600 to-blue-800 min-h-screen overflow-x-auto">
@@ -139,8 +148,12 @@
                     </div>
                     
                     <div class="flex-1 flex flex-col items-center justify-center p-3">
-                        <div class="bg-white p-2 rounded-lg shadow-inner border border-gray-200 mb-3">
+                        <div class="bg-white p-2 rounded-lg shadow-inner border border-gray-200 mb-3 qr-placeholder">
                             <canvas id="qrcode-canvas" width="128" height="128" class="w-32 h-32"></canvas>
+                            <div id="qr-placeholder-text" class="absolute inset-0 flex items-center justify-center flex-col">
+                                <div class="loader mb-2"></div>
+                                <div class="text-xs text-gray-500 text-center">QR Code akan muncul<br>setelah trip selesai</div>
+                            </div>
                         </div>
                         
                         <div class="text-center">
@@ -324,6 +337,7 @@
                 this.positionHistory = [];
                 this.currentTripId = null;
                 this.firebaseConnected = false;
+                this.finalFare = 0;
                 
                 // Settings
                 this.MIN_ACCURACY = 15;
@@ -359,7 +373,8 @@
                     qrCanvas: document.getElementById('qrcode-canvas'),
                     tripId: document.getElementById('trip-id'),
                     firebaseStatus: document.getElementById('firebase-status'),
-                    driverStatus: document.getElementById('driver-status')
+                    driverStatus: document.getElementById('driver-status'),
+                    qrPlaceholderText: document.getElementById('qr-placeholder-text')
                 };
                 
                 // Initialize
@@ -377,9 +392,35 @@
                 setInterval(() => this.updateCurrentTime(), 1000);
                 
                 this.updateFare();
-                this.generateQRCode(5000);
+                this.showQRPlaceholder();
                 
                 this.showNotification('Sistem siap digunakan!', false);
+            }
+
+            // Show QR Placeholder
+            showQRPlaceholder() {
+                const canvas = this.elements.qrCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Background putih dengan pattern
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw pattern background
+                ctx.fillStyle = '#f3f4f6';
+                for (let y = 0; y < canvas.height; y += 20) {
+                    for (let x = 0; x < canvas.width; x += 20) {
+                        if ((x + y) % 40 === 0) {
+                            ctx.fillRect(x, y, 10, 10);
+                        }
+                    }
+                }
+                
+                // Show placeholder text
+                this.elements.qrPlaceholderText.classList.remove('hidden');
             }
 
             // Initialize Firebase Connection
@@ -454,93 +495,33 @@
                 this.elements.resetBtn.addEventListener('click', () => this.resetTracking());
             }
             
-            // QRIS Template Generator
+            // QR Code Generator dengan Canvas
             generateQRCode(amount = 5000) {
                 try {
-                    // QRIS Template
-                    const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Vistra Pedia6011Kab. Bangka610533253621960150011ID.DANA.WWW630491F1";
-
-                    // Replace amount in template
-                    const amountStr = amount.toFixed(0).padStart(5, '0');
-                    let payload = this.replaceTag(template, "54", amountStr);
+                    const canvas = this.elements.qrCanvas;
+                    const ctx = canvas.getContext('2d');
                     
-                    // Recalculate CRC
-                    payload = this.updateCRC(payload);
+                    // Clear canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
-                    // Generate QR code dari payload
-                    this.drawQRCodeFromPayload(payload);
+                    // Background putih
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Generate QR code pattern sederhana
+                    this.drawQRPattern(ctx, amount, canvas.width, canvas.height);
+                    
+                    // Hide placeholder text
+                    this.elements.qrPlaceholderText.classList.add('hidden');
                     
                 } catch (error) {
                     console.error('Error generating QR Code:', error);
-                    this.showNotification('Error generating QR Code', true);
+                    this.showNotification('Error membuat QR Code', true);
                 }
             }
 
-            // Utility functions untuk QRIS
-            replaceTag(payload, tag, newValue) {
-                const pos = payload.indexOf(tag);
-                if (pos !== -1) {
-                    const oldLen = parseInt(payload.substr(pos+2,2), 10);
-                    const start = pos;
-                    const end = pos + 2 + 2 + oldLen;
-                    const newLen = newValue.length.toString().padStart(2,'0');
-                    return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
-                } else {
-                    const crcPos = payload.indexOf('63');
-                    const newLen = newValue.length.toString().padStart(2,'0');
-                    const insert = tag + newLen + newValue;
-                    if (crcPos !== -1) {
-                        return payload.slice(0,crcPos) + insert + payload.slice(crcPos);
-                    } else {
-                        return payload + insert;
-                    }
-                }
-            }
-
-            crc16_ccitt(input) {
-                let crc = 0xFFFF;
-                for (let i=0;i<input.length;i++){
-                    crc ^= (input.charCodeAt(i) & 0xFF) << 8;
-                    for (let j=0;j<8;j++){
-                        if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
-                        else crc = (crc << 1) & 0xFFFF;
-                    }
-                }
-                return crc & 0xFFFF;
-            }
-
-            toHex4(n) {
-                return n.toString(16).toUpperCase().padStart(4,'0');
-            }
-
-            updateCRC(payload) {
-                const crcPos = payload.indexOf('63');
-                if (crcPos !== -1) {
-                    const data = payload.slice(0, crcPos);
-                    const crc = this.crc16_ccitt(data);
-                    return data + '63' + '04' + this.toHex4(crc);
-                }
-                return payload;
-            }
-
-            // Draw QR Code dari payload
-            drawQRCodeFromPayload(payload) {
-                const canvas = this.elements.qrCanvas;
-                const ctx = canvas.getContext('2d');
-                
-                // Clear canvas
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Background putih
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Draw QR code pattern sederhana berdasarkan payload
-                this.drawSimpleQRPattern(ctx, payload, canvas.width, canvas.height);
-            }
-
-            // Draw QR pattern sederhana
-            drawSimpleQRPattern(ctx, data, width, height) {
+            // Draw QR Pattern sederhana
+            drawQRPattern(ctx, amount, width, height) {
                 const cellSize = 4;
                 const margin = 10;
                 const size = Math.min(width, height) - margin * 2;
@@ -561,10 +542,11 @@
                 // Sudut kiri bawah
                 this.drawFinderPattern(ctx, margin, margin + size - 7 * cellSize, cellSize);
                 
-                // Draw data pattern berdasarkan hash dari payload
+                // Draw data pattern berdasarkan amount
+                const dataString = `VLCRAVE-TAXI|${this.currentTripId}|${amount}|${Date.now()}`;
                 let hash = 0;
-                for (let i = 0; i < data.length; i++) {
-                    hash = ((hash << 5) - hash) + data.charCodeAt(i);
+                for (let i = 0; i < dataString.length; i++) {
+                    hash = ((hash << 5) - hash) + dataString.charCodeAt(i);
                     hash |= 0;
                 }
                 
@@ -594,6 +576,11 @@
                 ctx.font = 'bold 10px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('VLCrave Taxi', width/2, height - 5);
+                
+                // Tambahkan amount di atas QR
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 8px Arial';
+                ctx.fillText(`Rp ${amount.toLocaleString('id-ID')}`, width/2, 8);
             }
 
             drawFinderPattern(ctx, x, y, cellSize) {
@@ -674,6 +661,9 @@
                 this.elements.driverStatus.textContent = 'On Trip';
                 this.elements.driverStatus.className = 'text-blue-600 font-bold';
                 this.elements.tripId.textContent = this.currentTripId;
+
+                // Show QR placeholder selama trip berlangsung
+                this.showQRPlaceholder();
 
                 this.totalDistance = 0;
                 this.lastPosition = null;
@@ -872,9 +862,6 @@
                 this.elements.totalFare.textContent = this.formatCurrency(totalFare);
                 this.elements.amountDisplay.textContent = this.formatCurrency(totalFare);
 
-                // Auto-generate QR code dengan nominal baru
-                this.generateQRCode(totalFare);
-
                 // Update trip data in Firebase
                 if (this.isTracking && this.currentTripId) {
                     const tripUpdate = {
@@ -938,7 +925,10 @@
                     this.watchId = null;
                 }
 
-                const finalFare = this.BASE_FARE + Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE + Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
+                this.finalFare = this.BASE_FARE + Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE + Math.floor(this.waitingTime / 600) * this.WAITING_RATE;
+                
+                // Generate QR Code setelah trip selesai
+                this.generateQRCode(this.finalFare);
                 
                 // Update final trip data in Firebase
                 if (this.currentTripId) {
@@ -948,7 +938,7 @@
                         totalDistance: parseFloat(this.totalDistance.toFixed(2)),
                         totalDuration: Math.floor((Date.now() - this.startTime) / 1000),
                         waitingTime: this.waitingTime,
-                        totalFare: finalFare,
+                        totalFare: this.finalFare,
                         distanceFare: Math.floor(this.totalDistance / 100) * this.DISTANCE_RATE,
                         waitingFare: Math.floor(this.waitingTime / 600) * this.WAITING_RATE
                     };
@@ -956,7 +946,7 @@
                     this.updateTripInFirebase(finalTripData);
                 }
 
-                this.showNotification('Perjalanan selesai! Total: ' + this.formatCurrency(finalFare));
+                this.showNotification('Perjalanan selesai! QR Code telah dibuat. Total: ' + this.formatCurrency(this.finalFare));
                 this.elements.gpsStatus.textContent = 'Nonaktif';
             }
 
@@ -967,6 +957,7 @@
                 this.waitingTime = 0;
                 this.positionHistory = [];
                 this.currentTripId = null;
+                this.finalFare = 0;
                 this.updateDisplay();
                 this.updateFare();
                 this.elements.duration.textContent = '00:00:00';
@@ -974,6 +965,10 @@
                 this.elements.validPoints.textContent = '0';
                 this.elements.speed.textContent = '0.0';
                 this.elements.tripId.textContent = '-';
+                
+                // Show QR placeholder lagi
+                this.showQRPlaceholder();
+                
                 this.showNotification('Data direset', false);
             }
 
