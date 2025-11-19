@@ -6,391 +6,247 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e88e5">
-    <title>Bluebird PWA - Tracking Real-time</title>
+    <title>Bluebird PWA - Taxi Meter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e88e5',
+                        secondary: '#0d47a1',
+                        success: '#4caf50',
+                        warning: '#ff9800',
+                        danger: '#f44336'
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        /* PWA specific styles */
+        @media (orientation: portrait) {
+            .portrait-warning { display: flex; }
+            .landscape-content { display: none; }
         }
         
-        body {
-            background-color: #f5f5f5;
-            color: #333;
-            max-width: 100%;
-            overflow-x: hidden;
-            -webkit-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+        @media (orientation: landscape) {
+            .portrait-warning { display: none; }
+            .landscape-content { display: block; }
         }
         
-        .container {
-            max-width: 100%;
-            padding: 20px;
-            margin: 0 auto;
-        }
-        
-        header {
-            background: linear-gradient(135deg, #1e88e5, #0d47a1);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 10px;
-        }
-        
-        .logo i {
-            font-size: 28px;
-            margin-right: 10px;
-        }
-        
-        h1 {
-            font-size: 24px;
-            font-weight: 600;
-        }
-        
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #1e88e5;
-            display: flex;
-            align-items: center;
-        }
-        
-        .card-title i {
-            margin-right: 10px;
-        }
-        
-        .distance-display {
-            text-align: center;
-            padding: 20px 0;
-        }
-        
-        .distance-value {
-            font-size: 48px;
-            font-weight: 700;
-            color: #1e88e5;
-            margin-bottom: 5px;
-        }
-        
-        .distance-unit {
-            font-size: 18px;
-            color: #666;
-        }
-        
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .btn-primary {
-            background-color: #1e88e5;
-            color: white;
-            flex: 1;
-            margin-right: 10px;
-        }
-        
-        .btn-secondary {
-            background-color: #e0e0e0;
-            color: #333;
-            flex: 1;
-            margin-left: 10px;
-        }
-        
-        .btn i {
-            margin-right: 8px;
-        }
-        
-        .btn:active {
-            transform: scale(0.98);
-        }
-        
-        .trip-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .info-item {
-            text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 12px;
-        }
-        
-        .info-value {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1e88e5;
-        }
-        
-        .info-label {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .coordinates {
-            font-size: 12px;
-            color: #666;
-            margin-top: 10px;
-            text-align: center;
-        }
-        
-        .history-item {
-            padding: 15px 0;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .history-item:last-child {
-            border-bottom: none;
-        }
-        
-        .history-date {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .history-distance {
-            font-weight: 600;
-            color: #1e88e5;
-        }
-        
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 14px;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #4caf50;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 50px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            display: none;
-        }
-        
-        .accuracy-warning {
-            background-color: #ff9800;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            margin-top: 10px;
-            text-align: center;
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .distance-value {
-                font-size: 42px;
-            }
-            
-            .btn {
-                padding: 10px 20px;
-                font-size: 14px;
-            }
-            
-            .trip-info {
-                grid-template-columns: 1fr;
-            }
-        }
+        .accuracy-excellent { background-color: #4caf50; }
+        .accuracy-good { background-color: #8bc34a; }
+        .accuracy-fair { background-color: #ff9800; }
+        .accuracy-poor { background-color: #f44336; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <i class="fas fa-taxi"></i>
-                <h1>Bluebird PWA</h1>
+<body class="bg-gray-100 text-gray-800">
+    <!-- Portrait Mode Warning -->
+    <div class="portrait-warning fixed inset-0 bg-primary text-white z-50 flex flex-col items-center justify-center p-6 text-center">
+        <i class="fas fa-rotate-right text-6xl mb-4 animate-spin"></i>
+        <h2 class="text-2xl font-bold mb-2">Putar Perangkat Anda</h2>
+        <p class="text-lg">Aplikasi ini membutuhkan mode landscape (horizontal)</p>
+        <p class="text-sm mt-4">Silakan putar iPhone Anda ke samping</p>
+    </div>
+
+    <!-- Main Content - Landscape Only -->
+    <div class="landscape-content min-h-screen">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 shadow-lg">
+            <div class="flex items-center justify-center space-x-3">
+                <i class="fas fa-taxi text-2xl"></i>
+                <h1 class="text-xl font-bold">Bluebird PWA</h1>
             </div>
-            <p>Tracking Real-time Meter-by-Meter</p>
+            <p class="text-center text-sm opacity-90 mt-1">Taxi Meter dengan QRIS</p>
         </header>
-        
-        <div class="status-bar">
-            <div><i class="fas fa-satellite-dish"></i> GPS: <span id="gps-status">Mencari...</span></div>
-            <div><i class="fas fa-battery-three-quarters"></i> <span id="battery-level">-</span></div>
-        </div>
-        
-        <div class="card">
-            <div class="card-title">
-                <i class="fas fa-road"></i>
-                <span>Jarak Tempuh Real-time</span>
+
+        <!-- Status Bar -->
+        <div class="flex justify-between items-center px-6 py-2 bg-white shadow-sm">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-satellite-dish text-primary"></i>
+                <span class="text-sm">GPS: <span id="gps-status" class="font-medium">Mencari...</span></span>
             </div>
-            <div class="distance-display">
-                <div class="distance-value" id="distance">0.00</div>
-                <div class="distance-unit">meter</div>
-            </div>
-            
-            <div class="coordinates">
-                <div>Lat: <span id="latitude">-</span></div>
-                <div>Lng: <span id="longitude">-</span></div>
-                <div>Akurasi: ±<span id="accuracy">-</span> meter</div>
-            </div>
-            
-            <div class="trip-info">
-                <div class="info-item">
-                    <div class="info-value" id="duration">00:00:00</div>
-                    <div class="info-label">Durasi</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-value" id="speed">0.0</div>
-                    <div class="info-label">m/detik</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-value" id="points">0</div>
-                    <div class="info-label">Data Points</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-value" id="avg-speed">0.0</div>
-                    <div class="info-label">Rata-rata m/d</div>
-                </div>
-            </div>
-            
-            <div id="accuracy-warning" class="accuracy-warning" style="display: none;">
-                <i class="fas fa-exclamation-triangle"></i> Akurasi GPS rendah. Hasil mungkin kurang akurat.
-            </div>
-            
-            <div class="controls">
-                <button class="btn btn-primary" id="start-btn">
-                    <i class="fas fa-play"></i> Mulai Tracking
-                </button>
-                <button class="btn btn-secondary" id="reset-btn" disabled>
-                    <i class="fas fa-redo"></i> Reset
-                </button>
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-battery-three-quarters text-primary"></i>
+                <span id="battery-level" class="text-sm font-medium">-</span>
             </div>
         </div>
-        
-        <div class="card">
-            <div class="card-title">
-                <i class="fas fa-history"></i>
-                <span>Riwayat Tracking</span>
+
+        <div class="p-4 space-y-4">
+            <!-- Distance Card -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-primary flex items-center">
+                        <i class="fas fa-road mr-2"></i>
+                        Jarak Tempuh
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <span id="accuracy-status" class="text-xs font-medium">-</span>
+                        <span id="accuracy-indicator" class="w-3 h-3 rounded-full"></span>
+                    </div>
+                </div>
+                
+                <div class="text-center py-4">
+                    <div id="distance" class="text-5xl font-bold text-primary mb-1">0.00</div>
+                    <div class="text-gray-600">meter</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="duration" class="text-xl font-bold text-primary">00:00:00</div>
+                        <div class="text-xs text-gray-600">Durasi</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="speed" class="text-xl font-bold text-primary">0.0</div>
+                        <div class="text-xs text-gray-600">km/jam</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="valid-points" class="text-xl font-bold text-primary">0</div>
+                        <div class="text-xs text-gray-600">Data Valid</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="waiting-time" class="text-xl font-bold text-primary">00:00</div>
+                        <div class="text-xs text-gray-600">Waktu Tunggu</div>
+                    </div>
+                </div>
+
+                <div id="accuracy-warning" class="hidden bg-warning text-white p-3 rounded-lg mt-4 text-center text-sm">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    Menunggu akurasi GPS yang lebih baik...
+                </div>
+
+                <div class="flex space-x-3 mt-6">
+                    <button id="start-btn" class="flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition">
+                        <i class="fas fa-play mr-2"></i>
+                        Mulai
+                    </button>
+                    <button id="reset-btn" disabled class="flex-1 bg-gray-300 text-gray-600 py-3 rounded-xl font-bold flex items-center justify-center transition">
+                        <i class="fas fa-redo mr-2"></i>
+                        Selesai
+                    </button>
+                </div>
             </div>
-            <div id="history-list">
-                <div class="history-item">
-                    <div class="history-date">Belum ada riwayat</div>
-                    <div class="history-distance">-</div>
+
+            <!-- Fare Calculation -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                    <i class="fas fa-money-bill-wave mr-2"></i>
+                    Perhitungan Ongkos
+                </h2>
+
+                <div class="bg-gradient-to-r from-success to-green-700 text-white p-4 rounded-xl text-center mb-4">
+                    <div id="total-fare" class="text-3xl font-bold">Rp 5.000</div>
+                    <div class="text-sm">Total Biaya</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="base-fare" class="text-lg font-bold text-primary">Rp 5.000</div>
+                        <div class="text-xs text-gray-600">Tarif Awal</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="distance-fare" class="text-lg font-bold text-primary">Rp 0</div>
+                        <div class="text-xs text-gray-600">Biaya Jarak</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="waiting-fare" class="text-lg font-bold text-primary">Rp 0</div>
+                        <div class="text-xs text-gray-600">Biaya Tunggu</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3 text-center">
+                        <div id="distance-traveled" class="text-lg font-bold text-primary">0 m</div>
+                        <div class="text-xs text-gray-600">Jarak Tempuh</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code Payment -->
+            <div class="bg-white rounded-2xl shadow-lg p-6">
+                <h2 class="text-lg font-bold text-primary mb-4 flex items-center">
+                    <i class="fas fa-qrcode mr-2"></i>
+                    Pembayaran QRIS
+                </h2>
+
+                <div class="flex flex-col items-center">
+                    <p class="text-gray-600 text-center mb-4">Scan QR code untuk pembayaran</p>
+                    <div id="qrcode" class="bg-white p-4 rounded-xl shadow-inner mb-3"></div>
+                    <div class="text-center">
+                        <div class="text-sm text-gray-600">Total:</div>
+                        <div id="amount-display" class="text-xl font-bold text-primary">Rp 5.000</div>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <footer>
-            <p>Aplikasi PWA Bluebird &copy; 2023</p>
-            <p>Tracking real-time per meter</p>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-gray-200 py-4 px-6 text-center">
+            <p class="text-gray-600 text-sm">Bluebird PWA &copy; 2023</p>
+            <p class="text-gray-500 text-xs mt-1">Tarif: Rp 5.000 awal + Rp 200/100m + Rp 2.500/10 menit</p>
         </footer>
     </div>
-    
-    <div class="notification" id="notification">
-        Tracking dimulai!
+
+    <!-- Notification -->
+    <div id="notification" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-success text-white px-6 py-3 rounded-full shadow-lg z-50 transition-all duration-300 opacity-0 -translate-y-4">
+        <span id="notification-text">Notification</span>
     </div>
 
     <script>
-        // Variabel global untuk tracking
+        // Variabel global
         let isTracking = false;
         let startTime = null;
         let timerInterval = null;
-        let totalDistance = 0; // dalam meter
+        let waitingTimerInterval = null;
+        let totalDistance = 0;
         let lastPosition = null;
         let watchId = null;
-        let positionHistory = [];
-        let totalPoints = 0;
-        
-        // Elemen DOM
-        const distanceElement = document.getElementById('distance');
-        const durationElement = document.getElementById('duration');
-        const speedElement = document.getElementById('speed');
-        const avgSpeedElement = document.getElementById('avg-speed');
-        const pointsElement = document.getElementById('points');
-        const startButton = document.getElementById('start-btn');
-        const resetButton = document.getElementById('reset-btn');
-        const gpsStatusElement = document.getElementById('gps-status');
-        const batteryLevelElement = document.getElementById('battery-level');
-        const historyListElement = document.getElementById('history-list');
-        const notificationElement = document.getElementById('notification');
-        const latitudeElement = document.getElementById('latitude');
-        const longitudeElement = document.getElementById('longitude');
-        const accuracyElement = document.getElementById('accuracy');
-        const accuracyWarningElement = document.getElementById('accuracy-warning');
+        let validPoints = 0;
+        let waitingTime = 0;
+        let isMoving = false;
 
-        // Inisialisasi aplikasi
+        // Pengaturan
+        const MIN_ACCURACY = 15;
+        const MIN_DISTANCE = 3;
+        const BASE_FARE = 5000;
+        const DISTANCE_RATE = 200;
+        const WAITING_RATE = 2500;
+
+        // Elemen DOM
+        const elements = {
+            distance: document.getElementById('distance'),
+            duration: document.getElementById('duration'),
+            speed: document.getElementById('speed'),
+            validPoints: document.getElementById('valid-points'),
+            waitingTime: document.getElementById('waiting-time'),
+            startBtn: document.getElementById('start-btn'),
+            resetBtn: document.getElementById('reset-btn'),
+            gpsStatus: document.getElementById('gps-status'),
+            batteryLevel: document.getElementById('battery-level'),
+            accuracyStatus: document.getElementById('accuracy-status'),
+            accuracyIndicator: document.getElementById('accuracy-indicator'),
+            accuracyWarning: document.getElementById('accuracy-warning'),
+            totalFare: document.getElementById('total-fare'),
+            baseFare: document.getElementById('base-fare'),
+            distanceFare: document.getElementById('distance-fare'),
+            waitingFare: document.getElementById('waiting-fare'),
+            distanceTraveled: document.getElementById('distance-traveled'),
+            amountDisplay: document.getElementById('amount-display'),
+            notification: document.getElementById('notification'),
+            notificationText: document.getElementById('notification-text')
+        };
+
+        // Inisialisasi
         document.addEventListener('DOMContentLoaded', function() {
-            // Cek status baterai
-            if ('getBattery' in navigator) {
-                navigator.getBattery().then(function(battery) {
-                    updateBatteryLevel(battery);
-                    
-                    battery.addEventListener('levelchange', function() {
-                        updateBatteryLevel(battery);
-                    });
-                });
-            } else {
-                batteryLevelElement.textContent = 'Tidak tersedia';
-            }
-            
-            // Muat riwayat dari localStorage
-            loadTripHistory();
-            
-            // Event listener untuk tombol
-            startButton.addEventListener('click', toggleTracking);
-            resetButton.addEventListener('click', resetTracking);
+            initBattery();
+            elements.startBtn.addEventListener('click', toggleTracking);
+            elements.resetBtn.addEventListener('click', resetTracking);
+            updateQRCode();
         });
-        
-        // Fungsi untuk memulai/menghentikan tracking
+
         function toggleTracking() {
             if (!isTracking) {
                 startTracking();
@@ -398,304 +254,350 @@
                 stopTracking();
             }
         }
-        
-        // Mulai tracking real-time
+
         function startTracking() {
             if (!navigator.geolocation) {
-                showNotification('GPS tidak didukung di perangkat ini', 'error');
+                showNotification('GPS tidak didukung', true);
                 return;
             }
-            
+
             isTracking = true;
             startTime = new Date();
-            startButton.innerHTML = '<i class="fas fa-pause"></i> Berhenti';
-            startButton.classList.remove('btn-primary');
-            startButton.classList.add('btn-secondary');
-            resetButton.disabled = true;
             
-            // Reset data sebelumnya
-            positionHistory = [];
-            totalPoints = 0;
-            pointsElement.textContent = '0';
-            
+            // Update UI
+            elements.startBtn.innerHTML = '<i class="fas fa-pause mr-2"></i>Berhenti';
+            elements.startBtn.className = elements.startBtn.className.replace('bg-primary', 'bg-gray-500');
+            elements.resetBtn.disabled = true;
+
+            // Reset data
+            totalDistance = 0;
+            lastPosition = null;
+            validPoints = 0;
+            waitingTime = 0;
+            updateDisplay();
+
             // Mulai timer
             startTimer();
-            
-            // Mulai pelacakan GPS dengan interval cepat untuk akurasi tinggi
+            startWaitingTimer();
+
+            // Mulai GPS tracking
             watchId = navigator.geolocation.watchPosition(
                 updatePosition,
                 handleGeolocationError,
                 {
-                    enableHighAccuracy: true,  // Gunakan GPS high accuracy
-                    timeout: 10000,           // Timeout 10 detik
-                    maximumAge: 1000,         // Data maksimal 1 detik
-                    distanceFilter: 1         // Update setiap 1 meter perubahan
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 2000,
+                    distanceFilter: MIN_DISTANCE
                 }
             );
-            
-            showNotification('Tracking real-time dimulai!');
-            gpsStatusElement.textContent = 'Aktif';
-            gpsStatusElement.style.color = '#4caf50';
+
+            showNotification('Perjalanan dimulai - Menunggu GPS stabil');
+            elements.gpsStatus.textContent = 'Aktif';
+            elements.gpsStatus.className = 'font-medium text-success';
         }
-        
-        // Hentikan tracking
-        function stopTracking() {
-            isTracking = false;
-            startButton.innerHTML = '<i class="fas fa-play"></i> Mulai Tracking';
-            startButton.classList.remove('btn-secondary');
-            startButton.classList.add('btn-primary');
-            resetButton.disabled = false;
-            
-            // Hentikan timer
-            clearInterval(timerInterval);
-            
-            // Hentikan pelacakan GPS
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            
-            // Simpan perjalanan ke riwayat
-            saveTripToHistory();
-            
-            showNotification('Tracking dihentikan');
-            gpsStatusElement.textContent = 'Nonaktif';
-            gpsStatusElement.style.color = '#f44336';
-        }
-        
-        // Reset tracking
-        function resetTracking() {
-            totalDistance = 0;
-            lastPosition = null;
-            positionHistory = [];
-            totalPoints = 0;
-            distanceElement.textContent = '0.00';
-            durationElement.textContent = '00:00:00';
-            speedElement.textContent = '0.0';
-            avgSpeedElement.textContent = '0.0';
-            pointsElement.textContent = '0';
-            latitudeElement.textContent = '-';
-            longitudeElement.textContent = '-';
-            accuracyElement.textContent = '-';
-            accuracyWarningElement.style.display = 'none';
-        }
-        
-        // Update posisi berdasarkan GPS real-time
+
         function updatePosition(position) {
+            const accuracy = position.coords.accuracy;
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
             const speed = position.coords.speed;
-            const timestamp = position.timestamp;
-            
-            // Update tampilan koordinat
-            latitudeElement.textContent = lat.toFixed(6);
-            longitudeElement.textContent = lng.toFixed(6);
-            accuracyElement.textContent = Math.round(accuracy);
-            
-            // Tampilkan peringatan jika akurasi rendah
-            if (accuracy > 20) {
-                accuracyWarningElement.style.display = 'block';
-            } else {
-                accuracyWarningElement.style.display = 'none';
+
+            // Update akurasi
+            updateAccuracyIndicator(accuracy);
+
+            if (accuracy > MIN_ACCURACY) {
+                elements.accuracyWarning.classList.remove('hidden');
+                return;
             }
-            
-            // Update status GPS
-            gpsStatusElement.innerHTML = `Aktif <span style="font-size: 12px;">(±${Math.round(accuracy)}m)</span>`;
-            
-            // Simpan posisi ke history
-            const currentPosition = {
-                latitude: lat,
-                longitude: lng,
-                accuracy: accuracy,
-                timestamp: timestamp,
-                speed: speed
-            };
-            
-            positionHistory.push(currentPosition);
-            totalPoints++;
-            pointsElement.textContent = totalPoints;
-            
-            // Hitung jarak dari posisi sebelumnya
+
+            elements.accuracyWarning.classList.add('hidden');
+            validPoints++;
+            elements.validPoints.textContent = validPoints;
+
+            // Hitung jarak
             if (lastPosition !== null) {
-                const distance = calculateDistanceBetweenPoints(
+                const distance = calculateDistance(
                     lastPosition.latitude,
                     lastPosition.longitude,
                     lat,
                     lng
                 );
-                
-                // Hanya tambahkan jarak jika perubahannya signifikan dan akurat
-                if (distance > 0 && accuracy <= 50) {
+
+                if (isValidDistance(distance, accuracy)) {
                     totalDistance += distance;
-                    distanceElement.textContent = totalDistance.toFixed(2);
-                }
-                
-                // Update kecepatan
-                if (speed !== null && speed > 0) {
-                    speedElement.textContent = speed.toFixed(1);
-                } else {
-                    // Hitung kecepatan manual berdasarkan jarak dan waktu
-                    const timeDiff = (timestamp - lastPosition.timestamp) / 1000; // dalam detik
-                    if (timeDiff > 0) {
-                        const calculatedSpeed = distance / timeDiff;
-                        speedElement.textContent = calculatedSpeed.toFixed(1);
-                    }
-                }
-                
-                // Hitung kecepatan rata-rata
-                const elapsedTime = (new Date() - startTime) / 1000; // dalam detik
-                if (elapsedTime > 0) {
-                    const averageSpeed = totalDistance / elapsedTime;
-                    avgSpeedElement.textContent = averageSpeed.toFixed(1);
+                    updateDisplay();
+                    isMoving = (speed !== null && speed > 0.5) || distance > 2;
                 }
             }
-            
-            // Simpan posisi saat ini sebagai posisi terakhir
-            lastPosition = currentPosition;
+
+            lastPosition = {
+                latitude: lat,
+                longitude: lng,
+                accuracy: accuracy,
+                timestamp: position.timestamp
+            };
+
+            updateFare();
         }
-        
-        // Hitung jarak antara dua titik koordinat (dalam meter)
-        function calculateDistanceBetweenPoints(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Radius bumi dalam meter
+
+        function isValidDistance(distance, accuracy) {
+            const maxReasonableDistance = accuracy * 2;
+            return distance > 0 && distance <= maxReasonableDistance && distance >= MIN_DISTANCE;
+        }
+
+        function updateAccuracyIndicator(accuracy) {
+            let status = '', indicatorClass = '', textColor = '';
+            
+            if (accuracy <= 10) {
+                status = 'Sangat Baik';
+                indicatorClass = 'accuracy-excellent';
+                textColor = 'text-success';
+            } else if (accuracy <= 20) {
+                status = 'Baik';
+                indicatorClass = 'accuracy-good';
+                textColor = 'text-green-500';
+            } else if (accuracy <= 30) {
+                status = 'Cukup';
+                indicatorClass = 'accuracy-fair';
+                textColor = 'text-warning';
+            } else {
+                status = 'Kurang';
+                indicatorClass = 'accuracy-poor';
+                textColor = 'text-danger';
+            }
+
+            elements.accuracyStatus.textContent = status;
+            elements.accuracyStatus.className = `text-xs font-medium ${textColor}`;
+            elements.accuracyIndicator.className = `w-3 h-3 rounded-full ${indicatorClass}`;
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = R * c;
-            return distance;
+            return R * c;
         }
-        
-        // Tangani error GPS
-        function handleGeolocationError(error) {
-            let message = '';
+
+        function updateDisplay() {
+            elements.distance.textContent = totalDistance.toFixed(2);
+            elements.distanceTraveled.textContent = Math.round(totalDistance) + ' m';
             
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    message = 'Akses GPS ditolak. Izinkan akses lokasi di pengaturan.';
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message = 'Informasi lokasi tidak tersedia.';
-                    break;
-                case error.TIMEOUT:
-                    message = 'Permintaan lokasi timeout.';
-                    break;
-                default:
-                    message = 'Terjadi error tidak diketahui.';
-                    break;
+            // Update speed if available
+            if (lastPosition && lastPosition.speed !== null) {
+                elements.speed.textContent = (lastPosition.speed * 3.6).toFixed(1);
             }
-            
-            showNotification(message, 'error');
-            gpsStatusElement.textContent = 'Error';
-            gpsStatusElement.style.color = '#f44336';
         }
-        
-        // Mulai timer
+
+        function updateFare() {
+            const distanceFare = Math.floor(totalDistance / 100) * DISTANCE_RATE;
+            const waitingFare = Math.floor(waitingTime / 600) * WAITING_RATE;
+            const totalFare = BASE_FARE + distanceFare + waitingFare;
+
+            elements.baseFare.textContent = formatCurrency(BASE_FARE);
+            elements.distanceFare.textContent = formatCurrency(distanceFare);
+            elements.waitingFare.textContent = formatCurrency(waitingFare);
+            elements.totalFare.textContent = formatCurrency(totalFare);
+            elements.amountDisplay.textContent = formatCurrency(totalFare);
+
+            updateQRCode(totalFare);
+        }
+
+        function formatCurrency(amount) {
+            return 'Rp ' + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
         function startTimer() {
             startTime = new Date();
-            
-            timerInterval = setInterval(function() {
+            timerInterval = setInterval(() => {
                 const now = new Date();
-                const elapsedTime = new Date(now - startTime);
-                
-                const hours = String(elapsedTime.getUTCHours()).padStart(2, '0');
-                const minutes = String(elapsedTime.getUTCMinutes()).padStart(2, '0');
-                const seconds = String(elapsedTime.getUTCSeconds()).padStart(2, '0');
-                
-                durationElement.textContent = `${hours}:${minutes}:${seconds}`;
+                const elapsed = new Date(now - startTime);
+                const hours = String(elapsed.getUTCHours()).padStart(2, '0');
+                const minutes = String(elapsed.getUTCMinutes()).padStart(2, '0');
+                const seconds = String(elapsed.getUTCSeconds()).padStart(2, '0');
+                elements.duration.textContent = `${hours}:${minutes}:${seconds}`;
             }, 1000);
         }
-        
-        // Perbarui level baterai
+
+        function startWaitingTimer() {
+            waitingTimerInterval = setInterval(() => {
+                if (!isMoving && isTracking) {
+                    waitingTime++;
+                    const minutes = Math.floor(waitingTime / 60);
+                    const seconds = waitingTime % 60;
+                    elements.waitingTime.textContent = 
+                        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    updateFare();
+                }
+            }, 1000);
+        }
+
+        function stopTracking() {
+            isTracking = false;
+            
+            // Update UI
+            elements.startBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Mulai';
+            elements.startBtn.className = elements.startBtn.className.replace('bg-gray-500', 'bg-primary');
+            elements.resetBtn.disabled = false;
+
+            // Hentikan timer
+            clearInterval(timerInterval);
+            clearInterval(waitingTimerInterval);
+
+            // Hentikan GPS
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
+            showNotification('Perjalanan selesai!');
+            elements.gpsStatus.textContent = 'Nonaktif';
+            elements.gpsStatus.className = 'font-medium text-gray-600';
+        }
+
+        function resetTracking() {
+            totalDistance = 0;
+            lastPosition = null;
+            validPoints = 0;
+            waitingTime = 0;
+            updateDisplay();
+            updateFare();
+            elements.duration.textContent = '00:00:00';
+            elements.waitingTime.textContent = '00:00';
+            elements.validPoints.textContent = '0';
+            elements.speed.textContent = '0.0';
+        }
+
+        function handleGeolocationError(error) {
+            let message = 'Error GPS: ';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message += 'Akses ditolak';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message += 'Posisi tidak tersedia';
+                    break;
+                case error.TIMEOUT:
+                    message += 'Timeout';
+                    break;
+                default:
+                    message += 'Error tidak diketahui';
+            }
+            showNotification(message, true);
+            elements.gpsStatus.textContent = 'Error';
+            elements.gpsStatus.className = 'font-medium text-danger';
+        }
+
+        function initBattery() {
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    updateBatteryLevel(battery);
+                    battery.addEventListener('levelchange', () => updateBatteryLevel(battery));
+                });
+            } else {
+                elements.batteryLevel.textContent = 'N/A';
+            }
+        }
+
         function updateBatteryLevel(battery) {
             const level = Math.round(battery.level * 100);
-            batteryLevelElement.textContent = `${level}%`;
+            elements.batteryLevel.textContent = `${level}%`;
             
             if (level <= 20) {
-                batteryLevelElement.style.color = '#f44336';
+                elements.batteryLevel.className = 'text-sm font-medium text-danger';
             } else if (level <= 50) {
-                batteryLevelElement.style.color = '#ff9800';
+                elements.batteryLevel.className = 'text-sm font-medium text-warning';
             } else {
-                batteryLevelElement.style.color = '#4caf50';
+                elements.batteryLevel.className = 'text-sm font-medium text-success';
             }
         }
-        
-        // Tampilkan notifikasi
-        function showNotification(message, type = 'success') {
-            notificationElement.textContent = message;
+
+        function showNotification(message, isError = false) {
+            elements.notificationText.textContent = message;
+            elements.notification.className = elements.notification.className.replace('bg-success', '').replace('bg-danger', '');
+            elements.notification.classList.add(isError ? 'bg-danger' : 'bg-success');
             
-            if (type === 'error') {
-                notificationElement.style.backgroundColor = '#f44336';
-            } else {
-                notificationElement.style.backgroundColor = '#4caf50';
-            }
+            // Show notification
+            elements.notification.classList.remove('opacity-0', '-translate-y-4');
+            elements.notification.classList.add('opacity-100', 'translate-y-0');
             
-            notificationElement.style.display = 'block';
-            
-            setTimeout(function() {
-                notificationElement.style.display = 'none';
+            // Hide after 3 seconds
+            setTimeout(() => {
+                elements.notification.classList.remove('opacity-100', 'translate-y-0');
+                elements.notification.classList.add('opacity-0', '-translate-y-4');
             }, 3000);
         }
-        
-        // Simpan perjalanan ke riwayat
-        function saveTripToHistory() {
-            if (totalDistance > 0) {
-                const trip = {
-                    date: new Date().toLocaleString('id-ID'),
-                    distance: (totalDistance / 1000).toFixed(3), // Konversi ke km
-                    duration: durationElement.textContent,
-                    points: totalPoints
-                };
-                
-                const tripHistory = JSON.parse(localStorage.getItem('tripHistory') || '[]');
-                tripHistory.unshift(trip);
-                
-                // Simpan ke localStorage
-                localStorage.setItem('tripHistory', JSON.stringify(tripHistory));
-                
-                // Perbarui tampilan riwayat
-                updateHistoryDisplay();
+
+        // QR Code Functions
+        function updateQRCode(amount = 5000) {
+            const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Bluebird Taxi6011Jakarta Pusat610533253621960150011ID.DANA.WWW630491F1";
+            
+            function replaceTag(payload, tag, newValue) {
+                const pos = payload.indexOf(tag);
+                if (pos !== -1) {
+                    const oldLen = parseInt(payload.substr(pos+2,2), 10);
+                    const start = pos;
+                    const end = pos + 2 + 2 + oldLen;
+                    const newLen = newValue.length.toString().padStart(2,'0');
+                    return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
+                } else {
+                    const crcPos = payload.indexOf('63');
+                    const newLen = newValue.length.toString().padStart(2,'0');
+                    const insert = tag + newLen + newValue;
+                    return crcPos !== -1 ? payload.slice(0,crcPos) + insert + payload.slice(crcPos) : payload + insert;
+                }
             }
+
+            function crc16_ccitt(input) {
+                let crc = 0xFFFF;
+                for (let i=0;i<input.length;i++){
+                    crc ^= (input.charCodeAt(i) & 0xFF) << 8;
+                    for (let j=0;j<8;j++){
+                        if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+                        else crc = (crc << 1) & 0xFFFF;
+                    }
+                }
+                return crc & 0xFFFF;
+            }
+
+            function toHex4(n) {
+                return n.toString(16).toUpperCase().padStart(4,'0');
+            }
+
+            let amountValue = amount.toString();
+            let newPayload = replaceTag(template, '54', amountValue);
+            const crcTagPos = newPayload.indexOf('63');
+            if (crcTagPos !== -1) {
+                newPayload = newPayload.slice(0, crcTagPos);
+            }
+            
+            const toCrc = newPayload + '63' + '04';
+            const crc = crc16_ccitt(toCrc);
+            const crcHex = toHex4(crc);
+            const finalPayload = toCrc + crcHex;
+
+            generateQRCode(finalPayload);
         }
-        
-        // Muat riwayat dari localStorage
-        function loadTripHistory() {
-            const savedHistory = localStorage.getItem('tripHistory');
-            
-            if (savedHistory) {
-                updateHistoryDisplay();
+
+        function generateQRCode(text) {
+            const container = document.getElementById('qrcode');
+            container.innerHTML = '';
+            try {
+                new QRCode(container, {
+                    text: text,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (e) {
+                container.innerHTML = '<p class="text-danger text-sm">Error QR Code</p>';
             }
-        }
-        
-        // Perbarui tampilan riwayat
-        function updateHistoryDisplay() {
-            const tripHistory = JSON.parse(localStorage.getItem('tripHistory') || '[]');
-            
-            if (tripHistory.length === 0) {
-                historyListElement.innerHTML = `
-                    <div class="history-item">
-                        <div class="history-date">Belum ada riwayat</div>
-                        <div class="history-distance">-</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            historyListElement.innerHTML = '';
-            
-            tripHistory.forEach(trip => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'history-item';
-                historyItem.innerHTML = `
-                    <div class="history-date">${trip.date}</div>
-                    <div class="history-distance">${trip.distance} km</div>
-                `;
-                
-                historyListElement.appendChild(historyItem);
-            });
         }
     </script>
 </body>
