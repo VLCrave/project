@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPON Tracker - Real-time Distance Tracking</title>
+    <meta name="description" content="Aplikasi tracking jarak real-time untuk iPhone">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IPON Tracker">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMzYjgyZjYiLz4KPHBhdGggZD0iTTk2IDQ4QzExMi44IDQ4IDEyNi42IDM0LjIgMTI2LjYgMTcuNFMxMTIuOCAwIDk2IDBTNjUuNCAxMy44IDY1LjQgMzAuNlM3OS4yIDQ4IDk2IDQ4WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE2MCAxNDRWMTA0QzE2MCA4Ny4yIDE0Ni4yIDc0IDEzMCA3NEg2MkM0NS44IDc0IDMyIDg3LjIgMzIgMTA0VjE0NEMzMiAxNjAuOCA0NS44IDE3NCA2MiAxNzRIMTMwQzE0Ni4yIDE3NCAxNjAgMTYwLjggMTYwIDE0NFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=">
+    <link rel="apple-touch-icon" sizes="152x152" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUyIiBoZWlnaHQ9IjE1MiIgdmlld0JveD0iMCAwIDE1MiAxNTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTIiIGhlaWdodD0iMTUyIiByeD0iMTgiIGZpbGw9IiMzYjgyZjYiLz4KPHBhdGggZD0iTTc2IDM4Qzg5LjQgMzggMTAwLjIgMjcuMiAxMDAuMiAxMy44Uzg5LjQgMCA3NiAwUzUxLjggMTAuOCA1MS44IDI0LjJTNjIuNiAzOCA3NiAzOFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xMjcgMTE0VjgyLjVDMTI3IDY5LjEgMTE1LjcgNTggMTAyLjMgNThINjBDNDYuNiA1OCAzNS4zIDY5LjMgMzUuMyA4Mi41VjExNEMzNS4zIDEyNy40IDQ2LjYgMTM4LjggNjAgMTM4LjhIMTAyLjNDMTE1LjcgMTM4LjggMTI3IDEyNy40IDEyNyAxMTRaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiByeD0iMjIiIGZpbGw9IiMzYjgyZjYiLz4KPHBhdGggZD0iTTkwIDQ1QzEwNi41IDQ1IDEyMCAzMS41IDEyMCAxNVMxMDYuNSAwIDkwIDBTNjAgMTMuNSA2MCAzMFM3My41IDQ1IDkwIDQ1WiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE1MCAxMzVWOTcuNUMxNTAgODEgMTM2LjUgNjcuNSAxMjAgNjcuNUg2MEM0My41IDY3LjUgMzAgODEgMzAgOTcuNVYxMzVDMzAgMTUxLjUgNDMuNSAxNjUgNjAgMTY1SDEyMEMxMzYuNSAxNjUgMTUwIDE1MS41IDE1MCAxMzVaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+    
+    <!-- Splash Screen untuk iPhone -->
+    <link rel="apple-touch-startup-image" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTE3MCIgaGVpZ2h0PSIyNTMyIiB2aWV3Qm94PSIwIDAgMTE3MCAyNTMyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTE3MCIgaGVpZ2h0PSIyNTMyIiBmaWxsPSIjM2I4MmY2Ii8+Cjx0ZXh0IHg9IjU4NSIgeT0iMTI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjcyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SVBPTiBUcmFja2VyPC90ZXh0Pgo8L3N2Zz4K">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        /* Pencegahan zoom pada input di iOS */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+        
+        /* Smooth transitions untuk iOS */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen safe-area-inset">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="flex items-center justify-center mb-4">
+                <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mr-3">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">IPON Tracker</h1>
+            </div>
+            <p class="text-gray-600 text-sm md:text-base">Tracking jarak real-time untuk perjalanan Anda</p>
+        </header>
+        
+        <!-- Permission Alert -->
+        <div id="permissionAlert" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 hidden">
+            <div class="flex items-start">
+                <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <div>
+                    <h3 class="text-yellow-800 font-medium text-sm">Izin Lokasi Diperlukan</h3>
+                    <p class="text-yellow-700 text-sm mt-1">Aplikasi memerlukan akses lokasi untuk tracking. Pastikan Anda mengizinkan akses lokasi di pengaturan iPhone Anda.</p>
+                    <button id="locationHelpBtn" class="text-yellow-800 underline text-xs mt-2">Cara mengatur izin lokasi</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Help Modal -->
+        <div id="locationHelpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Cara Mengatur Izin Lokasi di iPhone</h3>
+                <div class="space-y-3 text-sm text-gray-600">
+                    <div class="flex items-start">
+                        <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">1</span>
+                        <p>Buka <strong>Pengaturan</strong> → <strong>Privasi</strong> → <strong>Layanan Lokasi</strong></p>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">2</span>
+                        <p>Pastikan <strong>Layanan Lokasi</strong> aktif</p>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">3</span>
+                        <p>Cari <strong>IPON Tracker</strong> dalam daftar aplikasi</p>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mr-3 mt-0.5 flex-shrink-0">4</span>
+                        <p>Pilih <strong>Saat Menggunakan Aplikasi</strong> atau <strong>Selalu</strong></p>
+                    </div>
+                </div>
+                <button id="closeHelpModal" class="w-full bg-blue-500 text-white py-3 rounded-lg font-medium mt-6">Mengerti</button>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <main class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-blue-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="totalDistance">0.00</div>
+                    <div class="text-xs text-blue-500 mt-1">Total Jarak (m)</div>
+                </div>
+                <div class="bg-green-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600" id="pointCount">0</div>
+                    <div class="text-xs text-green-500 mt-1">Titik Terekam</div>
+                </div>
+            </div>
+            
+            <!-- Control Buttons -->
+            <div class="flex flex-col gap-3 mb-6">
+                <button id="startBtn" class="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Mulai Tracking
+                </button>
+                
+                <div class="flex gap-3">
+                    <button id="pauseBtn" disabled class="flex-1 bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Jeda
+                    </button>
+                    
+                    <button id="stopBtn" disabled class="flex-1 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white font-medium py-4 px-6 rounded-xl transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/>
+                        </svg>
+                        Berhenti
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Status Log -->
+            <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                <div id="log" class="text-gray-700">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Status: Menunggu untuk memulai tracking...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Location Info -->
+            <div id="locationInfo" class="bg-blue-50 rounded-xl p-4 mb-6 hidden">
+                <div class="flex items-center text-blue-700 mb-2">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    </svg>
+                    <span class="font-medium">Lokasi Saat Ini</span>
+                </div>
+                <div class="text-sm text-blue-600 grid grid-cols-2 gap-2">
+                    <div>Latitude: <span id="currentLat">-</span></div>
+                    <div>Longitude: <span id="currentLng">-</span></div>
+                    <div>Akurasi: <span id="currentAccuracy">-</span>m</div>
+                </div>
+            </div>
+            
+            <!-- Chart -->
+            <div class="bg-white border border-gray-200 rounded-xl p-4">
+                <canvas id="chart" height="150"></canvas>
+            </div>
+        </main>
+        
+        <!-- PWA Install Prompt -->
+        <div id="installPrompt" class="bg-white border border-blue-200 rounded-xl p-4 mb-6 shadow-lg hidden">
+            <div class="flex items-start">
+                <div class="bg-blue-100 rounded-lg p-2 mr-3">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-800 text-sm">Pasang Aplikasi</h3>
+                    <p class="text-gray-600 text-xs mt-1">Pasang IPON Tracker di iPhone untuk akses lebih cepat</p>
+                    <div class="flex gap-2 mt-3">
+                        <button id="installBtn" class="bg-blue-500 text-white text-xs py-2 px-4 rounded-lg font-medium">Pasang</button>
+                        <button id="dismissInstall" class="text-gray-500 text-xs py-2 px-4 rounded-lg font-medium">Nanti</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-xs">
+            <p>Dibuat dengan OSRM API untuk perhitungan jarak yang akurat</p>
+            <p class="mt-1">Optimized for iPhone</p>
+        </footer>
+    </div>
+
+    <script>
+        // ===========================================
+        // PWA INSTALL PROMPT
+        // ===========================================
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const dismissInstall = document.getElementById('dismissInstall');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installPrompt.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installPrompt.classList.add('hidden');
+                }
+                deferredPrompt = null;
+            }
+        });
+
+        dismissInstall.addEventListener('click', () => {
+            installPrompt.classList.add('hidden');
+        });
+
+        // ===========================================
+        // CHART SETUP
+        // ===========================================
+        const ctx = document.getElementById('chart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Total Jarak (meter)',
+                    data: [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + 'm';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // ===========================================
+        // OSRM DISTANCE API
+        // ===========================================
+        async function getDistanceOSRM(lat1, lon1, lat2, lon2) {
+            const url = `https://router.project-osrm.org/route/v1/foot/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                    return data.routes[0].distance; // meter
+                } else {
+                    console.error('OSRM API Error:', data);
+                    return 0;
+                }
+            } catch (error) {
+                console.error('Error fetching OSRM data:', error);
+                return 0;
+            }
+        }
+
+        // ===========================================
+        // TRACKING VARIABLES
+        // ===========================================
+        let watchId = null;
+        let tracking = false;
+        let paused = false;
+        let titikSebelumnya = null;
+        let totalMeter = 0;
+        let pointCount = 0;
+
+        // ===========================================
+        // PERMISSION HANDLING
+        // ===========================================
+        const permissionAlert = document.getElementById('permissionAlert');
+        const locationHelpModal = document.getElementById('locationHelpModal');
+        const locationHelpBtn = document.getElementById('locationHelpBtn');
+        const closeHelpModal = document.getElementById('closeHelpModal');
+
+        locationHelpBtn.addEventListener('click', () => {
+            locationHelpModal.classList.remove('hidden');
+        });
+
+        closeHelpModal.addEventListener('click', () => {
+            locationHelpModal.classList.add('hidden');
+        });
+
+        // Check location permission on load
+        function checkLocationPermission() {
+            if (!navigator.geolocation) {
+                showPermissionAlert('Browser tidak mendukung geolocation');
+                return false;
+            }
+            
+            // iOS doesn't support permissions API directly, so we try to get position
+            navigator.geolocation.getCurrentPosition(
+                () => {
+                    // Success - permission granted
+                    permissionAlert.classList.add('hidden');
+                    return true;
+                },
+                (error) => {
+                    // Error - permission denied or not granted
+                    handleLocationError(error);
+                    return false;
+                },
+                { timeout: 5000 }
+            );
+        }
+
+        function handleLocationError(error) {
+            let errorMessage = '';
+            
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'Izin lokasi ditolak. Izinkan akses lokasi untuk menggunakan aplikasi.';
+                    permissionAlert.classList.remove('hidden');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'Informasi lokasi tidak tersedia.';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'Permintaan lokasi timeout.';
+                    break;
+                default:
+                    errorMessage = 'Error tidak diketahui: ' + error.message;
+            }
+            
+            updateLog(errorMessage, 'error');
+        }
+
+        function showPermissionAlert(message) {
+            permissionAlert.querySelector('p').textContent = message;
+            permissionAlert.classList.remove('hidden');
+        }
+
+        // ===========================================
+        // UI UPDATE FUNCTIONS
+        // ===========================================
+        function updateLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            let icon = '';
+            let color = 'text-gray-700';
+            
+            switch(type) {
+                case 'success':
+                    icon = '<svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+                    color = 'text-green-600';
+                    break;
+                case 'error':
+                    icon = '<svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+                    color = 'text-red-600';
+                    break;
+                case 'warning':
+                    icon = '<svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>';
+                    color = 'text-yellow-600';
+                    break;
+                default:
+                    icon = '<svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+                    color = 'text-blue-600';
+            }
+            
+            log.innerHTML = `<div class="flex items-center ${color}">${icon}${message}</div>`;
+        }
+
+        function updateStats() {
+            document.getElementById('totalDistance').textContent = totalMeter.toFixed(2);
+            document.getElementById('pointCount').textContent = pointCount;
+        }
+
+        function updateLocationInfo(lat, lng, accuracy) {
+            const locationInfo = document.getElementById('locationInfo');
+            document.getElementById('currentLat').textContent = lat.toFixed(6);
+            document.getElementById('currentLng').textContent = lng.toFixed(6);
+            document.getElementById('currentAccuracy').textContent = accuracy ? accuracy.toFixed(1) : '-';
+            locationInfo.classList.remove('hidden');
+        }
+
+        // ===========================================
+        // START BUTTON
+        // ===========================================
+        document.getElementById("startBtn").onclick = async () => {
+            if (tracking && !paused) return;
+            
+            // Check permission first
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { 
+                        enableHighAccuracy: true, 
+                        timeout: 10000,
+                        maximumAge: 0
+                    });
+                });
+                
+                // Permission granted, start tracking
+                permissionAlert.classList.add('hidden');
+                startTracking();
+                
+            } catch (error) {
+                handleLocationError(error);
+                return;
+            }
+        };
+
+        function startTracking() {
+            paused = false;
+            tracking = true;
+
+            document.getElementById("pauseBtn").disabled = false;
+            document.getElementById("stopBtn").disabled = false;
+            document.getElementById("startBtn").disabled = true;
+
+            updateLog("Tracking berjalan... Bergerak untuk mencatat jarak.", "success");
+
+            // live location watcher dengan optimasi untuk iOS
+            watchId = navigator.geolocation.watchPosition(
+                async (pos) => {
+                    if (!tracking || paused) return;
+
+                    const current = {
+                        lat: pos.coords.latitude,
+                        lon: pos.coords.longitude,
+                        accuracy: pos.coords.accuracy
+                    };
+
+                    // Update location info
+                    updateLocationInfo(current.lat, current.lon, current.accuracy);
+
+                    if (titikSebelumnya) {
+                        const jarak = await getDistanceOSRM(
+                            titikSebelumnya.lat, titikSebelumnya.lon,
+                            current.lat, current.lon
+                        );
+
+                        if (jarak > 0.3 && current.accuracy < 50) {  // hindari noise GPS dan akurasi buruk
+                            totalMeter += jarak;
+                            pointCount++;
+
+                            // update stats
+                            updateStats();
+
+                            // update log realtime
+                            updateLog(`Tracking aktif | Jarak: ${totalMeter.toFixed(2)}m | Titik: ${pointCount}`, "success");
+
+                            // update grafik realtime
+                            const now = new Date();
+                            const timeLabel = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+                            
+                            chart.data.labels.push(timeLabel);
+                            chart.data.datasets[0].data.push(totalMeter);
+                            
+                            // Batasi data chart untuk performa
+                            if (chart.data.labels.length > 20) {
+                                chart.data.labels.shift();
+                                chart.data.datasets[0].data.shift();
+                            }
+                            
+                            chart.update('none');
+                        }
+                    } else {
+                        // First point
+                        pointCount = 1;
+                        updateStats();
+                        updateLog("Titik awal tercatat. Mulai bergerak...", "info");
+                    }
+
+                    titikSebelumnya = current;
+
+                }, 
+                (err) => {
+                    handleLocationError(err);
+                }, 
+                { 
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0,
+                    distanceFilter: 1 // Minimum movement in meters to trigger update
+                }
+            );
+        }
+
+        // ===========================================
+        // PAUSE BUTTON
+        // ===========================================
+        document.getElementById("pauseBtn").onclick = () => {
+            paused = !paused;
+            
+            if (paused) {
+                document.getElementById("pauseBtn").innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Lanjutkan
+                `;
+                
+                updateLog(`Tracking dijeda | Total: ${totalMeter.toFixed(2)}m`, "warning");
+            } else {
+                document.getElementById("pauseBtn").innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Jeda
+                `;
+                
+                updateLog("Tracking dilanjutkan...", "success");
+            }
+        };
+
+        // ===========================================
+        // STOP BUTTON
+        // ===========================================
+        document.getElementById("stopBtn").onclick = () => {
+            tracking = false;
+            paused = false;
+
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+
+            document.getElementById("pauseBtn").disabled = true;
+            document.getElementById("stopBtn").disabled = true;
+            document.getElementById("startBtn").disabled = false;
+            
+            // Reset pause button text
+            document.getElementById("pauseBtn").innerHTML = `
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Jeda
+            `;
+
+            updateLog(`Perjalanan selesai! Total: ${totalMeter.toFixed(2)}m dalam ${pointCount} titik`, "success");
+
+            // Hide location info
+            document.getElementById('locationInfo').classList.add('hidden');
+
+            // reset titik
+            titikSebelumnya = null;
+        };
+
+        // ===========================================
+        // INITIALIZATION
+        // ===========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check location permission on load
+            checkLocationPermission();
+            
+            // Update stats initially
+            updateStats();
+            
+            // Add safe area inset for iPhone notch
+            document.body.style.paddingTop = 'env(safe-area-inset-top)';
+            document.body.style.paddingBottom = 'env(safe-area-inset-bottom)';
+        });
+
+        // Prevent default touch behaviors
+        document.addEventListener('touchmove', function(e) {
+            if (e.scale !== 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Service Worker Registration for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
