@@ -29,36 +29,95 @@
     </script>
     
     <style>
-        /* PWA specific styles */
-        @media (orientation: portrait) {
-            .portrait-warning { display: flex; }
-            .landscape-content { display: none; }
+        /* Force landscape orientation */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
         }
         
+        .orientation-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e88e5, #0d47a1);
+            color: white;
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .app-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        /* Always show content in landscape, hide warning */
         @media (orientation: landscape) {
-            .portrait-warning { display: none; }
-            .landscape-content { display: block; }
+            .orientation-warning {
+                display: none !important;
+            }
+            .app-content {
+                display: block !important;
+            }
+        }
+        
+        /* Show warning in portrait */
+        @media (orientation: portrait) {
+            .orientation-warning {
+                display: flex !important;
+            }
+            .app-content {
+                display: none !important;
+            }
         }
         
         .accuracy-excellent { background-color: #4caf50; }
         .accuracy-good { background-color: #8bc34a; }
         .accuracy-fair { background-color: #ff9800; }
         .accuracy-poor { background-color: #f44336; }
+        
+        /* Custom scrollbar for webkit */
+        .app-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .app-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .app-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100">
     <!-- Portrait Mode Warning -->
-    <div class="portrait-warning fixed inset-0 bg-primary text-white z-50 flex flex-col items-center justify-center p-6 text-center">
-        <i class="fas fa-rotate-right text-6xl mb-4 animate-spin"></i>
-        <h2 class="text-2xl font-bold mb-2">Putar Perangkat Anda</h2>
-        <p class="text-lg">Aplikasi ini membutuhkan mode landscape (horizontal)</p>
-        <p class="text-sm mt-4">Silakan putar iPhone Anda ke samping</p>
+    <div class="orientation-warning">
+        <i class="fas fa-rotate-right text-6xl mb-6 animate-spin"></i>
+        <h2 class="text-2xl font-bold mb-4">Putar Perangkat Anda</h2>
+        <p class="text-lg mb-2">Aplikasi ini membutuhkan mode landscape</p>
+        <p class="text-sm">Silakan putar iPhone Anda ke samping</p>
+        <div class="mt-6 p-3 bg-white bg-opacity-20 rounded-lg">
+            <p class="text-sm">Status: <span id="orientation-status">Mendeteksi orientasi...</span></p>
+        </div>
     </div>
 
-    <!-- Main Content - Landscape Only -->
-    <div class="landscape-content min-h-screen">
+    <!-- Main App Content -->
+    <div class="app-content">
         <!-- Header -->
-        <header class="bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 shadow-lg">
+        <header class="bg-gradient-to-r from-primary to-secondary text-white py-4 px-6 shadow-lg sticky top-0 z-10">
             <div class="flex items-center justify-center space-x-3">
                 <i class="fas fa-taxi text-2xl"></i>
                 <h1 class="text-xl font-bold">Bluebird PWA</h1>
@@ -67,18 +126,18 @@
         </header>
 
         <!-- Status Bar -->
-        <div class="flex justify-between items-center px-6 py-2 bg-white shadow-sm">
+        <div class="flex justify-between items-center px-6 py-3 bg-white shadow-sm">
             <div class="flex items-center space-x-2">
-                <i class="fas fa-satellite-dish text-primary"></i>
-                <span class="text-sm">GPS: <span id="gps-status" class="font-medium">Mencari...</span></span>
+                <i class="fas fa-satellite-dish text-primary text-sm"></i>
+                <span class="text-xs">GPS: <span id="gps-status" class="font-medium">Mencari...</span></span>
             </div>
             <div class="flex items-center space-x-2">
-                <i class="fas fa-battery-three-quarters text-primary"></i>
-                <span id="battery-level" class="text-sm font-medium">-</span>
+                <i class="fas fa-battery-three-quarters text-primary text-sm"></i>
+                <span id="battery-level" class="text-xs font-medium">-</span>
             </div>
         </div>
 
-        <div class="p-4 space-y-4">
+        <div class="p-4 space-y-4 pb-20">
             <!-- Distance Card -->
             <div class="bg-white rounded-2xl shadow-lg p-6">
                 <div class="flex items-center justify-between mb-4">
@@ -122,11 +181,11 @@
                 </div>
 
                 <div class="flex space-x-3 mt-6">
-                    <button id="start-btn" class="flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition">
+                    <button id="start-btn" class="flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
                         <i class="fas fa-play mr-2"></i>
-                        Mulai
+                        Mulai Perjalanan
                     </button>
-                    <button id="reset-btn" disabled class="flex-1 bg-gray-300 text-gray-600 py-3 rounded-xl font-bold flex items-center justify-center transition">
+                    <button id="reset-btn" disabled class="flex-1 bg-gray-300 text-gray-600 py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95">
                         <i class="fas fa-redo mr-2"></i>
                         Selesai
                     </button>
@@ -142,7 +201,7 @@
 
                 <div class="bg-gradient-to-r from-success to-green-700 text-white p-4 rounded-xl text-center mb-4">
                     <div id="total-fare" class="text-3xl font-bold">Rp 5.000</div>
-                    <div class="text-sm">Total Biaya</div>
+                    <div class="text-sm">Total Biaya Perjalanan</div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -163,6 +222,12 @@
                         <div class="text-xs text-gray-600">Jarak Tempuh</div>
                     </div>
                 </div>
+
+                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <div class="text-xs text-gray-600 text-center">
+                        <div>Tarif: Rp 5.000 (awal) + Rp 200/100m + Rp 2.500/10 menit tunggu</div>
+                    </div>
+                </div>
             </div>
 
             <!-- QR Code Payment -->
@@ -173,10 +238,14 @@
                 </h2>
 
                 <div class="flex flex-col items-center">
-                    <p class="text-gray-600 text-center mb-4">Scan QR code untuk pembayaran</p>
-                    <div id="qrcode" class="bg-white p-4 rounded-xl shadow-inner mb-3"></div>
+                    <p class="text-gray-600 text-center mb-4">Scan QR code berikut untuk pembayaran</p>
+                    <div id="qrcode" class="bg-white p-4 rounded-xl shadow-inner mb-3 border-2 border-gray-200">
+                        <div class="w-48 h-48 flex items-center justify-center text-gray-400">
+                            <i class="fas fa-qrcode text-4xl"></i>
+                        </div>
+                    </div>
                     <div class="text-center">
-                        <div class="text-sm text-gray-600">Total:</div>
+                        <div class="text-sm text-gray-600">Total Pembayaran:</div>
                         <div id="amount-display" class="text-xl font-bold text-primary">Rp 5.000</div>
                     </div>
                 </div>
@@ -184,18 +253,36 @@
         </div>
 
         <!-- Footer -->
-        <footer class="bg-white border-t border-gray-200 py-4 px-6 text-center">
-            <p class="text-gray-600 text-sm">Bluebird PWA &copy; 2023</p>
-            <p class="text-gray-500 text-xs mt-1">Tarif: Rp 5.000 awal + Rp 200/100m + Rp 2.500/10 menit</p>
+        <footer class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-3 px-6 text-center">
+            <p class="text-gray-600 text-sm">Bluebird PWA &copy; 2023 - Mode Landscape</p>
         </footer>
     </div>
 
     <!-- Notification -->
-    <div id="notification" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-success text-white px-6 py-3 rounded-full shadow-lg z-50 transition-all duration-300 opacity-0 -translate-y-4">
+    <div id="notification" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-success text-white px-6 py-3 rounded-full shadow-lg z-50 transition-all duration-300 opacity-0 -translate-y-4 pointer-events-none">
         <span id="notification-text">Notification</span>
     </div>
 
     <script>
+        // Deteksi orientasi
+        function checkOrientation() {
+            const orientationStatus = document.getElementById('orientation-status');
+            const isPortrait = window.innerHeight > window.innerWidth;
+            
+            if (isPortrait) {
+                orientationStatus.textContent = 'Portrait - Putar ke Landscape';
+                orientationStatus.className = 'text-warning';
+            } else {
+                orientationStatus.textContent = 'Landscape - Siap Digunakan';
+                orientationStatus.className = 'text-success';
+            }
+        }
+
+        // Panggil saat load dan resize
+        window.addEventListener('load', checkOrientation);
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+
         // Variabel global
         let isTracking = false;
         let startTime = null;
@@ -241,10 +328,16 @@
 
         // Inisialisasi
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Aplikasi loaded dalam mode:', window.innerWidth > window.innerHeight ? 'Landscape' : 'Portrait');
             initBattery();
             elements.startBtn.addEventListener('click', toggleTracking);
             elements.resetBtn.addEventListener('click', resetTracking);
             updateQRCode();
+            
+            // Test notification
+            setTimeout(() => {
+                showNotification('Aplikasi siap digunakan! Putar ke landscape jika belum', false);
+            }, 1000);
         });
 
         function toggleTracking() {
@@ -257,7 +350,7 @@
 
         function startTracking() {
             if (!navigator.geolocation) {
-                showNotification('GPS tidak didukung', true);
+                showNotification('GPS tidak didukung di perangkat ini', true);
                 return;
             }
 
@@ -266,7 +359,7 @@
             
             // Update UI
             elements.startBtn.innerHTML = '<i class="fas fa-pause mr-2"></i>Berhenti';
-            elements.startBtn.className = elements.startBtn.className.replace('bg-primary', 'bg-gray-500');
+            elements.startBtn.className = 'flex-1 bg-gray-500 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95';
             elements.resetBtn.disabled = true;
 
             // Reset data
@@ -292,7 +385,7 @@
                 }
             );
 
-            showNotification('Perjalanan dimulai - Menunggu GPS stabil');
+            showNotification('Perjalanan dimulai! Menunggu sinyal GPS stabil...');
             elements.gpsStatus.textContent = 'Aktif';
             elements.gpsStatus.className = 'font-medium text-success';
         }
@@ -335,7 +428,8 @@
                 latitude: lat,
                 longitude: lng,
                 accuracy: accuracy,
-                timestamp: position.timestamp
+                timestamp: position.timestamp,
+                speed: speed
             };
 
             updateFare();
@@ -388,7 +482,7 @@
             elements.distanceTraveled.textContent = Math.round(totalDistance) + ' m';
             
             // Update speed if available
-            if (lastPosition && lastPosition.speed !== null) {
+            if (lastPosition && lastPosition.speed !== null && lastPosition.speed > 0) {
                 elements.speed.textContent = (lastPosition.speed * 3.6).toFixed(1);
             }
         }
@@ -440,8 +534,8 @@
             isTracking = false;
             
             // Update UI
-            elements.startBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Mulai';
-            elements.startBtn.className = elements.startBtn.className.replace('bg-gray-500', 'bg-primary');
+            elements.startBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Mulai Perjalanan';
+            elements.startBtn.className = 'flex-1 bg-primary hover:bg-blue-700 text-white py-3 rounded-xl font-bold flex items-center justify-center transition active:scale-95';
             elements.resetBtn.disabled = false;
 
             // Hentikan timer
@@ -454,7 +548,7 @@
                 watchId = null;
             }
 
-            showNotification('Perjalanan selesai!');
+            showNotification('Perjalanan selesai! Total jarak: ' + totalDistance.toFixed(2) + ' meter');
             elements.gpsStatus.textContent = 'Nonaktif';
             elements.gpsStatus.className = 'font-medium text-gray-600';
         }
@@ -470,22 +564,23 @@
             elements.waitingTime.textContent = '00:00';
             elements.validPoints.textContent = '0';
             elements.speed.textContent = '0.0';
+            showNotification('Data perjalanan telah direset');
         }
 
         function handleGeolocationError(error) {
             let message = 'Error GPS: ';
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    message += 'Akses ditolak';
+                    message += 'Akses lokasi ditolak. Izinkan akses lokasi di pengaturan.';
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    message += 'Posisi tidak tersedia';
+                    message += 'Posisi tidak tersedia. Pastikan GPS aktif.';
                     break;
                 case error.TIMEOUT:
-                    message += 'Timeout';
+                    message += 'Timeout. Coba lagi.';
                     break;
                 default:
-                    message += 'Error tidak diketahui';
+                    message += 'Error tidak diketahui.';
             }
             showNotification(message, true);
             elements.gpsStatus.textContent = 'Error';
@@ -508,11 +603,11 @@
             elements.batteryLevel.textContent = `${level}%`;
             
             if (level <= 20) {
-                elements.batteryLevel.className = 'text-sm font-medium text-danger';
+                elements.batteryLevel.className = 'text-xs font-medium text-danger';
             } else if (level <= 50) {
-                elements.batteryLevel.className = 'text-sm font-medium text-warning';
+                elements.batteryLevel.className = 'text-xs font-medium text-warning';
             } else {
-                elements.batteryLevel.className = 'text-sm font-medium text-success';
+                elements.batteryLevel.className = 'text-xs font-medium text-success';
             }
         }
 
@@ -534,23 +629,8 @@
 
         // QR Code Functions
         function updateQRCode(amount = 5000) {
-            const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405250005802ID5912Bluebird Taxi6011Jakarta Pusat610533253621960150011ID.DANA.WWW630491F1";
-            
-            function replaceTag(payload, tag, newValue) {
-                const pos = payload.indexOf(tag);
-                if (pos !== -1) {
-                    const oldLen = parseInt(payload.substr(pos+2,2), 10);
-                    const start = pos;
-                    const end = pos + 2 + 2 + oldLen;
-                    const newLen = newValue.length.toString().padStart(2,'0');
-                    return payload.slice(0,start) + tag + newLen + newValue + payload.slice(end);
-                } else {
-                    const crcPos = payload.indexOf('63');
-                    const newLen = newValue.length.toString().padStart(2,'0');
-                    const insert = tag + newLen + newValue;
-                    return crcPos !== -1 ? payload.slice(0,crcPos) + insert + payload.slice(crcPos) : payload + insert;
-                }
-            }
+            const template = "00020101021226570011ID.DANA.WWW011893600915036535021502093653502150303UMI51440014ID.CO.QRIS.WWW0215ID10222340309090303UMI5204594553033605405" + 
+                           String(amount).padStart(5, '0') + "5802ID5912Bluebird Taxi6011Jakarta Pusat610533253621960150011ID.DANA.WWW6304";
 
             function crc16_ccitt(input) {
                 let crc = 0xFFFF;
@@ -568,17 +648,9 @@
                 return n.toString(16).toUpperCase().padStart(4,'0');
             }
 
-            let amountValue = amount.toString();
-            let newPayload = replaceTag(template, '54', amountValue);
-            const crcTagPos = newPayload.indexOf('63');
-            if (crcTagPos !== -1) {
-                newPayload = newPayload.slice(0, crcTagPos);
-            }
-            
-            const toCrc = newPayload + '63' + '04';
-            const crc = crc16_ccitt(toCrc);
+            const crc = crc16_ccitt(template);
             const crcHex = toHex4(crc);
-            const finalPayload = toCrc + crcHex;
+            const finalPayload = template + crcHex;
 
             generateQRCode(finalPayload);
         }
@@ -589,15 +661,25 @@
             try {
                 new QRCode(container, {
                     text: text,
-                    width: 200,
-                    height: 200,
+                    width: 192,
+                    height: 192,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.H
                 });
             } catch (e) {
-                container.innerHTML = '<p class="text-danger text-sm">Error QR Code</p>';
+                console.error('QR Code error:', e);
+                container.innerHTML = '<div class="text-center text-gray-500"><i class="fas fa-exclamation-triangle text-2xl mb-2"></i><p class="text-sm">Error generating QR</p></div>';
             }
+        }
+
+        // PWA Installation
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed'));
+            });
         }
     </script>
 </body>
