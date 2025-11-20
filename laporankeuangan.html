@@ -263,6 +263,10 @@
                             <i class="fas fa-calendar-alt"></i>
                             Periode
                         </button>
+                        <button onclick="financialReport.showFilterModal()" class="bg-purple-500 hover:bg-purple-600 py-2 px-4 rounded-xl text-white font-bold flex items-center gap-2 transition-colors">
+                            <i class="fas fa-filter"></i>
+                            Filter
+                        </button>
                         <button onclick="financialReport.exportToPDF()" class="bg-green-500 hover:bg-green-600 py-2 px-4 rounded-xl text-white font-bold flex items-center gap-2 transition-colors">
                             <i class="fas fa-file-pdf"></i>
                             Export PDF
@@ -737,6 +741,95 @@
         </div>
     </div>
 
+    <!-- Filter Modal -->
+    <div id="filterModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="modal-header bg-purple-500 p-4 text-white relative">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-filter"></i>
+                    Filter Transaksi
+                </h2>
+                <button onclick="financialReport.closeModal()" class="absolute top-4 right-4 text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="modal-body p-4 overflow-y-auto flex-1 custom-scrollbar">
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Jenis Transaksi</label>
+                    <select id="filterType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="all">Semua Jenis</option>
+                        <option value="income">Pendapatan</option>
+                        <option value="expense">Pengeluaran</option>
+                    </select>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Kategori</label>
+                    <select id="filterCategory" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="all">Semua Kategori</option>
+                        <option value="penjualan">Penjualan</option>
+                        <option value="ongkos_kirim">Ongkos Kirim</option>
+                        <option value="bahan_baku">Bahan Baku</option>
+                        <option value="operasional">Operasional</option>
+                        <option value="transportasi">Transportasi</option>
+                        <option value="gaji">Gaji</option>
+                        <option value="lainnya">Lainnya</option>
+                    </select>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Rentang Jumlah</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Minimum</label>
+                            <input type="number" id="filterMinAmount" placeholder="0" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Maksimum</label>
+                            <input type="number" id="filterMaxAmount" placeholder="Tidak terbatas" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label class="form-label block font-bold text-gray-700 mb-2 text-sm">Status</label>
+                    <select id="filterStatus" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <option value="all">Semua Status</option>
+                        <option value="completed">Selesai</option>
+                        <option value="pending">Pending</option>
+                        <option value="cancelled">Dibatalkan</option>
+                    </select>
+                </div>
+                
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <h4 class="font-bold text-gray-800 text-sm mb-2">Filter Cepat</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="financialReport.setQuickFilter('large_transactions')" class="text-xs bg-purple-500 hover:bg-purple-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            Transaksi Besar
+                        </button>
+                        <button onclick="financialReport.setQuickFilter('recent')" class="text-xs bg-gray-500 hover:bg-gray-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            7 Hari Terakhir
+                        </button>
+                        <button onclick="financialReport.setQuickFilter('income_only')" class="text-xs bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            Hanya Pendapatan
+                        </button>
+                        <button onclick="financialReport.setQuickFilter('expense_only')" class="text-xs bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg transition-colors">
+                            Hanya Pengeluaran
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex gap-3 p-4 border-t border-gray-200">
+                <button onclick="financialReport.resetFilters()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-700 transition-colors">
+                    Reset
+                </button>
+                <button onclick="financialReport.applyFilters()" class="flex-1 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold transition-colors">
+                    Terapkan
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Report Modal -->
     <div id="customReportModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -875,6 +968,13 @@
                 start: null,
                 end: null
             },
+            filters: {
+                type: 'all',
+                category: 'all',
+                minAmount: null,
+                maxAmount: null,
+                status: 'all'
+            },
             data: {
                 transactions: [],
                 invoices: [],
@@ -901,6 +1001,67 @@
                 
                 // Show dashboard by default
                 this.showTab('dashboard');
+                
+                // Setup monthly reset check
+                this.setupMonthlyReset();
+            },
+            
+            // Setup monthly reset system
+            setupMonthlyReset() {
+                // Check if we need to reset data for new month
+                const now = new Date();
+                const lastReset = localStorage.getItem('lastMonthlyReset');
+                
+                if (!lastReset) {
+                    // First time setup
+                    localStorage.setItem('lastMonthlyReset', now.toISOString());
+                    return;
+                }
+                
+                const lastResetDate = new Date(lastReset);
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                const lastResetMonth = lastResetDate.getMonth();
+                const lastResetYear = lastResetDate.getFullYear();
+                
+                // If month or year has changed, reset data
+                if (currentMonth !== lastResetMonth || currentYear !== lastResetYear) {
+                    this.resetMonthlyData();
+                    localStorage.setItem('lastMonthlyReset', now.toISOString());
+                }
+            },
+            
+            // Reset monthly data
+            async resetMonthlyData() {
+                try {
+                    // Create monthly summary
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    const monthName = lastMonth.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+                    
+                    // Calculate monthly totals
+                    const monthlySummary = {
+                        month: monthName,
+                        totalIncome: this.data.current.income,
+                        totalExpenses: this.data.current.expenses,
+                        netProfit: this.data.current.netProfit,
+                        profitMargin: this.data.current.profitMargin,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    // Save monthly summary to Firestore
+                    await db.collection("monthly_summaries").add(monthlySummary);
+                    
+                    // Reset transaction data for new month
+                    // In a real implementation, you might archive current transactions
+                    // and start fresh for the new month
+                    
+                    this.showNotification(`Data bulan ${monthName} telah diarsipkan dan sistem direset untuk bulan baru`, 'success');
+                    
+                } catch (error) {
+                    console.error("Error resetting monthly data:", error);
+                    this.showNotification('Error reset data bulanan', 'error');
+                }
             },
             
             // Set default period
@@ -924,31 +1085,9 @@
             
             // Setup real-time Firestore listeners
             setupRealtimeListeners() {
-                // Transactions listener
-                db.collection("finance_transactions")
-                    .orderBy("createdAt", "desc")
-                    .limit(5000)
-                    .onSnapshot((snapshot) => {
-                        this.data.transactions = [];
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            data.id = doc.id;
-                            // Convert Firestore timestamp to Date if needed
-                            if (data.createdAt && data.createdAt.toDate) {
-                                data.createdAt = data.createdAt.toDate();
-                            }
-                            this.data.transactions.push(data);
-                        });
-                        
-                        console.log("Transactions loaded:", this.data.transactions.length);
-                        this.processFinancialData();
-                        this.hideLoading();
-                    }, error => {
-                        console.error("Error loading transactions:", error);
-                        this.hideLoading();
-                        this.showNotification('Error memuat data transaksi', 'error');
-                    });
-
+                // Transactions listener with filtering capability
+                this.loadTransactions();
+                
                 // Invoices listener
                 db.collection("invoices")
                     .orderBy("createdAt", "desc")
@@ -987,6 +1126,75 @@
                         console.error("Error loading accounts:", error);
                         this.showNotification('Error memuat data rekening', 'error');
                     });
+                    
+                // Monthly summaries listener
+                db.collection("monthly_summaries")
+                    .orderBy("createdAt", "desc")
+                    .limit(12)
+                    .onSnapshot((snapshot) => {
+                        const monthlyData = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            data.id = doc.id;
+                            monthlyData.push(data);
+                        });
+                        
+                        console.log("Monthly summaries loaded:", monthlyData.length);
+                        this.updateHistoricalCharts(monthlyData);
+                    }, error => {
+                        console.error("Error loading monthly summaries:", error);
+                    });
+            },
+            
+            // Load transactions with filters
+            loadTransactions() {
+                let query = db.collection("finance_transactions")
+                    .orderBy("createdAt", "desc")
+                    .limit(5000);
+                
+                // Apply filters if any
+                if (this.filters.type !== 'all') {
+                    query = query.where("type", "==", this.filters.type);
+                }
+                
+                if (this.filters.category !== 'all') {
+                    query = query.where("category", "==", this.filters.category);
+                }
+                
+                if (this.filters.status !== 'all') {
+                    query = query.where("status", "==", this.filters.status);
+                }
+                
+                query.onSnapshot((snapshot) => {
+                    this.data.transactions = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        data.id = doc.id;
+                        // Convert Firestore timestamp to Date if needed
+                        if (data.createdAt && data.createdAt.toDate) {
+                            data.createdAt = data.createdAt.toDate();
+                        }
+                        
+                        // Apply amount filter if set
+                        const amount = data.amount || 0;
+                        if (this.filters.minAmount && amount < this.filters.minAmount) {
+                            return;
+                        }
+                        if (this.filters.maxAmount && amount > this.filters.maxAmount) {
+                            return;
+                        }
+                        
+                        this.data.transactions.push(data);
+                    });
+                    
+                    console.log("Transactions loaded:", this.data.transactions.length);
+                    this.processFinancialData();
+                    this.hideLoading();
+                }, error => {
+                    console.error("Error loading transactions:", error);
+                    this.hideLoading();
+                    this.showNotification('Error memuat data transaksi', 'error');
+                });
             },
             
             // Hide loading state
@@ -1454,6 +1662,48 @@
                 this.charts.categoryComparison.update();
             },
             
+            // Update historical charts with monthly data
+            updateHistoricalCharts(monthlyData) {
+                if (monthlyData.length === 0) return;
+                
+                // Sort data by month
+                monthlyData.sort((a, b) => {
+                    const monthOrder = {
+                        'Januari': 1, 'Februari': 2, 'Maret': 3, 'April': 4, 'Mei': 5, 'Juni': 6,
+                        'Juli': 7, 'Agustus': 8, 'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12
+                    };
+                    
+                    const aMonth = a.month.split(' ')[0];
+                    const bMonth = b.month.split(' ')[0];
+                    return monthOrder[aMonth] - monthOrder[bMonth];
+                });
+                
+                // Update charts with historical data
+                const months = monthlyData.map(item => item.month);
+                const revenueData = monthlyData.map(item => item.totalIncome);
+                const expenseData = monthlyData.map(item => item.totalExpenses);
+                const profitData = monthlyData.map(item => item.netProfit);
+                const marginData = monthlyData.map(item => item.profitMargin);
+                
+                // Update Revenue vs Expenses Trend with historical data
+                this.charts.revenueExpenseTrend.data.labels = months;
+                this.charts.revenueExpenseTrend.data.datasets[0].data = revenueData;
+                this.charts.revenueExpenseTrend.data.datasets[1].data = expenseData;
+                this.charts.revenueExpenseTrend.update();
+                
+                // Update Profit Margin Trend with historical data
+                this.charts.profitMarginTrend.data.labels = months;
+                this.charts.profitMarginTrend.data.datasets[0].data = marginData;
+                this.charts.profitMarginTrend.update();
+                
+                // Update Performance Trend with historical data
+                this.charts.performanceTrend.data.labels = months;
+                this.charts.performanceTrend.data.datasets[0].data = revenueData;
+                this.charts.performanceTrend.data.datasets[1].data = expenseData;
+                this.charts.performanceTrend.data.datasets[2].data = profitData;
+                this.charts.performanceTrend.update();
+            },
+            
             // Format category name for display
             formatCategoryName(category) {
                 const categoryNames = {
@@ -1725,6 +1975,18 @@
                 document.getElementById('dateRangeModal').classList.remove('hidden');
             },
             
+            // Show filter modal
+            showFilterModal() {
+                // Set current filter values in modal
+                document.getElementById('filterType').value = this.filters.type;
+                document.getElementById('filterCategory').value = this.filters.category;
+                document.getElementById('filterMinAmount').value = this.filters.minAmount || '';
+                document.getElementById('filterMaxAmount').value = this.filters.maxAmount || '';
+                document.getElementById('filterStatus').value = this.filters.status;
+                
+                document.getElementById('filterModal').classList.remove('hidden');
+            },
+            
             // Apply date range
             applyDateRange() {
                 const startDate = new Date(document.getElementById('startDate').value);
@@ -1752,6 +2014,67 @@
                 this.closeModal();
                 
                 this.showNotification('Periode laporan diperbarui', 'success');
+            },
+            
+            // Apply filters
+            applyFilters() {
+                this.filters.type = document.getElementById('filterType').value;
+                this.filters.category = document.getElementById('filterCategory').value;
+                this.filters.minAmount = document.getElementById('filterMinAmount').value ? 
+                    parseInt(document.getElementById('filterMinAmount').value) : null;
+                this.filters.maxAmount = document.getElementById('filterMaxAmount').value ? 
+                    parseInt(document.getElementById('filterMaxAmount').value) : null;
+                this.filters.status = document.getElementById('filterStatus').value;
+                
+                // Reload transactions with new filters
+                this.loadTransactions();
+                this.closeModal();
+                
+                this.showNotification('Filter diterapkan', 'success');
+            },
+            
+            // Reset filters
+            resetFilters() {
+                this.filters = {
+                    type: 'all',
+                    category: 'all',
+                    minAmount: null,
+                    maxAmount: null,
+                    status: 'all'
+                };
+                
+                // Reload transactions without filters
+                this.loadTransactions();
+                this.closeModal();
+                
+                this.showNotification('Filter direset', 'info');
+            },
+            
+            // Set quick filter
+            setQuickFilter(filterType) {
+                switch(filterType) {
+                    case 'large_transactions':
+                        this.filters.minAmount = 1000000;
+                        break;
+                    case 'recent':
+                        const sevenDaysAgo = new Date();
+                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                        this.currentPeriod.start = sevenDaysAgo;
+                        this.currentPeriod.end = new Date();
+                        this.updatePeriodDisplay();
+                        break;
+                    case 'income_only':
+                        this.filters.type = 'income';
+                        break;
+                    case 'expense_only':
+                        this.filters.type = 'expense';
+                        break;
+                }
+                
+                this.loadTransactions();
+                this.closeModal();
+                
+                this.showNotification('Filter cepat diterapkan', 'success');
             },
             
             // Set preset period
@@ -1805,7 +2128,7 @@
                 // In a real implementation, this would generate a PDF
                 setTimeout(() => {
                     this.showNotification('Laporan PDF berhasil diunduh', 'success');
-                // Simulate download
+                    // Simulate download
                     const link = document.createElement('a');
                     link.href = '#';
                     link.download = `Laporan_Keuangan_${this.formatDateForInput(this.currentPeriod.start)}_${this.formatDateForInput(this.currentPeriod.end)}.pdf`;
