@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VLCrave Express - Dashboard Delivery</title>
+    <title>VLCrave Express - Premium Delivery Service</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -11,44 +11,141 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#f97316">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --primary-orange: #f97316;
+            --primary-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --dark-text: #1f2937;
+            --light-text: #6b7280;
+        }
+        
         body {
             font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #fef3e2 0%, #fef7ed 100%);
+            overflow-x: hidden;
         }
         
         /* Gradient untuk tema oranye-kuning */
         .gradient-bg {
-            background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-yellow) 100%);
+        }
+        
+        .gradient-bg-hover:hover {
+            background: linear-gradient(135deg, var(--primary-yellow) 0%, var(--primary-orange) 100%);
+            transform: translateY(-2px);
         }
         
         .gradient-text {
-            background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-yellow) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
-        /* Animasi untuk loading */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        .animate-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .floating-card {
+            box-shadow: 
+                0 10px 25px -5px rgba(249, 115, 22, 0.15),
+                0 8px 10px -6px rgba(249, 115, 22, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
         }
+        
+        .service-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: linear-gradient(135deg, #ffffff 0%, #fef7ed 100%);
+        }
+        
+        .service-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 20px 40px -10px rgba(249, 115, 22, 0.25),
+                0 10px 20px -5px rgba(249, 115, 22, 0.15);
+        }
+        
+        .pulse-animation {
+            animation: pulse-glow 2s infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 5px rgba(249, 115, 22, 0.4);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(249, 115, 22, 0.8);
+            }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .bounce-in {
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+            opacity: 0;
+            transform: scale(0.3);
+        }
+        
+        @keyframes bounceIn {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .stagger-animation > * {
+            opacity: 0;
+            animation: slideIn 0.6s ease-out forwards;
+        }
+        
+        .stagger-animation > *:nth-child(1) { animation-delay: 0.1s; }
+        .stagger-animation > *:nth-child(2) { animation-delay: 0.2s; }
+        .stagger-animation > *:nth-child(3) { animation-delay: 0.3s; }
+        .stagger-animation > *:nth-child(4) { animation-delay: 0.4s; }
+        .stagger-animation > *:nth-child(5) { animation-delay: 0.5s; }
         
         /* Styling untuk scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
         
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #f1f5f9;
+            border-radius: 10px;
         }
         
         ::-webkit-scrollbar-thumb {
-            background: #f97316;
-            border-radius: 3px;
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-yellow) 100%);
+            border-radius: 10px;
         }
         
         /* Shadow untuk card */
@@ -58,46 +155,33 @@
         
         /* Styling untuk map container */
         #map {
-            height: 250px;
-            border-radius: 8px;
+            height: 280px;
+            border-radius: 16px;
             z-index: 1;
+            transition: all 0.4s ease;
+        }
+        
+        #map:hover {
+            box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.2);
         }
         
         /* Custom marker */
         .custom-marker {
-            background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-yellow) 100%);
             border: 3px solid white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            width: 24px;
+            height: 24px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         
         .destination-marker {
-            background: #3b82f6;
+            background: var(--accent-blue);
             border: 3px solid white;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        
-        /* Responsive font sizes */
-        @media (max-width: 640px) {
-            .text-responsive {
-                font-size: 0.875rem;
-            }
-        }
-        
-        /* Leaflet popup customization */
-        .leaflet-popup-content-wrapper {
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        
-        .leaflet-popup-content {
-            margin: 12px 15px;
-            font-family: 'Poppins', sans-serif;
+            width: 24px;
+            height: 24px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
         
         /* Loading overlay */
@@ -107,7 +191,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -117,9 +201,9 @@
         .spinner {
             border: 4px solid rgba(255,255,255,0.3);
             border-radius: 50%;
-            border-top: 4px solid #f97316;
-            width: 40px;
-            height: 40px;
+            border-top: 4px solid var(--primary-orange);
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
         }
         
@@ -127,279 +211,515 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .ripple-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple-effect::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .ripple-effect:active::after {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .glow-on-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .glow-on-hover:hover {
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.5);
+        }
+        
+        /* Responsive font sizes */
+        @media (max-width: 640px) {
+            .text-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .text-xs-responsive {
+                font-size: 0.75rem;
+            }
+            
+            .text-sm-responsive {
+                font-size: 0.8125rem;
+            }
+            
+            .text-lg-responsive {
+                font-size: 1.125rem;
+            }
+            
+            .text-xl-responsive {
+                font-size: 1.25rem;
+            }
+            
+            .text-2xl-responsive {
+                font-size: 1.5rem;
+            }
+            
+            .text-3xl-responsive {
+                font-size: 1.75rem;
+            }
+            
+            .icon-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .icon-lg-responsive {
+                font-size: 1rem;
+            }
+            
+            .icon-xl-responsive {
+                font-size: 1.125rem;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .text-responsive {
+                font-size: 0.9375rem;
+            }
+            
+            .text-xs-responsive {
+                font-size: 0.8125rem;
+            }
+            
+            .text-sm-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .text-lg-responsive {
+                font-size: 1.25rem;
+            }
+            
+            .text-xl-responsive {
+                font-size: 1.375rem;
+            }
+            
+            .text-2xl-responsive {
+                font-size: 1.625rem;
+            }
+            
+            .text-3xl-responsive {
+                font-size: 1.875rem;
+            }
+            
+            .icon-responsive {
+                font-size: 0.9375rem;
+            }
+            
+            .icon-lg-responsive {
+                font-size: 1.125rem;
+            }
+            
+            .icon-xl-responsive {
+                font-size: 1.25rem;
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .text-responsive {
+                font-size: 1rem;
+            }
+            
+            .text-xs-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .text-sm-responsive {
+                font-size: 0.9375rem;
+            }
+            
+            .text-lg-responsive {
+                font-size: 1.375rem;
+            }
+            
+            .text-xl-responsive {
+                font-size: 1.5rem;
+            }
+            
+            .text-2xl-responsive {
+                font-size: 1.75rem;
+            }
+            
+            .text-3xl-responsive {
+                font-size: 2rem;
+            }
+            
+            .icon-responsive {
+                font-size: 1rem;
+            }
+            
+            .icon-lg-responsive {
+                font-size: 1.25rem;
+            }
+            
+            .icon-xl-responsive {
+                font-size: 1.375rem;
+            }
+        }
+        
+        /* Leaflet popup customization */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .leaflet-popup-content {
+            margin: 15px 18px;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .price-breakdown {
+            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+            border-left: 4px solid var(--primary-orange);
+        }
+        
+        .floating-action {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        /* Footer styling */
+        .footer {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="text-gray-800 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="text-center">
+            <div class="spinner mb-4"></div>
+            <p class="text-white font-medium text-sm-responsive">Memuat VLCrave Express...</p>
+        </div>
+    </div>
+
     <!-- Header -->
-    <header class="gradient-bg text-white p-4 sticky top-0 z-10">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center">
-                <i class="fas fa-shipping-fast text-2xl mr-2"></i>
-                <h1 class="text-xl font-bold">VLCrave Express</h1>
-            </div>
-            <div class="flex items-center space-x-4">
-                <button id="notification-btn" class="relative">
-                    <i class="fas fa-bell text-xl"></i>
-                    <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">3</span>
-                </button>
-                <button id="profile-btn" class="text-xl">
-                    <i class="fas fa-user-circle"></i>
-                </button>
+    <header class="sticky top-0 z-50">
+        <div class="gradient-bg text-white py-3 px-4 shadow-xl">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="bg-white p-1 rounded-xl bounce-in">
+                        <i class="fas fa-shipping-fast icon-lg-responsive gradient-text"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl-responsive font-bold tracking-tight">VLCrave <span class="text-amber-200">Express</span></h1>
+                        <p class="text-xs-responsive text-amber-100 opacity-90">Premium Delivery Service</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="notification-btn" class="relative ripple-effect bg-white bg-opacity-20 p-2 rounded-xl glow-on-hover">
+                        <i class="fas fa-bell icon-responsive"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs-responsive flex items-center justify-center pulse-animation">3</span>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-    </div>
-
     <!-- Main Content -->
-    <main class="container mx-auto p-4 pb-20">
-        <!-- Welcome Section -->
-        <div class="bg-white rounded-xl p-4 mb-6 card-shadow">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h2 class="text-lg font-semibold">Halo, <span class="gradient-text">Ahmad</span>!</h2>
-                    <p class="text-gray-500 text-sm">Mau kirim apa hari ini?</p>
+    <main class="container mx-auto px-3 py-4 pb-20">
+        <!-- Hero Section -->
+        <div class="glass-effect rounded-2xl p-4 mb-6 floating-card slide-in">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0 md:mr-4">
+                    <h2 class="text-2xl-responsive font-bold mb-2 gradient-text">Butuh Antar Segera?</h2>
+                    <p class="text-gray-600 text-sm-responsive mb-3">Kami siap mengantarkan pesanan Anda dengan cepat dan aman</p>
+                    <div class="flex space-x-2">
+                        <div class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs-responsive font-medium">
+                            <i class="fas fa-clock mr-1 icon-responsive"></i> 24/7 Service
+                        </div>
+                        <div class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs-responsive font-medium">
+                            <i class="fas fa-shield-alt mr-1 icon-responsive"></i> Terjamin
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-orange-100 p-3 rounded-full">
-                    <i class="fas fa-shipping-fast text-orange-500 text-xl"></i>
+                <div class="bg-gradient-to-br from-orange-100 to-amber-100 p-3 rounded-2xl bounce-in">
+                    <div class="text-center">
+                        <div class="text-3xl-responsive font-bold gradient-text mb-1">30m</div>
+                        <p class="text-gray-600 text-xs-responsive">Rata-rata Waktu Pengiriman</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Cek Ongkir Section -->
-        <div class="bg-white rounded-xl p-4 mb-6 card-shadow">
-            <h3 class="text-lg font-semibold mb-4">Cek Ongkir</h3>
-            <div class="space-y-4">
-                <!-- Lokasi Pengambilan -->
+        <div class="glass-effect rounded-2xl p-4 mb-6 floating-card slide-in" style="animation-delay: 0.2s">
+            <div class="flex items-center mb-4">
+                <div class="bg-gradient-to-r from-orange-500 to-amber-500 p-2 rounded-xl mr-3">
+                    <i class="fas fa-map-marked-alt text-white icon-lg-responsive"></i>
+                </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi Pengambilan</label>
-                    <div class="flex space-x-2">
-                        <input type="text" id="pickup-address" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Alamat pengambilan" readonly>
-                        <button id="current-location-btn" class="bg-orange-500 text-white p-3 rounded-lg">
-                            <i class="fas fa-location-arrow"></i>
+                    <h3 class="text-lg-responsive font-bold gradient-text">Cek Ongkos Kirim</h3>
+                    <p class="text-gray-600 text-xs-responsive">Dapatkan estimasi biaya pengiriman Anda</p>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Peta Section -->
+                <div class="fade-in" style="animation-delay: 0.3s">
+                    <label class="block text-sm-responsive font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-map mr-2 text-orange-500 icon-responsive"></i>Pilih Lokasi Tujuan di Peta
+                    </label>
+                    <div id="map" class="border-2 border-orange-200"></div>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-xs-responsive text-gray-500 flex items-center">
+                            <i class="fas fa-info-circle mr-1 text-orange-500 icon-responsive"></i> Klik peta untuk tentukan lokasi
+                        </p>
+                        <button id="current-location-btn" class="gradient-bg text-white px-3 py-2 rounded-lg ripple-effect glow-on-hover transition-all duration-300 hover:shadow-lg text-xs-responsive">
+                            <i class="fas fa-crosshairs mr-1 icon-responsive"></i> Lokasi Saya
                         </button>
                     </div>
                 </div>
                 
-                <!-- Input Toko -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Toko / Restoran Tujuan</label>
-                    <div id="store-inputs">
-                        <div class="flex space-x-2 mb-2">
-                            <input type="text" class="store-input flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama toko/restoran">
-                            <button class="remove-store bg-red-500 text-white p-3 rounded-lg hidden">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <button id="add-store-btn" class="w-full bg-gray-100 text-gray-700 py-2 rounded-lg font-medium flex items-center justify-center mt-2">
-                        <i class="fas fa-plus mr-2"></i> Tambah Toko Lain
-                    </button>
-                </div>
-                
-                <!-- Peta Section -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Lokasi Tujuan di Peta</label>
-                    <div id="map"></div>
-                    <p class="text-xs text-gray-500 mt-1">Klik sekali di peta untuk menentukan lokasi tujuan</p>
-                </div>
-                
                 <!-- Info Jarak -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Jarak Garis Lurus (km)</label>
-                        <input type="number" id="straight-distance" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" placeholder="0" readonly>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Jarak Perjalanan (km)</label>
-                        <input type="number" id="actual-distance" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" placeholder="0" readonly>
+                <div class="fade-in" style="animation-delay: 0.4s">
+                    <label class="block text-sm-responsive font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-route mr-2 text-orange-500 icon-responsive"></i>Jarak Perjalanan
+                    </label>
+                    <div class="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-xl border border-orange-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700 font-medium text-sm-responsive">Total Jarak:</span>
+                            <span class="text-lg-responsive font-bold gradient-text" id="actual-distance">0 km</span>
+                        </div>
+                        <p class="text-xs-responsive text-gray-500 mt-1">*Sudah termasuk penyesuaian rute jalan (+30%)</p>
                     </div>
                 </div>
                 
-                <button id="calculate-btn" class="w-full gradient-bg text-white py-3 rounded-lg font-semibold flex items-center justify-center">
-                    <i class="fas fa-calculator mr-2"></i> Hitung Ongkir
+                <button id="calculate-btn" class="w-full gradient-bg text-white py-3 rounded-xl font-bold text-sm-responsive flex items-center justify-center ripple-effect glow-on-hover transition-all duration-300 gradient-bg-hover shadow-lg fade-in" style="animation-delay: 0.5s">
+                    <i class="fas fa-calculator mr-2 icon-lg-responsive"></i> Hitung Ongkos Kirim
                 </button>
                 
                 <!-- Hasil Perhitungan -->
-                <div id="result" class="hidden bg-orange-50 p-4 rounded-lg border border-orange-200">
-                    <h4 class="font-semibold text-orange-800 mb-2">Estimasi Biaya</h4>
+                <div id="result" class="hidden bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-xl border border-orange-200 shadow-inner bounce-in">
+                    <h4 class="font-bold text-orange-800 mb-3 text-sm-responsive flex items-center">
+                        <i class="fas fa-receipt mr-2 icon-responsive"></i> Estimasi Biaya Pengiriman
+                    </h4>
                     <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Ongkir Dasar:</span>
-                            <span class="font-semibold" id="base-cost">Rp 0</span>
+                        <div class="flex justify-between items-center py-2 border-b border-orange-100">
+                            <span class="text-gray-700 text-sm-responsive">Ongkir Dasar:</span>
+                            <span class="font-semibold text-orange-700 text-sm-responsive" id="base-cost">Rp 0</span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Biaya Tambahan Toko:</span>
-                            <span class="font-semibold" id="store-cost">Rp 0</span>
+                        <div class="flex justify-between items-center py-2 border-b border-orange-100">
+                            <span class="text-gray-700 text-sm-responsive">Biaya Tambahan Toko:</span>
+                            <span class="font-semibold text-orange-700 text-sm-responsive" id="store-cost">Rp 0</span>
                         </div>
-                        <div class="flex justify-between items-center border-t border-orange-200 pt-2">
-                            <span class="text-gray-700 font-medium">Total Ongkir:</span>
-                            <span class="text-xl font-bold gradient-text" id="total-cost">Rp 0</span>
-                        </div>
-                    </div>
-                    <div class="mt-3 text-xs text-gray-600 space-y-1">
-                        <div class="flex justify-between">
-                            <span>1-2 km pertama:</span>
-                            <span>Rp 5.000</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>km 3-7:</span>
-                            <span>Rp 2.000/km</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>km 8+:</span>
-                            <span>Rp 1.000/km</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Toko tambahan (>2):</span>
-                            <span>Rp 1.000/toko</span>
+                        <div class="flex justify-between items-center py-3 bg-white rounded-lg px-3 mt-2 shadow-sm">
+                            <span class="text-gray-800 font-bold text-sm-responsive">Total Ongkir:</span>
+                            <span class="text-lg-responsive font-bold gradient-text" id="total-cost">Rp 0</span>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-2">*Harga dapat berubah sesuai kondisi jalan</p>
+                    
+                    <div class="price-breakdown p-3 rounded-lg mt-3">
+                        <h5 class="font-semibold text-orange-800 mb-2 flex items-center text-xs-responsive">
+                            <i class="fas fa-info-circle mr-2 icon-responsive"></i> Rincian Tarif
+                        </h5>
+                        <div class="grid grid-cols-1 gap-1 text-xs-responsive">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">1-2 km pertama:</span>
+                                <span class="font-medium">Rp 5.000</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">km 3-7:</span>
+                                <span class="font-medium">Rp 2.000/km</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">km 8+:</span>
+                                <span class="font-medium">Rp 1.000/km</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Toko tambahan (>2):</span>
+                                <span class="font-medium">Rp 1.000/toko</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Layanan Kami -->
         <div class="mb-6">
-            <h3 class="text-lg font-semibold mb-4">Layanan Kami</h3>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white rounded-xl p-4 card-shadow text-center">
-                    <div class="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <i class="fas fa-box text-orange-500 text-xl"></i>
+            <div class="flex items-center mb-4">
+                <div class="bg-gradient-to-r from-orange-500 to-amber-500 p-2 rounded-xl mr-3">
+                    <i class="fas fa-concierge-bell text-white icon-lg-responsive"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg-responsive font-bold gradient-text">Layanan Unggulan Kami</h3>
+                    <p class="text-gray-600 text-xs-responsive">Berbagai solusi pengiriman untuk kebutuhan Anda</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 stagger-animation">
+                <div class="service-card rounded-xl p-3 floating-card">
+                    <div class="bg-gradient-to-br from-orange-500 to-amber-500 w-10 h-10 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                        <i class="fas fa-box text-white icon-lg-responsive"></i>
                     </div>
-                    <h4 class="font-medium text-sm">Pickup Paket</h4>
-                    <p class="text-xs text-gray-500 mt-1">Ambil barang dari lokasi Anda</p>
+                    <h4 class="font-bold text-center text-gray-800 text-xs-responsive mb-1">Pickup Paket</h4>
+                    <p class="text-gray-600 text-xs-responsive text-center">Ambil barang dari lokasi Anda</p>
                 </div>
                 
-                <div class="bg-white rounded-xl p-4 card-shadow text-center">
-                    <div class="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <i class="fas fa-wallet text-yellow-500 text-xl"></i>
+                <div class="service-card rounded-xl p-3 floating-card">
+                    <div class="bg-gradient-to-br from-amber-500 to-yellow-500 w-10 h-10 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                        <i class="fas fa-wallet text-white icon-lg-responsive"></i>
                     </div>
-                    <h4 class="font-medium text-sm">Topup Voucher</h4>
-                    <p class="text-xs text-gray-500 mt-1">Isi ulang e-wallet & voucher</p>
+                    <h4 class="font-bold text-center text-gray-800 text-xs-responsive mb-1">Topup Voucher</h4>
+                    <p class="text-gray-600 text-xs-responsive text-center">Isi ulang e-wallet & voucher</p>
                 </div>
                 
-                <div class="bg-white rounded-xl p-4 card-shadow text-center">
-                    <div class="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <i class="fas fa-exchange-alt text-orange-500 text-xl"></i>
+                <div class="service-card rounded-xl p-3 floating-card">
+                    <div class="bg-gradient-to-br from-orange-500 to-red-500 w-10 h-10 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                        <i class="fas fa-exchange-alt text-white icon-lg-responsive"></i>
                     </div>
-                    <h4 class="font-medium text-sm">Transfer/Tarik Tunai</h4>
-                    <p class="text-xs text-gray-500 mt-1">Layanan keuangan praktis</p>
+                    <h4 class="font-bold text-center text-gray-800 text-xs-responsive mb-1">Transfer/Tarik Tunai</h4>
+                    <p class="text-gray-600 text-xs-responsive text-center">Layanan keuangan praktis</p>
                 </div>
                 
-                <div class="bg-white rounded-xl p-4 card-shadow text-center">
-                    <div class="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <i class="fas fa-utensils text-yellow-500 text-xl"></i>
+                <div class="service-card rounded-xl p-3 floating-card">
+                    <div class="bg-gradient-to-br from-yellow-500 to-amber-500 w-10 h-10 rounded-xl flex items-center justify-center mb-2 mx-auto">
+                        <i class="fas fa-utensils text-white icon-lg-responsive"></i>
                     </div>
-                    <h4 class="font-medium text-sm">Delivery Makanan</h4>
-                    <p class="text-xs text-gray-500 mt-1">Antar makanan & minuman</p>
+                    <h4 class="font-bold text-center text-gray-800 text-xs-responsive mb-1">Delivery Makanan</h4>
+                    <p class="text-gray-600 text-xs-responsive text-center">Antar makanan & minuman</p>
                 </div>
             </div>
         </div>
 
-        <!-- Riwayat Pesanan -->
-        <div class="bg-white rounded-xl p-4 card-shadow">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">Riwayat Pesanan</h3>
-                <a href="#" class="text-orange-500 text-sm font-medium">Lihat Semua</a>
-            </div>
-            
-            <div class="space-y-4">
-                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div class="flex items-center">
-                        <div class="bg-green-100 p-2 rounded-lg mr-3">
-                            <i class="fas fa-check text-green-500"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-sm">Delivery Makanan</h4>
-                            <p class="text-xs text-gray-500">#ORD-001 | 12 Nov 2023</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-semibold text-sm">Rp 25.000</p>
-                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Selesai</span>
-                    </div>
+        <!-- Stats Section -->
+        <div class="glass-effect rounded-2xl p-4 floating-card fade-in" style="animation-delay: 0.6s">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="text-center p-2">
+                    <div class="text-xl-responsive font-bold gradient-text mb-1">500+</div>
+                    <p class="text-gray-600 text-xs-responsive">Pengiriman/Hari</p>
                 </div>
-                
-                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div class="flex items-center">
-                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
-                            <i class="fas fa-shipping-fast text-blue-500"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-sm">Pickup Paket</h4>
-                            <p class="text-xs text-gray-500">#ORD-002 | 10 Nov 2023</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-semibold text-sm">Rp 35.000</p>
-                        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Proses</span>
-                    </div>
+                <div class="text-center p-2">
+                    <div class="text-xl-responsive font-bold gradient-text mb-1">98%</div>
+                    <p class="text-gray-600 text-xs-responsive">Kepuasan Pelanggan</p>
                 </div>
-                
-                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div class="flex items-center">
-                        <div class="bg-purple-100 p-2 rounded-lg mr-3">
-                            <i class="fas fa-wallet text-purple-500"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-sm">Topup E-Wallet</h4>
-                            <p class="text-xs text-gray-500">#ORD-003 | 8 Nov 2023</p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-semibold text-sm">Rp 10.000</p>
-                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Selesai</span>
-                    </div>
+                <div class="text-center p-2">
+                    <div class="text-xl-responsive font-bold gradient-text mb-1">15m</div>
+                    <p class="text-gray-600 text-xs-responsive">Waktu Tunggu Rata-rata</p>
+                </div>
+                <div class="text-center p-2">
+                    <div class="text-xl-responsive font-bold gradient-text mb-1">24/7</div>
+                    <p class="text-gray-600 text-xs-responsive">Layanan Tersedia</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex justify-around">
-        <a href="#" class="flex flex-col items-center text-orange-500">
-            <i class="fas fa-home text-lg"></i>
-            <span class="text-xs mt-1">Beranda</span>
-        </a>
-        <a href="#" class="flex flex-col items-center text-gray-500">
-            <i class="fas fa-shopping-cart text-lg"></i>
-            <span class="text-xs mt-1">Pesanan</span>
-        </a>
-        <a href="#" class="flex flex-col items-center text-gray-500">
-            <i class="fas fa-map-marker-alt text-lg"></i>
-            <span class="text-xs mt-1">Lacak</span>
-        </a>
-        <a href="#" class="flex flex-col items-center text-gray-500">
-            <i class="fas fa-user text-lg"></i>
-            <span class="text-xs mt-1">Profil</span>
-        </a>
-    </nav>
+    <!-- Footer -->
+    <footer class="footer text-white py-6 mt-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="text-center md:text-left">
+                    <div class="flex items-center justify-center md:justify-start mb-3">
+                        <div class="bg-white p-1 rounded-lg mr-2">
+                            <i class="fas fa-shipping-fast text-orange-500 icon-responsive"></i>
+                        </div>
+                        <h3 class="text-lg-responsive font-bold">VLCrave Express</h3>
+                    </div>
+                    <p class="text-xs-responsive text-gray-300 mb-3">
+                        Layanan pengiriman terpercaya dengan pengalaman premium untuk semua kebutuhan Anda.
+                    </p>
+                    <div class="flex space-x-3 justify-center md:justify-start">
+                        <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                            <i class="fab fa-whatsapp icon-lg-responsive"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                            <i class="fab fa-instagram icon-lg-responsive"></i>
+                        </a>
+                        <a href="#" class="text-gray-300 hover:text-white transition-colors">
+                            <i class="fab fa-facebook icon-lg-responsive"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <h4 class="text-sm-responsive font-semibold mb-3">Layanan Kami</h4>
+                    <ul class="space-y-2 text-xs-responsive text-gray-300">
+                        <li><a href="#" class="hover:text-white transition-colors">Delivery Makanan</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Pickup Paket</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Topup Voucher</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Transfer/Tarik Tunai</a></li>
+                    </ul>
+                </div>
+                
+                <div class="text-center md:text-right">
+                    <h4 class="text-sm-responsive font-semibold mb-3">Kontak</h4>
+                    <div class="space-y-2 text-xs-responsive text-gray-300">
+                        <div class="flex items-center justify-center md:justify-end">
+                            <i class="fas fa-phone-alt mr-2 icon-responsive"></i>
+                            <span>0857-0945-8101</span>
+                        </div>
+                        <div class="flex items-center justify-center md:justify-end">
+                            <i class="fas fa-envelope mr-2 icon-responsive"></i>
+                            <span>cs@vlcrave.com</span>
+                        </div>
+                        <div class="flex items-center justify-center md:justify-end">
+                            <i class="fas fa-map-marker-alt mr-2 icon-responsive"></i>
+                            <span>Kota Anda</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-600 mt-6 pt-4 text-center">
+                <p class="text-xs-responsive text-gray-400">
+                    &copy; 2024 VLCrave Express. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </footer>
 
     <!-- Floating Action Button -->
-    <button id="order-btn" class="fixed bottom-20 right-4 w-14 h-14 gradient-bg text-white rounded-full flex items-center justify-center shadow-lg z-10">
-        <i class="fas fa-plus text-xl"></i>
+    <button id="order-btn" class="fixed bottom-20 right-4 w-12 h-12 gradient-bg text-white rounded-xl flex items-center justify-center shadow-2xl z-30 ripple-effect floating-action pulse-animation">
+        <i class="fas fa-plus icon-lg-responsive"></i>
     </button>
 
     <!-- Modal Order -->
-    <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-20 hidden">
-        <div class="bg-white w-full max-w-md rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold">Pesan Layanan</h3>
-                <button id="close-modal" class="text-gray-500">
-                    <i class="fas fa-times"></i>
+    <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-end justify-center z-50 hidden transition-opacity duration-300">
+        <div class="bg-white w-full max-w-md rounded-t-2xl p-4 max-h-[80vh] overflow-y-auto transform transition-transform duration-300 translate-y-full" id="modal-content">
+            <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+                <h3 class="text-lg-responsive font-bold gradient-text">Pesan Layanan</h3>
+                <button id="close-modal" class="text-gray-500 p-1 rounded-full hover:bg-gray-100 transition-colors duration-200">
+                    <i class="fas fa-times icon-lg-responsive"></i>
                 </button>
             </div>
             
             <form id="order-form">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Layanan</label>
-                        <select id="service-type" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                        <label class="block text-sm-responsive font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-tag mr-2 text-orange-500 icon-responsive"></i>Pilih Layanan
+                        </label>
+                        <select id="service-type" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white appearance-none text-sm-responsive">
                             <option value="">-- Pilih Layanan --</option>
                             <option value="pickup">Pickup Paket / Barang</option>
                             <option value="topup">Topup Voucher / E-Wallet</option>
@@ -409,47 +729,48 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Pengambilan</label>
-                        <input type="text" id="modal-pickup" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Masukkan alamat lengkap">
+                        <label class="block text-sm-responsive font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-map-pin mr-2 text-orange-500 icon-responsive"></i>Alamat Pengambilan
+                        </label>
+                        <input type="text" id="modal-pickup" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-sm-responsive" placeholder="Masukkan alamat lengkap">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Tujuan</label>
-                        <input type="text" id="modal-destination" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Masukkan alamat lengkap">
-                    </div>
-                    
-                    <div id="store-modal-inputs">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Toko / Restoran Tujuan</label>
-                        <div class="flex space-x-2 mb-2">
-                            <input type="text" class="store-modal-input flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama toko/restoran">
-                        </div>
+                        <label class="block text-sm-responsive font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-flag mr-2 text-orange-500 icon-responsive"></i>Alamat Tujuan
+                        </label>
+                        <input type="text" id="modal-destination" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-sm-responsive" placeholder="Masukkan alamat lengkap">
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Catatan (opsional)</label>
-                        <textarea class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" rows="2" placeholder="Tambahkan catatan untuk kurir"></textarea>
+                        <label class="block text-sm-responsive font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-sticky-note mr-2 text-orange-500 icon-responsive"></i>Catatan (opsional)
+                        </label>
+                        <textarea class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-sm-responsive" rows="2" placeholder="Tambahkan catatan untuk kurir"></textarea>
                     </div>
                     
-                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                        <h4 class="font-semibold text-orange-800 mb-2">Syarat & Ketentuan</h4>
-                        <ul class="text-xs text-gray-600 space-y-1">
+                    <div class="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-xl border border-orange-200">
+                        <h4 class="font-semibold text-orange-800 mb-2 flex items-center text-xs-responsive">
+                            <i class="fas fa-exclamation-circle mr-2 icon-responsive"></i> Syarat & Ketentuan
+                        </h4>
+                        <ul class="text-xs-responsive text-gray-600 space-y-1">
                             <li class="flex items-start">
-                                <i class="fas fa-exclamation-circle text-orange-500 mr-2 mt-0.5"></i>
-                                <span>Tidak menerima pickup barang/paket ilegal (narkoba, dll)</span>
+                                <i class="fas fa-ban text-red-500 mr-2 mt-0.5 icon-responsive"></i>
+                                <span>Tidak menerima barang/paket ilegal</span>
                             </li>
                             <li class="flex items-start">
-                                <i class="fas fa-exclamation-circle text-orange-500 mr-2 mt-0.5"></i>
-                                <span>Untuk Layanan Transfer / Tarik Tunai akan diproses setelah pembayaran diterima</span>
+                                <i class="fas fa-money-bill-wave text-green-500 mr-2 mt-0.5 icon-responsive"></i>
+                                <span>Transfer/Tarik Tunai diproses setelah pembayaran</span>
                             </li>
                             <li class="flex items-start">
-                                <i class="fas fa-exclamation-circle text-orange-500 mr-2 mt-0.5"></i>
-                                <span>Ongkir dapat berubah sesuai jarak dan kondisi jalan</span>
+                                <i class="fas fa-road text-blue-500 mr-2 mt-0.5 icon-responsive"></i>
+                                <span>Ongkir dapat berubah sesuai kondisi jalan</span>
                             </li>
                         </ul>
                     </div>
                     
-                    <button type="button" id="whatsapp-order" class="w-full bg-green-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center">
-                        <i class="fab fa-whatsapp mr-2"></i> Pesan via WhatsApp
+                    <button type="button" id="whatsapp-order" class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-xl font-bold text-sm-responsive flex items-center justify-center ripple-effect glow-on-hover transition-all duration-300 hover:from-green-600 hover:to-green-700 shadow-lg mt-3">
+                        <i class="fab fa-whatsapp mr-2 icon-lg-responsive"></i> Pesan via WhatsApp
                     </button>
                 </div>
             </form>
@@ -463,7 +784,6 @@
         const centerLng = 105.7711805;
         let userLocation = null;
         let destinationLocation = null;
-        let storeCount = 1;
         
         // Inisialisasi peta
         function initMap() {
@@ -481,16 +801,24 @@
                 icon: L.divIcon({
                     className: 'custom-marker',
                     html: '<i class="fas fa-store text-white text-xs flex items-center justify-center w-full h-full"></i>',
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
                 })
             }).addTo(map);
-            centerMarker.bindPopup('Lokasi Pusat VLCrave Express').openPopup();
+            centerMarker.bindPopup(`
+                <div class="font-semibold text-orange-600 text-sm-responsive">VLCrave Express</div>
+                <div class="text-xs-responsive text-gray-600">Lokasi Pusat</div>
+            `).openPopup();
             
             // Event klik peta untuk menambah marker tujuan
             map.on('click', function(e) {
                 setDestination(e.latlng.lat, e.latlng.lng);
             });
+            
+            // Sembunyikan loading setelah peta siap
+            setTimeout(() => {
+                hideLoading();
+            }, 1500);
         }
         
         // Set lokasi tujuan
@@ -506,25 +834,26 @@
                 icon: L.divIcon({
                     className: 'destination-marker',
                     html: '<i class="fas fa-map-pin text-white text-xs flex items-center justify-center w-full h-full"></i>',
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
                 })
             }).addTo(map);
-            destinationMarker.bindPopup('Lokasi Tujuan').openPopup();
+            destinationMarker.bindPopup(`
+                <div class="font-semibold text-blue-600 text-sm-responsive">Lokasi Tujuan</div>
+                <div class="text-xs-responsive text-gray-600">Klik dan geser untuk mengubah</div>
+            `).openPopup();
             
             // Simpan lokasi tujuan
             destinationLocation = { lat: lat, lng: lng };
             
             // Update form
             updateDistance();
-            updateAddress(lat, lng);
             
             // Event ketika marker digeser
             destinationMarker.on('dragend', function(event) {
                 const position = destinationMarker.getLatLng();
                 destinationLocation = { lat: position.lat, lng: position.lng };
                 updateDistance();
-                updateAddress(position.lat, position.lng);
             });
         }
         
@@ -553,19 +882,13 @@
                 // Tambahkan 30% untuk jarak jalan yang berbelok
                 const actualDistance = straightDistance * 1.3;
                 
-                document.getElementById('straight-distance').value = straightDistance.toFixed(2);
-                document.getElementById('actual-distance').value = actualDistance.toFixed(2);
+                document.getElementById('actual-distance').textContent = `${actualDistance.toFixed(1)} km`;
             }
-        }
-        
-        // Update alamat tujuan (simulasi)
-        function updateAddress(lat, lng) {
-            document.getElementById('destination-address').value = `Lokasi: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         }
         
         // Tombol lokasi saat ini
         document.getElementById('current-location-btn').addEventListener('click', function() {
-            showLoading(true);
+            showLoading('Mengakses lokasi Anda...');
             
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -576,17 +899,28 @@
                         // Simpan lokasi pengguna
                         userLocation = { lat: lat, lng: lng };
                         
-                        // Update form
-                        document.getElementById('pickup-address').value = `Lokasi Saat Ini: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-                        
                         // Set view peta ke lokasi pengguna
                         map.setView([lat, lng], 15);
                         
-                        showLoading(false);
+                        hideLoading();
                     },
                     function(error) {
-                        alert('Tidak dapat mengakses lokasi. Pastikan izin GPS diaktifkan.');
-                        showLoading(false);
+                        let errorMessage = 'Tidak dapat mengakses lokasi. ';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage += 'Izin lokasi ditolak.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage += 'Informasi lokasi tidak tersedia.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage += 'Permintaan lokasi waktu habis.';
+                                break;
+                            default:
+                                errorMessage += 'Terjadi kesalahan tidak diketahui.';
+                        }
+                        alert(errorMessage);
+                        hideLoading();
                     },
                     {
                         enableHighAccuracy: true,
@@ -596,7 +930,7 @@
                 );
             } else {
                 alert('Geolocation tidak didukung oleh browser ini');
-                showLoading(false);
+                hideLoading();
             }
         });
         
@@ -627,86 +961,46 @@
                 return;
             }
             
-            const actualDistance = parseFloat(document.getElementById('actual-distance').value) || 0;
-            const storeInputs = document.querySelectorAll('.store-input');
-            const validStores = Array.from(storeInputs).filter(input => input.value.trim() !== '');
+            const actualDistance = parseFloat(document.getElementById('actual-distance').textContent) || 0;
             
             // Hitung ongkir berdasarkan jarak
             const baseCost = calculateShippingCost(actualDistance);
             
-            // Biaya tambahan untuk toko lebih dari 2
-            const additionalStoreCost = validStores.length > 2 ? (validStores.length - 2) * 1000 : 0;
-            
-            const totalCost = baseCost + additionalStoreCost;
+            const totalCost = baseCost;
             
             // Tampilkan hasil
             document.getElementById('base-cost').textContent = `Rp ${baseCost.toLocaleString('id-ID')}`;
-            document.getElementById('store-cost').textContent = `Rp ${additionalStoreCost.toLocaleString('id-ID')}`;
+            document.getElementById('store-cost').textContent = `Rp 0`;
             document.getElementById('total-cost').textContent = `Rp ${totalCost.toLocaleString('id-ID')}`;
             document.getElementById('result').classList.remove('hidden');
-        });
-        
-        // Tambah input toko
-        document.getElementById('add-store-btn').addEventListener('click', function() {
-            storeCount++;
-            const storeInputs = document.getElementById('store-inputs');
-            const newStoreInput = document.createElement('div');
-            newStoreInput.className = 'flex space-x-2 mb-2';
-            newStoreInput.innerHTML = `
-                <input type="text" class="store-input flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Nama toko/restoran">
-                <button class="remove-store bg-red-500 text-white p-3 rounded-lg">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            storeInputs.appendChild(newStoreInput);
             
-            // Tampilkan tombol hapus untuk semua input kecuali yang pertama
-            document.querySelectorAll('.remove-store').forEach(btn => {
-                btn.classList.remove('hidden');
-            });
-        });
-        
-        // Hapus input toko
-        document.addEventListener('click', function(e) {
-            if (e.target.closest('.remove-store')) {
-                const storeInput = e.target.closest('.flex');
-                storeInput.remove();
-                storeCount--;
-                
-                // Sembunyikan tombol hapus jika hanya tersisa 1 input
-                if (storeCount === 1) {
-                    document.querySelector('.remove-store').classList.add('hidden');
-                }
-            }
+            // Scroll ke hasil
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'center' });
         });
         
         // Modal order
         document.getElementById('order-btn').addEventListener('click', function() {
             document.getElementById('order-modal').classList.remove('hidden');
-            
-            // Isi data dari form utama ke modal
-            document.getElementById('modal-pickup').value = document.getElementById('pickup-address').value;
-            document.getElementById('modal-destination').value = document.getElementById('destination-address').value;
-            
-            // Salim input toko ke modal
-            const storeInputs = document.querySelectorAll('.store-input');
-            const storeModalInputs = document.getElementById('store-modal-inputs');
-            storeModalInputs.innerHTML = '<label class="block text-sm font-medium text-gray-700 mb-1">Toko / Restoran Tujuan</label>';
-            
-            storeInputs.forEach((input, index) => {
-                if (input.value.trim() !== '') {
-                    const storeDiv = document.createElement('div');
-                    storeDiv.className = 'flex space-x-2 mb-2';
-                    storeDiv.innerHTML = `
-                        <input type="text" class="store-modal-input flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" value="${input.value}" readonly>
-                    `;
-                    storeModalInputs.appendChild(storeDiv);
-                }
-            });
+            setTimeout(() => {
+                document.getElementById('modal-content').classList.remove('translate-y-full');
+            }, 10);
         });
         
         document.getElementById('close-modal').addEventListener('click', function() {
-            document.getElementById('order-modal').classList.add('hidden');
+            document.getElementById('modal-content').classList.add('translate-y-full');
+            setTimeout(() => {
+                document.getElementById('order-modal').classList.add('hidden');
+            }, 300);
+        });
+        
+        // Tutup modal saat klik di luar
+        document.getElementById('order-modal').addEventListener('click', function(e) {
+            if (e.target.id === 'order-modal') {
+                document.getElementById('modal-content').classList.add('translate-y-full');
+                setTimeout(() => {
+                    document.getElementById('order-modal').classList.add('hidden');
+                }, 300);
+            }
         });
         
         // Pesan via WhatsApp
@@ -715,38 +1009,49 @@
             const serviceType = document.getElementById('service-type').value;
             const pickupAddress = document.getElementById('modal-pickup').value;
             const destinationAddress = document.getElementById('modal-destination').value;
-            const actualDistance = document.getElementById('actual-distance').value || 0;
+            const actualDistance = document.getElementById('actual-distance').textContent || '0 km';
             const totalCost = document.getElementById('total-cost').textContent || 'Rp 0';
             
-            // Ambil daftar toko
-            const storeInputs = document.querySelectorAll('.store-modal-input');
-            const stores = Array.from(storeInputs).map(input => input.value).filter(value => value.trim() !== '');
+            if (!serviceType) {
+                alert('Silakan pilih jenis layanan terlebih dahulu');
+                return;
+            }
             
             const message = `Halo, saya ingin memesan layanan VLCrave Express\n\n` +
-                           `Jenis Layanan: ${document.getElementById('service-type').options[document.getElementById('service-type').selectedIndex].text}\n` +
-                           `Alamat Pengambilan: ${pickupAddress}\n` +
-                           `Alamat Tujuan: ${destinationAddress}\n` +
-                           `Jarak: ${actualDistance} km\n` +
-                           `${stores.length > 0 ? `Toko/Restoran: ${stores.join(', ')}\n` : ''}` +
-                           `Estimasi Ongkir: ${totalCost}\n\n` +
-                           `Mohon info lebih lanjut.`;
+                           `*Jenis Layanan:* ${document.getElementById('service-type').options[document.getElementById('service-type').selectedIndex].text}\n` +
+                           `*Alamat Pengambilan:* ${pickupAddress}\n` +
+                           `*Alamat Tujuan:* ${destinationAddress}\n` +
+                           `*Jarak:* ${actualDistance}\n` +
+                           `*Estimasi Ongkir:* ${totalCost}\n\n` +
+                           `Mohon info lebih lanjut. Terima kasih.`;
                            
             const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
         });
         
-        // Fungsi untuk menampilkan/menyembunyikan loading
-        function showLoading(show) {
+        // Fungsi untuk menampilkan loading
+        function showLoading(message = 'Memuat...') {
             const overlay = document.getElementById('loading-overlay');
-            if (show) {
-                overlay.classList.remove('hidden');
-            } else {
-                overlay.classList.add('hidden');
+            overlay.classList.remove('hidden');
+            if (message) {
+                overlay.querySelector('p').textContent = message;
             }
         }
         
+        // Fungsi untuk menyembunyikan loading
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.add('hidden');
+        }
+        
         // Inisialisasi peta setelah halaman dimuat
-        window.onload = initMap;
+        window.onload = function() {
+            // Tampilkan loading terlebih dahulu
+            showLoading('Menyiapkan peta...');
+            
+            // Inisialisasi peta
+            initMap();
+        };
         
         // PWA functionality
         if ('serviceWorker' in navigator) {
