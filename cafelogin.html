@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLCafe Admin - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .sidebar { width: 250px; transition: all 0.3s; }
+        .content { margin-left: 250px; transition: all 0.3s; }
+        .sidebar-collapsed .sidebar { width: 70px; }
+        .sidebar-collapsed .content { margin-left: 70px; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-card-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .stat-card-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-card-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .queue-pulse { animation: queuePulse 2s infinite; }
+        @keyframes queuePulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-amber-700 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-mug-hot text-white text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">VLCafe Admin</h2>
+                <p class="text-gray-600 mt-2">Masuk ke dashboard admin</p>
+            </div>
+            
+            <!-- Pesan Error Login -->
+            <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-circle mt-0.5 mr-3"></i>
+                    <div>
+                        <p class="font-medium" id="errorTitle">Terjadi kesalahan</p>
+                        <p class="text-sm mt-1" id="errorMessage">Email atau password salah</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pesan Success (misal untuk reset password) -->
+            <div id="loginSuccess" class="hidden bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+                <div class="flex items-start">
+                    <i class="fas fa-check-circle mt-0.5 mr-3"></i>
+                    <div>
+                        <p class="font-medium" id="successTitle">Berhasil</p>
+                        <p class="text-sm mt-1" id="successMessage">Password berhasil direset</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="loginEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="admin@email.com">
+                    <p id="emailError" class="hidden text-xs text-red-500 mt-1"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="loginPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="••••••••">
+                    <p id="passwordError" class="hidden text-xs text-red-500 mt-1"></p>
+                </div>
+                
+                <button id="loginBtn" class="w-full py-3 bg-amber-700 text-white rounded-lg font-medium hover:bg-amber-800 transition">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Masuk
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout (Hidden until login) -->
+    <div id="mainLayout" class="hidden">
+        <!-- Sidebar -->
+        <div class="sidebar fixed left-0 top-0 h-full bg-gray-900 text-white z-40">
+            <div class="p-6 border-b border-gray-800">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-amber-700 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-mug-hot text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold">VLCafe</h2>
+                            <p class="text-xs text-gray-400">Admin Panel</p>
+                        </div>
+                    </div>
+                    <button id="toggleSidebar" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <nav class="p-4 space-y-2">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-tachometer-alt w-6"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="queue">
+                    <i class="fas fa-list-ol w-6"></i>
+                    <span>Manage Antrian</span>
+                </a>
+                <a href="#" class="nav-item" data-page="orders">
+                    <i class="fas fa-receipt w-6"></i>
+                    <span>Manage Order</span>
+                </a>
+                <a href="#" class="nav-item" data-page="products">
+                    <i class="fas fa-utensils w-6"></i>
+                    <span>Manage Produk</span>
+                </a>
+                <a href="#" class="nav-item" data-page="reports">
+                    <i class="fas fa-chart-bar w-6"></i>
+                    <span>Laporan</span>
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 w-full p-4 border-t border-gray-800">
+                <button id="logoutBtn" class="flex items-center space-x-3 text-gray-400 hover:text-white w-full p-2 rounded-lg hover:bg-gray-800">
+                    <i class="fas fa-sign-out-alt w-6"></i>
+                    <span>Keluar</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="content min-h-screen">
+            <!-- Top Bar -->
+            <header class="sticky top-0 z-30 bg-white shadow-sm">
+                <div class="flex justify-between items-center px-6 py-4">
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900" id="pageTitle">Dashboard</h1>
+                        <p class="text-sm text-gray-600" id="pageSubtitle">Ringkasan sistem VLCafe</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <p class="font-medium" id="adminName">Admin</p>
+                            <p class="text-sm text-gray-500" id="currentTime">--:--:--</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <main class="p-6">
+                <!-- Dashboard Page -->
+                <div id="dashboardPage" class="page-content">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card text-white rounded-xl p-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm opacity-90">Total Order Hari Ini</p>
+                                    <p class="text-3xl font-bold mt-2" id="todayOrders">0</p>
+                                </div>
+                                <i class="fas fa-shopping-cart text-2xl opacity-70"></i>
+                            </div>
+                            <p class="text-sm mt-4 opacity-90" id="todayRevenue">Revenue: Rp 0</p>
+                        </div>
+                        
+                        <div class="stat-card-2 text-white rounded-xl p-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm opacity-90">Antrian Aktif</p>
+                                    <p class="text-3xl font-bold mt-2" id="activeQueue">0</p>
+                                </div>
+                                <i class="fas fa-users text-2xl opacity-70"></i>
+                            </div>
+                            <p class="text-sm mt-4 opacity-90" id="waitingQueue">Menunggu: 0</p>
+                        </div>
+                        
+                        <div class="stat-card-3 text-white rounded-xl p-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm opacity-90">Total Produk</p>
+                                    <p class="text-3xl font-bold mt-2" id="totalProducts">0</p>
+                                </div>
+                                <i class="fas fa-utensils text-2xl opacity-70"></i>
+                            </div>
+                            <p class="text-sm mt-4 opacity-90" id="availableProducts">Tersedia: 0</p>
+                        </div>
+                        
+                        <div class="stat-card-4 text-white rounded-xl p-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm opacity-90">Total Revenue</p>
+                                    <p class="text-3xl font-bold mt-2" id="totalRevenue">Rp 0</p>
+                                </div>
+                                <i class="fas fa-chart-line text-2xl opacity-70"></i>
+                            </div>
+                            <p class="text-sm mt-4 opacity-90">All time</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Current Queue & Recent Orders -->
+                    <div class="grid lg:grid-cols-2 gap-6 mb-8">
+                        <!-- Current Queue -->
+                        <div class="bg-white rounded-xl shadow p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-lg font-bold text-gray-900">Antrian Sekarang</h3>
+                                <div class="flex space-x-2">
+                                    <button id="testVoiceBtn" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
+                                        <i class="fas fa-volume-up"></i> Test
+                                    </button>
+                                    <button id="callNextBtn" class="px-3 py-1 bg-amber-700 text-white rounded-lg text-sm hover:bg-amber-800 transition">
+                                        <i class="fas fa-forward"></i> Panggil Berikutnya
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center p-8 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl mb-6 queue-pulse">
+                                <p class="text-sm text-amber-700 mb-2">Sedang Dipanggil</p>
+                                <p class="text-5xl font-bold text-amber-900 mb-3" id="currentQueueNumber">---</p>
+                                <div class="inline-block px-4 py-1 bg-amber-200 text-amber-900 rounded-full text-sm font-medium">
+                                    <span id="currentQueueStatus">TIDAK ADA</span>
+                                </div>
+                            </div>
+                            
+                            <h4 class="font-medium text-gray-900 mb-3">Antrian Menunggu</h4>
+                            <div class="space-y-3 max-h-60 overflow-y-auto" id="waitingQueueList">
+                                <div class="text-center py-6 text-gray-400">
+                                    <i class="fas fa-clock text-2xl mb-2 opacity-30"></i>
+                                    <p>Tidak ada antrian menunggu</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Orders -->
+                        <div class="bg-white rounded-xl shadow p-6">
+                            <h3 class="text-lg font-bold text-gray-900 mb-6">Order Terbaru</h3>
+                            <div class="space-y-4 max-h-96 overflow-y-auto">
+                                <div id="recentOrders">
+                                    <div class="text-center py-8 text-gray-400">
+                                        <i class="fas fa-receipt text-2xl mb-2 opacity-30"></i>
+                                        <p>Belum ada order</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-6">Aksi Cepat</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <button onclick="showPage('products')" class="p-4 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition flex flex-col items-center">
+                                <i class="fas fa-plus-circle text-xl mb-2"></i>
+                                <span class="text-sm font-medium">Tambah Produk</span>
+                            </button>
+                            <button onclick="clearCompletedQueue()" class="p-4 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition flex flex-col items-center">
+                                <i class="fas fa-check-circle text-xl mb-2"></i>
+                                <span class="text-sm font-medium">Clear Selesai</span>
+                            </button>
+                            <button onclick="resetTodayQueue()" class="p-4 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition flex flex-col items-center">
+                                <i class="fas fa-redo text-xl mb-2"></i>
+                                <span class="text-sm font-medium">Reset Antrian</span>
+                            </button>
+                            <button onclick="generateReport()" class="p-4 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition flex flex-col items-center">
+                                <i class="fas fa-download text-xl mb-2"></i>
+                                <span class="text-sm font-medium">Export Laporan</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Queue Management Page -->
+                <div id="queuePage" class="page-content hidden">
+                    <div class="bg-white rounded-xl shadow">
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-900">Manage Antrian</h2>
+                                    <p class="text-gray-600">Kelola antrian pesanan pelanggan</p>
+                                </div>
+                                <div class="flex space-x-3">
+                                    <button id="resetAllQueue" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition">
+                                        <i class="fas fa-trash-alt mr-2"></i> Reset All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                                <div class="bg-amber-50 rounded-xl p-6">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h4 class="font-bold text-amber-900">Sedang Dipanggil</h4>
+                                        <span class="text-2xl font-bold text-amber-900" id="adminCurrentQueue">---</span>
+                                    </div>
+                                    <button onclick="callNextQueueAdmin()" class="w-full py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition">
+                                        <i class="fas fa-forward mr-2"></i> Panggil Berikutnya
+                                    </button>
+                                </div>
+                                
+                                <div class="bg-blue-50 rounded-xl p-6">
+                                    <h4 class="font-bold text-blue-900 mb-4">Status Antrian</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-blue-700">Menunggu</span>
+                                            <span class="font-bold" id="queueWaitingCount">0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-green-700">Selesai</span>
+                                            <span class="font-bold" id="queueDoneCount">0</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-700">Total</span>
+                                            <span class="font-bold" id="queueTotalCount">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-green-50 rounded-xl p-6">
+                                    <h4 class="font-bold text-green-900 mb-4">Aksi Cepat</h4>
+                                    <div class="space-y-3">
+                                        <button onclick="markAllAsDone()" class="w-full py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-sm">
+                                            <i class="fas fa-check mr-2"></i> Tandai Semua Selesai
+                                        </button>
+                                        <button onclick="testVoiceAnnouncement()" class="w-full py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm">
+                                            <i class="fas fa-volume-up mr-2"></i> Test Suara
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="border-b border-gray-200">
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">No Antrian</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Order ID</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Items</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Total</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Waktu</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Status</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="queueTable">
+                                        <tr>
+                                            <td colspan="7" class="py-8 text-center text-gray-400">
+                                                <i class="fas fa-list-ol text-2xl mb-2 opacity-30"></i>
+                                                <p>Tidak ada data antrian</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orders Management Page -->
+                <div id="ordersPage" class="page-content hidden">
+                    <div class="bg-white rounded-xl shadow">
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-900">Manage Order</h2>
+                                    <p class="text-gray-600">Lihat dan kelola semua order pelanggan</p>
+                                </div>
+                                <div class="flex space-x-3">
+                                    <div class="relative">
+                                        <input type="text" id="searchOrder" placeholder="Cari order..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                    </div>
+                                    <select id="orderFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                        <option value="all">Semua Status</option>
+                                        <option value="waiting">Menunggu</option>
+                                        <option value="in-progress">Diproses</option>
+                                        <option value="done">Selesai</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="mb-6">
+                                <div class="grid grid-cols-4 gap-4 text-center">
+                                    <div class="p-4 bg-amber-50 rounded-lg">
+                                        <p class="text-sm text-amber-700">Total Order</p>
+                                        <p class="text-2xl font-bold text-amber-900" id="totalOrdersCount">0</p>
+                                    </div>
+                                    <div class="p-4 bg-blue-50 rounded-lg">
+                                        <p class="text-sm text-blue-700">Hari Ini</p>
+                                        <p class="text-2xl font-bold text-blue-900" id="todayOrdersCount">0</p>
+                                    </div>
+                                    <div class="p-4 bg-green-50 rounded-lg">
+                                        <p class="text-sm text-green-700">Revenue Hari Ini</p>
+                                        <p class="text-2xl font-bold text-green-900" id="todayRevenueCount">Rp 0</p>
+                                    </div>
+                                    <div class="p-4 bg-purple-50 rounded-lg">
+                                        <p class="text-sm text-purple-700">Avg. Order</p>
+                                        <p class="text-2xl font-bold text-purple-900" id="avgOrderValue">Rp 0</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="border-b border-gray-200">
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Order ID</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">No Antrian</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Items</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Total</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Waktu</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Status</th>
+                                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ordersTable">
+                                        <tr>
+                                            <td colspan="7" class="py-8 text-center text-gray-400">
+                                                <i class="fas fa-receipt text-2xl mb-2 opacity-30"></i>
+                                                <p>Tidak ada data order</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Products Management Page -->
+                <div id="productsPage" class="page-content hidden">
+                    <div class="bg-white rounded-xl shadow">
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-900">Manage Produk</h2>
+                                    <p class="text-gray-600">Kelola menu produk VLCafe</p>
+                                </div>
+                                <button onclick="showAddProductModal()" class="px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800 transition">
+                                    <i class="fas fa-plus mr-2"></i> Tambah Produk
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="productsGrid">
+                                <div class="col-span-full text-center py-12">
+                                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
+                                    <p class="text-gray-500">Memuat produk...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reports Page -->
+                <div id="reportsPage" class="page-content hidden">
+                    <div class="bg-white rounded-xl shadow">
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-900">Laporan</h2>
+                                    <p class="text-gray-600">Analisis data penjualan dan antrian</p>
+                                </div>
+                                <div class="flex space-x-3">
+                                    <select id="reportPeriod" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                        <option value="today">Hari Ini</option>
+                                        <option value="week">Minggu Ini</option>
+                                        <option value="month">Bulan Ini</option>
+                                        <option value="all">Semua</option>
+                                    </select>
+                                    <button onclick="exportReport()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                        <i class="fas fa-download mr-2"></i> Export
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="grid lg:grid-cols-2 gap-6 mb-8">
+                                <div class="bg-gray-50 rounded-xl p-6">
+                                    <h3 class="font-bold text-gray-900 mb-4">Ringkasan Penjualan</h3>
+                                    <div class="space-y-4" id="salesSummary">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Total Order</span>
+                                            <span class="font-bold" id="reportTotalOrders">0</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Total Revenue</span>
+                                            <span class="font-bold text-green-600" id="reportTotalRevenue">Rp 0</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Rata-rata per Order</span>
+                                            <span class="font-bold" id="reportAvgOrder">Rp 0</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Produk Terlaris</span>
+                                            <span class="font-bold" id="reportBestSeller">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-50 rounded-xl p-6">
+                                    <h3 class="font-bold text-gray-900 mb-4">Statistik Antrian</h3>
+                                    <div class="space-y-4" id="queueStats">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Total Antrian</span>
+                                            <span class="font-bold" id="reportTotalQueue">0</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Waktu Tunggu Rata-rata</span>
+                                            <span class="font-bold" id="reportAvgWaitTime">0 menit</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Antrian Tertinggi</span>
+                                            <span class="font-bold" id="reportMaxQueue">0</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Efisiensi</span>
+                                            <span class="font-bold text-green-600" id="reportEfficiency">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-xl p-6">
+                                <h3 class="font-bold text-gray-900 mb-4">Order Terbaru</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr class="border-b border-gray-200">
+                                                <th class="text-left py-2 text-sm font-medium text-gray-700">Order ID</th>
+                                                <th class="text-left py-2 text-sm font-medium text-gray-700">Waktu</th>
+                                                <th class="text-left py-2 text-sm font-medium text-gray-700">Items</th>
+                                                <th class="text-left py-2 text-sm font-medium text-gray-700">Total</th>
+                                                <th class="text-left py-2 text-sm font-medium text-gray-700">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reportOrdersTable">
+                                            <tr>
+                                                <td colspan="5" class="py-6 text-center text-gray-400">
+                                                    Tidak ada data order
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add/Edit Product Modal -->
+    <div id="productModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-gray-900" id="productModalTitle">Tambah Produk Baru</h3>
+                <button onclick="closeProductModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="productError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4"></div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Produk</label>
+                    <input type="text" id="productName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="Contoh: Cappuccino">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                    <select id="productCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="coffee">Kopi</option>
+                        <option value="tea">Teh</option>
+                        <option value="food">Makanan</option>
+                        <option value="dessert">Dessert</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Harga (Rp)</label>
+                    <input type="number" id="productPrice" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="35000" min="0">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
+                    <textarea id="productDescription" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" rows="3" placeholder="Deskripsi produk..."></textarea>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="productAvailable" class="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500" checked>
+                        <label for="productAvailable" class="ml-2 text-sm text-gray-700">Tersedia</label>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="productId">
+                
+                <div class="flex space-x-3 pt-4">
+                    <button onclick="saveProduct()" class="flex-1 py-3 bg-amber-700 text-white rounded-lg font-medium hover:bg-amber-800 transition">
+                        <i class="fas fa-save mr-2"></i> Simpan
+                    </button>
+                    <button onclick="closeProductModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Detail Modal -->
+    <div id="orderDetailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-gray-900" id="orderDetailTitle">Detail Order</h3>
+                <button onclick="closeOrderDetailModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="orderDetailContent">
+                <!-- Order details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch (err) {
+            if (!/already exists/.test(err.message)) {
+                console.error('Firebase initialization error:', err);
+            }
+        }
+
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // App State
+        let currentUser = null;
+        let products = [];
+        let orders = [];
+        let queue = [];
+        let realtimeListeners = [];
+
+        // DOM Elements
+        const loginModal = document.getElementById('loginModal');
+        const mainLayout = document.getElementById('mainLayout');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const loginSuccess = document.getElementById('loginSuccess');
+        const errorTitle = document.getElementById('errorTitle');
+        const errorMessage = document.getElementById('errorMessage');
+        const successTitle = document.getElementById('successTitle');
+        const successMessage = document.getElementById('successMessage');
+        const emailError = document.getElementById('emailError');
+        const passwordError = document.getElementById('passwordError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const pageTitle = document.getElementById('pageTitle');
+        const pageSubtitle = document.getElementById('pageSubtitle');
+        const adminName = document.getElementById('adminName');
+        const currentTime = document.getElementById('currentTime');
+
+        // Page Elements
+        const dashboardPage = document.getElementById('dashboardPage');
+        const queuePage = document.getElementById('queuePage');
+        const ordersPage = document.getElementById('ordersPage');
+        const productsPage = document.getElementById('productsPage');
+        const reportsPage = document.getElementById('reportsPage');
+
+        // Dashboard Elements
+        const todayOrders = document.getElementById('todayOrders');
+        const todayRevenue = document.getElementById('todayRevenue');
+        const activeQueue = document.getElementById('activeQueue');
+        const waitingQueue = document.getElementById('waitingQueue');
+        const totalProducts = document.getElementById('totalProducts');
+        const availableProducts = document.getElementById('availableProducts');
+        const totalRevenue = document.getElementById('totalRevenue');
+        const currentQueueNumber = document.getElementById('currentQueueNumber');
+        const currentQueueStatus = document.getElementById('currentQueueStatus');
+        const waitingQueueList = document.getElementById('waitingQueueList');
+        const recentOrders = document.getElementById('recentOrders');
+        const callNextBtn = document.getElementById('callNextBtn');
+        const testVoiceBtn = document.getElementById('testVoiceBtn');
+
+        // Queue Management Elements
+        const adminCurrentQueue = document.getElementById('adminCurrentQueue');
+        const queueWaitingCount = document.getElementById('queueWaitingCount');
+        const queueDoneCount = document.getElementById('queueDoneCount');
+        const queueTotalCount = document.getElementById('queueTotalCount');
+        const queueTable = document.getElementById('queueTable');
+        const resetAllQueue = document.getElementById('resetAllQueue');
+
+        // Orders Management Elements
+        const searchOrder = document.getElementById('searchOrder');
+        const orderFilter = document.getElementById('orderFilter');
+        const totalOrdersCount = document.getElementById('totalOrdersCount');
+        const todayOrdersCount = document.getElementById('todayOrdersCount');
+        const todayRevenueCount = document.getElementById('todayRevenueCount');
+        const avgOrderValue = document.getElementById('avgOrderValue');
+        const ordersTable = document.getElementById('ordersTable');
+
+        // Products Management Elements
+        const productsGrid = document.getElementById('productsGrid');
+        const productModal = document.getElementById('productModal');
+        const productModalTitle = document.getElementById('productModalTitle');
+        const productName = document.getElementById('productName');
+        const productCategory = document.getElementById('productCategory');
+        const productPrice = document.getElementById('productPrice');
+        const productDescription = document.getElementById('productDescription');
+        const productAvailable = document.getElementById('productAvailable');
+        const productId = document.getElementById('productId');
+        const productError = document.getElementById('productError');
+
+        // Reports Elements
+        const reportPeriod = document.getElementById('reportPeriod');
+        const salesSummary = document.getElementById('salesSummary');
+        const queueStats = document.getElementById('queueStats');
+        const reportOrdersTable = document.getElementById('reportOrdersTable');
+
+        // Order Detail Modal
+        const orderDetailModal = document.getElementById('orderDetailModal');
+        const orderDetailTitle = document.getElementById('orderDetailTitle');
+        const orderDetailContent = document.getElementById('orderDetailContent');
+
+        // Utility Functions
+        function formatRupiah(amount) {
+            return 'Rp ' + (amount || 0).toLocaleString('id-ID');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('id-ID');
+        }
+
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg max-w-sm ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' :
+                        type === 'error' ? 'fa-exclamation-circle' :
+                        'fa-info-circle'
+                    } mr-3"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Login Error Handling Functions
+        function showLoginError(title, message) {
+            errorTitle.textContent = title;
+            errorMessage.textContent = message;
+            loginError.classList.remove('hidden');
+            loginSuccess.classList.add('hidden');
+            
+            // Clear field errors
+            emailError.classList.add('hidden');
+            passwordError.classList.add('hidden');
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                loginError.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showLoginSuccess(title, message) {
+            successTitle.textContent = title;
+            successMessage.textContent = message;
+            loginSuccess.classList.remove('hidden');
+            loginError.classList.add('hidden');
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                loginSuccess.classList.add('hidden');
+            }, 3000);
+        }
+
+        function showFieldError(field, message) {
+            if (field === 'email') {
+                emailError.textContent = message;
+                emailError.classList.remove('hidden');
+            } else if (field === 'password') {
+                passwordError.textContent = message;
+                passwordError.classList.remove('hidden');
+            }
+        }
+
+        function clearFieldErrors() {
+            emailError.classList.add('hidden');
+            passwordError.classList.add('hidden');
+            loginError.classList.add('hidden');
+            loginSuccess.classList.add('hidden');
+        }
+
+        function validateLoginForm(email, password) {
+            let isValid = true;
+            clearFieldErrors();
+            
+            // Email validation
+            if (!email) {
+                showFieldError('email', 'Email harus diisi');
+                isValid = false;
+            } else if (!isValidEmail(email)) {
+                showFieldError('email', 'Format email tidak valid');
+                isValid = false;
+            }
+            
+            // Password validation
+            if (!password) {
+                showFieldError('password', 'Password harus diisi');
+                isValid = false;
+            } else if (password.length < 6) {
+                showFieldError('password', 'Password minimal 6 karakter');
+                isValid = false;
+            }
+            
+            return isValid;
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Authentication Functions
+        async function login(email, password) {
+            try {
+                // Clear previous errors
+                clearFieldErrors();
+                
+                // Validate form
+                if (!validateLoginForm(email, password)) {
+                    return;
+                }
+                
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memproses...';
+                
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                currentUser = userCredential.user;
+                
+                showNotification('Login berhasil!', 'success');
+                loginModal.classList.add('hidden');
+                mainLayout.classList.remove('hidden');
+                
+                // Initialize admin
+                initializeAdmin();
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                // Handle specific Firebase auth errors
+                let errorTitle = 'Login Gagal';
+                let errorMessage = 'Terjadi kesalahan saat login';
+                
+                switch(error.code) {
+                    case 'auth/user-not-found':
+                        errorTitle = 'Email Tidak Ditemukan';
+                        errorMessage = 'Email yang Anda masukkan tidak terdaftar. Periksa kembali email Anda.';
+                        showFieldError('email', errorMessage);
+                        break;
+                        
+                    case 'auth/wrong-password':
+                        errorTitle = 'Password Salah';
+                        errorMessage = 'Password yang Anda masukkan tidak sesuai. Silakan coba lagi.';
+                        showFieldError('password', errorMessage);
+                        break;
+                        
+                    case 'auth/invalid-email':
+                        errorTitle = 'Email Tidak Valid';
+                        errorMessage = 'Format email tidak valid. Contoh: admin@email.com';
+                        showFieldError('email', errorMessage);
+                        break;
+                        
+                    case 'auth/invalid-credential':
+                        errorTitle = 'Kredensial Tidak Valid';
+                        errorMessage = 'Email atau password salah. Silakan periksa kembali.';
+                        break;
+                        
+                    case 'auth/user-disabled':
+                        errorTitle = 'Akun Dinonaktifkan';
+                        errorMessage = 'Akun ini telah dinonaktifkan. Hubungi administrator.';
+                        break;
+                        
+                    case 'auth/too-many-requests':
+                        errorTitle = 'Terlalu Banyak Percobaan';
+                        errorMessage = 'Terlalu banyak percobaan login gagal. Coba lagi nanti.';
+                        break;
+                        
+                    case 'auth/network-request-failed':
+                        errorTitle = 'Koneksi Gagal';
+                        errorMessage = 'Gagal terhubung ke server. Periksa koneksi internet Anda.';
+                        break;
+                        
+                    case 'auth/operation-not-allowed':
+                        errorTitle = 'Operasi Tidak Diizinkan';
+                        errorMessage = 'Login dengan email/password tidak diizinkan. Hubungi administrator.';
+                        break;
+                        
+                    default:
+                        errorTitle = 'Login Gagal';
+                        errorMessage = 'Terjadi kesalahan. Silakan coba lagi dalam beberapa saat.';
+                        break;
+                }
+                
+                showLoginError(errorTitle, errorMessage);
+                
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i> Masuk';
+            }
+        }
+
+        async function logout() {
+            try {
+                await auth.signOut();
+                currentUser = null;
+                
+                // Clear real-time listeners
+                realtimeListeners.forEach(unsubscribe => unsubscribe());
+                realtimeListeners = [];
+                
+                // Reset UI
+                mainLayout.classList.add('hidden');
+                loginModal.classList.remove('hidden');
+                loginEmail.value = '';
+                loginPassword.value = '';
+                clearFieldErrors();
+                
+                showNotification('Logout berhasil', 'info');
+            } catch (error) {
+                console.error('Logout error:', error);
+                showNotification('Logout gagal', 'error');
+            }
+        }
+
+        // Page Navigation
+        function showPage(page) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            
+            // Show selected page
+            document.getElementById(`${page}Page`).classList.remove('hidden');
+            
+            // Add active class to selected nav item
+            document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+            
+            // Update page title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'queue': 'Manage Antrian',
+                'orders': 'Manage Order',
+                'products': 'Manage Produk',
+                'reports': 'Laporan'
+            };
+            
+            const subtitles = {
+                'dashboard': 'Ringkasan sistem VLCafe',
+                'queue': 'Kelola antrian pesanan pelanggan',
+                'orders': 'Lihat dan kelola semua order pelanggan',
+                'products': 'Kelola menu produk VLCafe',
+                'reports': 'Analisis data penjualan dan antrian'
+            };
+            
+            pageTitle.textContent = titles[page];
+            pageSubtitle.textContent = subtitles[page];
+            
+            // Load page specific data
+            switch(page) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'queue':
+                    loadQueueData();
+                    break;
+                case 'orders':
+                    loadOrdersData();
+                    break;
+                case 'products':
+                    loadProductsData();
+                    break;
+                case 'reports':
+                    loadReportsData();
+                    break;
+            }
+        }
+
+        // Initialize Admin Dashboard
+        async function initializeAdmin() {
+            try {
+                // Update admin name
+                adminName.textContent = currentUser.email.split('@')[0];
+                
+                // Setup real-time clock
+                updateClock();
+                setInterval(updateClock, 1000);
+                
+                // Setup real-time listeners
+                setupRealtimeListeners();
+                
+                // Load initial data
+                await Promise.all([
+                    loadProductsData(),
+                    loadOrdersData(),
+                    loadQueueData()
+                ]);
+                
+                // Show dashboard
+                showPage('dashboard');
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showNotification('Gagal memuat data', 'error');
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            currentTime.textContent = now.toLocaleTimeString('id-ID');
+        }
+
+        // Setup Real-time Listeners
+        function setupRealtimeListeners() {
+            // Products listener
+            const productsListener = db.collection('menu_items')
+                .orderBy('category')
+                .orderBy('name')
+                .onSnapshot((snapshot) => {
+                    products = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    updateProductsGrid();
+                    updateDashboardStats();
+                });
+            
+            realtimeListeners.push(productsListener);
+            
+            // Orders listener
+            const ordersListener = db.collection('orders')
+                .orderBy('createdAt', 'desc')
+                .limit(50)
+                .onSnapshot((snapshot) => {
+                    orders = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    updateOrdersTable();
+                    updateDashboardRecentOrders();
+                    updateDashboardStats();
+                });
+            
+            realtimeListeners.push(ordersListener);
+            
+            // Queue listener
+            const queueListener = db.collection('queue')
+                .orderBy('createdAt')
+                .onSnapshot((snapshot) => {
+                    queue = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    updateQueueTable();
+                    updateDashboardQueue();
+                    updateDashboardStats();
+                });
+            
+            realtimeListeners.push(queueListener);
+        }
+
+        // Dashboard Functions
+        function updateDashboardStats() {
+            // Today's date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            // Today's orders
+            const todayOrdersList = orders.filter(order => {
+                const orderDate = new Date(order.createdAt?.toDate() || order.createdAt);
+                return orderDate >= today && orderDate < tomorrow;
+            });
+            
+            // Calculate stats
+            const todayOrdersCount = todayOrdersList.length;
+            const todayRevenueTotal = todayOrdersList.reduce((sum, order) => sum + (order.total || 0), 0);
+            const waitingQueueCount = queue.filter(item => item.status === 'waiting').length;
+            const totalProductsCount = products.length;
+            const availableProductsCount = products.filter(p => p.available).length;
+            const totalRevenueAll = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+            
+            // Update DOM
+            todayOrders.textContent = todayOrdersCount;
+            todayRevenue.textContent = `Revenue: ${formatRupiah(todayRevenueTotal)}`;
+            activeQueue.textContent = queue.filter(item => item.status === 'called').length;
+            waitingQueue.textContent = `Menunggu: ${waitingQueueCount}`;
+            totalProducts.textContent = totalProductsCount;
+            availableProducts.textContent = `Tersedia: ${availableProductsCount}`;
+            totalRevenue.textContent = formatRupiah(totalRevenueAll);
+        }
+
+        function updateDashboardQueue() {
+            // Current queue
+            const current = queue.find(item => item.status === 'called');
+            if (current) {
+                currentQueueNumber.textContent = current.queueNumber;
+                currentQueueStatus.textContent = 'DIPANGGIL';
+                currentQueueStatus.style.animation = 'queuePulse 2s infinite';
+                adminCurrentQueue.textContent = current.queueNumber;
+            } else {
+                currentQueueNumber.textContent = '---';
+                currentQueueStatus.textContent = 'TIDAK ADA';
+                currentQueueStatus.style.animation = 'none';
+                adminCurrentQueue.textContent = '---';
+            }
+            
+            // Waiting queue
+            const waitingList = queue.filter(item => item.status === 'waiting');
+            waitingQueueList.innerHTML = '';
+            
+            if (waitingList.length === 0) {
+                waitingQueueList.innerHTML = `
+                    <div class="text-center py-6 text-gray-400">
+                        <i class="fas fa-clock text-2xl mb-2 opacity-30"></i>
+                        <p>Tidak ada antrian menunggu</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            waitingList.forEach(item => {
+                const queueItem = document.createElement('div');
+                queueItem.className = 'flex justify-between items-center py-3 border-b border-gray-100 last:border-0';
+                queueItem.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-amber-50 rounded flex items-center justify-center">
+                            <i class="fas fa-clock text-amber-700"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium">${item.queueNumber}</p>
+                            <p class="text-xs text-gray-500">${item.items || 0} items • ${formatRupiah(item.totalAmount || 0)}</p>
+                        </div>
+                    </div>
+                    <button onclick="callQueue('${item.queueNumber}')" class="text-sm px-3 py-1 bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition">
+                        Panggil
+                    </button>
+                `;
+                waitingQueueList.appendChild(queueItem);
+            });
+        }
+
+        function updateDashboardRecentOrders() {
+            recentOrders.innerHTML = '';
+            
+            const recent = orders.slice(0, 5);
+            
+            if (recent.length === 0) {
+                recentOrders.innerHTML = `
+                    <div class="text-center py-6 text-gray-400">
+                        <i class="fas fa-receipt text-2xl mb-2 opacity-30"></i>
+                        <p>Belum ada order</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            recent.forEach(order => {
+                const orderItem = document.createElement('div');
+                orderItem.className = 'flex justify-between items-center py-3 border-b border-gray-100 last:border-0';
+                orderItem.innerHTML = `
+                    <div>
+                        <p class="font-medium text-sm">${order.orderId}</p>
+                        <p class="text-xs text-gray-500">${order.queueNumber} • ${formatTime(order.createdAt?.toDate() || order.createdAt)}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium">${formatRupiah(order.total)}</p>
+                        <span class="text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}">
+                            ${getStatusText(order.status)}
+                        </span>
+                    </div>
+                `;
+                recentOrders.appendChild(orderItem);
+            });
+        }
+
+        function loadDashboardData() {
+            updateDashboardStats();
+            updateDashboardQueue();
+            updateDashboardRecentOrders();
+        }
+
+        // Queue Management Functions
+        async function loadQueueData() {
+            updateQueueTable();
+        }
+
+        function updateQueueTable() {
+            queueTable.innerHTML = '';
+            
+            if (queue.length === 0) {
+                queueTable.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-gray-400">
+                            <i class="fas fa-list-ol text-2xl mb-2 opacity-30"></i>
+                            <p>Tidak ada data antrian</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Update stats
+            const waitingCount = queue.filter(item => item.status === 'waiting').length;
+            const doneCount = queue.filter(item => item.status === 'done').length;
+            const totalCount = queue.length;
+            
+            queueWaitingCount.textContent = waitingCount;
+            queueDoneCount.textContent = doneCount;
+            queueTotalCount.textContent = totalCount;
+            
+            // Render table rows
+            queue.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100 hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <span class="font-medium ${item.status === 'called' ? 'text-amber-700' : ''}">${item.queueNumber}</span>
+                    </td>
+                    <td class="py-3 px-4">${item.orderId}</td>
+                    <td class="py-3 px-4">${item.items || 0} items</td>
+                    <td class="py-3 px-4">${formatRupiah(item.totalAmount || 0)}</td>
+                    <td class="py-3 px-4">${formatTime(item.createdAt?.toDate() || item.createdAt)}</td>
+                    <td class="py-3 px-4">
+                        <span class="text-xs px-2 py-1 rounded-full ${getStatusColor(item.status)}">
+                            ${getStatusText(item.status)}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="flex space-x-2">
+                            ${item.status === 'waiting' ? `
+                                <button onclick="callQueue('${item.queueNumber}')" class="text-amber-600 hover:text-amber-800">
+                                    <i class="fas fa-forward"></i>
+                                </button>
+                            ` : ''}
+                            ${item.status === 'called' ? `
+                                <button onclick="markQueueAsDone('${item.queueNumber}')" class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteQueue('${item.queueNumber}')" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                queueTable.appendChild(row);
+            });
+        }
+
+        async function callQueue(queueNumber) {
+            try {
+                // Mark previous called as done
+                const previousCalled = queue.find(item => item.status === 'called');
+                if (previousCalled) {
+                    await db.collection('queue').doc(previousCalled.queueNumber).update({
+                        status: 'done'
+                    });
+                    
+                    // Update order status
+                    await db.collection('orders').doc(previousCalled.orderId).update({
+                        status: 'done'
+                    });
+                }
+                
+                // Mark new as called
+                await db.collection('queue').doc(queueNumber).update({
+                    status: 'called'
+                });
+                
+                // Update order status
+                const queueItem = queue.find(item => item.queueNumber === queueNumber);
+                if (queueItem) {
+                    await db.collection('orders').doc(queueItem.orderId).update({
+                        status: 'in-progress'
+                    });
+                }
+                
+                // Voice announcement
+                callQueueNumber(queueNumber);
+                
+                showNotification(`Antrian ${queueNumber} dipanggil`, 'success');
+            } catch (error) {
+                console.error('Error calling queue:', error);
+                showNotification('Gagal memanggil antrian', 'error');
+            }
+        }
+
+        async function callNextQueueAdmin() {
+            const waitingQueue = queue.filter(item => item.status === 'waiting');
+            if (waitingQueue.length === 0) {
+                showNotification('Tidak ada antrian menunggu', 'info');
+                return;
+            }
+            
+            await callQueue(waitingQueue[0].queueNumber);
+        }
+
+        async function markQueueAsDone(queueNumber) {
+            try {
+                await db.collection('queue').doc(queueNumber).update({
+                    status: 'done'
+                });
+                
+                // Update order status
+                const queueItem = queue.find(item => item.queueNumber === queueNumber);
+                if (queueItem) {
+                    await db.collection('orders').doc(queueItem.orderId).update({
+                        status: 'done'
+                    });
+                }
+                
+                showNotification(`Antrian ${queueNumber} selesai`, 'success');
+            } catch (error) {
+                console.error('Error marking queue as done:', error);
+                showNotification('Gagal menandai antrian selesai', 'error');
+            }
+        }
+
+        async function deleteQueue(queueNumber) {
+            if (!confirm(`Hapus antrian ${queueNumber}?`)) return;
+            
+            try {
+                await db.collection('queue').doc(queueNumber).delete();
+                showNotification(`Antrian ${queueNumber} dihapus`, 'success');
+            } catch (error) {
+                console.error('Error deleting queue:', error);
+                showNotification('Gagal menghapus antrian', 'error');
+            }
+        }
+
+        async function markAllAsDone() {
+            if (!confirm('Tandai semua antrian sebagai selesai?')) return;
+            
+            try {
+                const batch = db.batch();
+                const waitingQueue = queue.filter(item => item.status === 'waiting' || item.status === 'called');
+                
+                waitingQueue.forEach(item => {
+                    const queueRef = db.collection('queue').doc(item.queueNumber);
+                    batch.update(queueRef, { status: 'done' });
+                    
+                    const orderRef = db.collection('orders').doc(item.orderId);
+                    batch.update(orderRef, { status: 'done' });
+                });
+                
+                await batch.commit();
+                showNotification('Semua antrian ditandai selesai', 'success');
+            } catch (error) {
+                console.error('Error marking all as done:', error);
+                showNotification('Gagal menandai semua antrian selesai', 'error');
+            }
+        }
+
+        async function resetAllQueue() {
+            if (!confirm('Reset semua antrian? Data akan dihapus permanen.')) return;
+            
+            try {
+                const batch = db.batch();
+                queue.forEach(item => {
+                    const queueRef = db.collection('queue').doc(item.queueNumber);
+                    batch.delete(queueRef);
+                });
+                
+                await batch.commit();
+                showNotification('Semua antrian direset', 'success');
+            } catch (error) {
+                console.error('Error resetting queue:', error);
+                showNotification('Gagal mereset antrian', 'error');
+            }
+        }
+
+        // Orders Management Functions
+        async function loadOrdersData() {
+            updateOrdersTable();
+        }
+
+        function updateOrdersTable() {
+            ordersTable.innerHTML = '';
+            
+            if (orders.length === 0) {
+                ordersTable.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-gray-400">
+                            <i class="fas fa-receipt text-2xl mb-2 opacity-30"></i>
+                            <p>Tidak ada data order</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Calculate stats
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            const todayOrdersList = orders.filter(order => {
+                const orderDate = new Date(order.createdAt?.toDate() || order.createdAt);
+                return orderDate >= today && orderDate < tomorrow;
+            });
+            
+            const totalOrders = orders.length;
+            const todayOrders = todayOrdersList.length;
+            const todayRevenue = todayOrdersList.reduce((sum, order) => sum + (order.total || 0), 0);
+            const avgOrder = orders.length > 0 ? orders.reduce((sum, order) => sum + (order.total || 0), 0) / orders.length : 0;
+            
+            totalOrdersCount.textContent = totalOrders;
+            todayOrdersCount.textContent = todayOrders;
+            todayRevenueCount.textContent = formatRupiah(todayRevenue);
+            avgOrderValue.textContent = formatRupiah(avgOrder);
+            
+            // Apply filters
+            let filteredOrders = [...orders];
+            const searchTerm = searchOrder.value.toLowerCase();
+            const statusFilter = orderFilter.value;
+            
+            if (searchTerm) {
+                filteredOrders = filteredOrders.filter(order => 
+                    order.orderId.toLowerCase().includes(searchTerm) ||
+                    order.queueNumber.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (statusFilter !== 'all') {
+                filteredOrders = filteredOrders.filter(order => order.status === statusFilter);
+            }
+            
+            // Render table rows
+            filteredOrders.forEach(order => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100 hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="py-3 px-4">
+                        <span class="font-medium">${order.orderId}</span>
+                    </td>
+                    <td class="py-3 px-4">${order.queueNumber}</td>
+                    <td class="py-3 px-4">${order.items?.length || 0} items</td>
+                    <td class="py-3 px-4">${formatRupiah(order.total)}</td>
+                    <td class="py-3 px-4">${formatTime(order.createdAt?.toDate() || order.createdAt)}</td>
+                    <td class="py-3 px-4">
+                        <span class="text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}">
+                            ${getStatusText(order.status)}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="flex space-x-2">
+                            <button onclick="viewOrderDetail('${order.orderId}')" class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${order.status !== 'done' ? `
+                                <button onclick="updateOrderStatus('${order.orderId}', 'done')" class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteOrder('${order.orderId}')" class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                ordersTable.appendChild(row);
+            });
+        }
+
+        async function viewOrderDetail(orderId) {
+            try {
+                const order = orders.find(o => o.orderId === orderId);
+                if (!order) {
+                    showNotification('Order tidak ditemukan', 'error');
+                    return;
+                }
+                
+                orderDetailTitle.textContent = `Detail Order: ${order.orderId}`;
+                
+                let itemsHtml = '';
+                if (order.items && Array.isArray(order.items)) {
+                    itemsHtml = order.items.map(item => `
+                        <div class="flex justify-between py-2 border-b border-gray-100">
+                            <div>
+                                <p class="font-medium">${item.name}</p>
+                                <p class="text-sm text-gray-500">${item.quantity} x ${formatRupiah(item.price)}</p>
+                            </div>
+                            <div class="font-medium">${formatRupiah(item.total)}</div>
+                        </div>
+                    `).join('');
+                }
+                
+                orderDetailContent.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Nomor Antrian</p>
+                                <p class="font-bold text-lg">${order.queueNumber}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Status</p>
+                                <span class="text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}">
+                                    ${getStatusText(order.status)}
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Waktu Order</p>
+                                <p class="font-medium">${formatDate(order.createdAt?.toDate() || order.createdAt)}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Total</p>
+                                <p class="font-bold text-lg text-amber-700">${formatRupiah(order.total)}</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-bold text-gray-900 mb-3">Item Pesanan</h4>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                ${itemsHtml || '<p class="text-gray-500 text-center py-4">Tidak ada item</p>'}
+                            </div>
+                        </div>
+                        
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Subtotal</span>
+                                <span class="font-medium">${formatRupiah(order.subtotal || 0)}</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Pajak (10%)</span>
+                                <span class="font-medium">${formatRupiah(order.tax || 0)}</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-bold pt-2 border-t">
+                                <span>Total</span>
+                                <span class="text-amber-700">${formatRupiah(order.total)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-4">
+                            <button onclick="updateOrderStatus('${order.orderId}', 'done')" 
+                                    class="flex-1 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition ${order.status === 'done' ? 'hidden' : ''}">
+                                <i class="fas fa-check mr-2"></i> Tandai Selesai
+                            </button>
+                            <button onclick="closeOrderDetailModal()" 
+                                    class="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                orderDetailModal.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error viewing order detail:', error);
+                showNotification('Gagal memuat detail order', 'error');
+            }
+        }
+
+        function closeOrderDetailModal() {
+            orderDetailModal.classList.add('hidden');
+        }
+
+        async function updateOrderStatus(orderId, status) {
+            try {
+                await db.collection('orders').doc(orderId).update({
+                    status: status
+                });
+                
+                // Update queue status if exists
+                const queueItem = queue.find(item => item.orderId === orderId);
+                if (queueItem) {
+                    await db.collection('queue').doc(queueItem.queueNumber).update({
+                        status: status === 'done' ? 'done' : 'waiting'
+                    });
+                }
+                
+                showNotification(`Status order ${orderId} diperbarui`, 'success');
+                
+                if (orderDetailModal.classList.contains('hidden') === false) {
+                    closeOrderDetailModal();
+                }
+            } catch (error) {
+                console.error('Error updating order status:', error);
+                showNotification('Gagal memperbarui status order', 'error');
+            }
+        }
+
+        async function deleteOrder(orderId) {
+            if (!confirm(`Hapus order ${orderId}?`)) return;
+            
+            try {
+                // Delete order
+                await db.collection('orders').doc(orderId).delete();
+                
+                // Delete associated queue if exists
+                const queueItem = queue.find(item => item.orderId === orderId);
+                if (queueItem) {
+                    await db.collection('queue').doc(queueItem.queueNumber).delete();
+                }
+                
+                showNotification(`Order ${orderId} dihapus`, 'success');
+            } catch (error) {
+                console.error('Error deleting order:', error);
+                showNotification('Gagal menghapus order', 'error');
+            }
+        }
+
+        // Products Management Functions
+        async function loadProductsData() {
+            updateProductsGrid();
+        }
+
+        function updateProductsGrid() {
+            productsGrid.innerHTML = '';
+            
+            if (products.length === 0) {
+                productsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-400">
+                        <i class="fas fa-utensils text-4xl mb-3 opacity-30"></i>
+                        <p>Belum ada produk</p>
+                        <p class="text-sm mt-2">Tambahkan produk pertama Anda</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition';
+                productCard.innerHTML = `
+                    <div class="p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-900 text-sm mb-1">${product.name}</h4>
+                                <p class="text-xs text-gray-500 line-clamp-2">${product.description || ''}</p>
+                            </div>
+                            <span class="text-xs px-2 py-1 rounded-full ${getCategoryColor(product.category)} text-white whitespace-nowrap ml-2">
+                                ${getCategoryName(product.category)}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="font-bold text-gray-900">${formatRupiah(product.price)}</span>
+                            <span class="text-xs px-2 py-1 rounded ${product.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${product.available ? 'Tersedia' : 'Habis'}
+                            </span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="editProduct('${product.id}')" class="flex-1 py-2 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition">
+                                <i class="fas fa-edit mr-1"></i> Edit
+                            </button>
+                            <button onclick="toggleProductAvailability('${product.id}', ${!product.available})" 
+                                    class="flex-1 py-2 ${product.available ? 'bg-red-50 text-red-700 hover:bg-red-100' : 'bg-green-50 text-green-700 hover:bg-green-100'} rounded text-sm transition">
+                                <i class="fas ${product.available ? 'fa-times' : 'fa-check'} mr-1"></i>
+                                ${product.available ? 'Nonaktif' : 'Aktif'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                productsGrid.appendChild(productCard);
+            });
+        }
+
+        function showAddProductModal() {
+            productModalTitle.textContent = 'Tambah Produk Baru';
+            productName.value = '';
+            productCategory.value = 'coffee';
+            productPrice.value = '';
+            productDescription.value = '';
+            productAvailable.checked = true;
+            productId.value = '';
+            productError.classList.add('hidden');
+            productModal.classList.remove('hidden');
+        }
+
+        function editProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+            
+            productModalTitle.textContent = 'Edit Produk';
+            productName.value = product.name;
+            productCategory.value = product.category;
+            productPrice.value = product.price;
+            productDescription.value = product.description || '';
+            productAvailable.checked = product.available !== false;
+            productId.value = product.id;
+            productError.classList.add('hidden');
+            productModal.classList.remove('hidden');
+        }
+
+        function closeProductModal() {
+            productModal.classList.add('hidden');
+        }
+
+        async function saveProduct() {
+            try {
+                productError.classList.add('hidden');
+                
+                // Validate
+                const name = productName.value.trim();
+                const category = productCategory.value;
+                const price = parseInt(productPrice.value);
+                const description = productDescription.value.trim();
+                const available = productAvailable.checked;
+                const id = productId.value;
+                
+                if (!name || !price || price < 0) {
+                    throw new Error('Nama produk dan harga harus diisi dengan benar');
+                }
+                
+                const productData = {
+                    name: name,
+                    category: category,
+                    price: price,
+                    description: description,
+                    available: available,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (id) {
+                    // Update existing product
+                    await db.collection('menu_items').doc(id).update(productData);
+                    showNotification('Produk diperbarui', 'success');
+                } else {
+                    // Add new product
+                    productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                    await db.collection('menu_items').add(productData);
+                    showNotification('Produk ditambahkan', 'success');
+                }
+                
+                closeProductModal();
+            } catch (error) {
+                console.error('Error saving product:', error);
+                productError.textContent = error.message;
+                productError.classList.remove('hidden');
+            }
+        }
+
+        async function toggleProductAvailability(productId, available) {
+            try {
+                await db.collection('menu_items').doc(productId).update({
+                    available: available,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showNotification(`Produk ${available ? 'diaktifkan' : 'dinonaktifkan'}`, 'success');
+            } catch (error) {
+                console.error('Error toggling product availability:', error);
+                showNotification('Gagal mengubah status produk', 'error');
+            }
+        }
+
+        // Reports Functions
+        async function loadReportsData() {
+            updateReports();
+        }
+
+        function updateReports() {
+            // Today's date for filtering
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const period = reportPeriod.value;
+            
+            let filteredOrders = [...orders];
+            
+            if (period === 'today') {
+                filteredOrders = filteredOrders.filter(order => {
+                    const orderDate = new Date(order.createdAt?.toDate() || order.createdAt);
+                    return orderDate >= today;
+                });
+            } else if (period === 'week') {
+                const weekAgo = new Date(today);
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                filteredOrders = filteredOrders.filter(order => {
+                    const orderDate = new Date(order.createdAt?.toDate() || order.createdAt);
+                    return orderDate >= weekAgo;
+                });
+            } else if (period === 'month') {
+                const monthAgo = new Date(today);
+                monthAgo.setMonth(monthAgo.getMonth() - 1);
+                filteredOrders = filteredOrders.filter(order => {
+                    const orderDate = new Date(order.createdAt?.toDate() || order.createdAt);
+                    return orderDate >= monthAgo;
+                });
+            }
+            
+            // Calculate sales summary
+            const totalOrders = filteredOrders.length;
+            const totalRevenue = filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+            const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+            
+            // Find best seller (simplified)
+            let bestSeller = '-';
+            if (filteredOrders.length > 0) {
+                const itemCounts = {};
+                filteredOrders.forEach(order => {
+                    if (order.items && Array.isArray(order.items)) {
+                        order.items.forEach(item => {
+                            itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
+                        });
+                    }
+                });
+                
+                const bestSellerItem = Object.entries(itemCounts).sort((a, b) => b[1] - a[1])[0];
+                if (bestSellerItem) {
+                    bestSeller = bestSellerItem[0];
+                }
+            }
+            
+            // Calculate queue stats
+            const totalQueue = queue.length;
+            const completedQueue = queue.filter(item => item.status === 'done').length;
+            const efficiency = totalQueue > 0 ? Math.round((completedQueue / totalQueue) * 100) : 0;
+            const maxQueue = totalQueue;
+            
+            // Update sales summary
+            salesSummary.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Order</span>
+                    <span class="font-bold">${totalOrders}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Revenue</span>
+                    <span class="font-bold text-green-600">${formatRupiah(totalRevenue)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Rata-rata per Order</span>
+                    <span class="font-bold">${formatRupiah(avgOrder)}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Produk Terlaris</span>
+                    <span class="font-bold">${bestSeller}</span>
+                </div>
+            `;
+            
+            // Update queue stats
+            queueStats.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Antrian</span>
+                    <span class="font-bold">${totalQueue}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Selesai</span>
+                    <span class="font-bold">${completedQueue}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Antrian Tertinggi</span>
+                    <span class="font-bold">${maxQueue}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Efisiensi</span>
+                    <span class="font-bold ${efficiency > 70 ? 'text-green-600' : efficiency > 50 ? 'text-yellow-600' : 'text-red-600'}">${efficiency}%</span>
+                </div>
+            `;
+            
+            // Update recent orders table
+            reportOrdersTable.innerHTML = '';
+            const recentFilteredOrders = filteredOrders.slice(0, 10);
+            
+            if (recentFilteredOrders.length === 0) {
+                reportOrdersTable.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-6 text-center text-gray-400">
+                            Tidak ada data order
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            recentFilteredOrders.forEach(order => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100 hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="py-2">${order.orderId}</td>
+                    <td class="py-2">${formatTime(order.createdAt?.toDate() || order.createdAt)}</td>
+                    <td class="py-2">${order.items?.length || 0} items</td>
+                    <td class="py-2">${formatRupiah(order.total)}</td>
+                    <td class="py-2">
+                        <span class="text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}">
+                            ${getStatusText(order.status)}
+                        </span>
+                    </td>
+                `;
+                reportOrdersTable.appendChild(row);
+            });
+        }
+
+        async function exportReport() {
+            try {
+                const period = reportPeriod.value;
+                const data = {
+                    period: period,
+                    generatedAt: new Date().toISOString(),
+                    orders: orders,
+                    queue: queue,
+                    products: products,
+                    stats: {
+                        totalOrders: orders.length,
+                        totalRevenue: orders.reduce((sum, order) => sum + (order.total || 0), 0),
+                        totalQueue: queue.length,
+                        completedQueue: queue.filter(item => item.status === 'done').length
+                    }
+                };
+                
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `vlcafe-report-${period}-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                showNotification('Laporan diexport', 'success');
+            } catch (error) {
+                console.error('Error exporting report:', error);
+                showNotification('Gagal mengexport laporan', 'error');
+            }
+        }
+
+        // Helper Functions
+        function getCategoryName(category) {
+            const categories = {
+                'coffee': 'Kopi',
+                'tea': 'Teh',
+                'food': 'Makanan',
+                'dessert': 'Dessert'
+            };
+            return categories[category] || category;
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                'coffee': 'bg-amber-700',
+                'tea': 'bg-emerald-600',
+                'food': 'bg-orange-600',
+                'dessert': 'bg-rose-600'
+            };
+            return colors[category] || 'bg-gray-600';
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'waiting': return 'bg-amber-100 text-amber-800';
+                case 'in-progress': return 'bg-blue-100 text-blue-800';
+                case 'done': return 'bg-green-100 text-green-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function getStatusText(status) {
+            switch(status) {
+                case 'waiting': return 'Menunggu';
+                case 'in-progress': return 'Diproses';
+                case 'done': return 'Selesai';
+                default: return status;
+            }
+        }
+
+        // Voice Announcement Functions
+        function callQueueNumber(queueNumber) {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                
+                const numberParts = queueNumber.split('-')[1];
+                const message = `Antrian nomor ${numberParts}. Silakan menuju kasir.`;
+                
+                const utterance = new SpeechSynthesisUtterance(message);
+                
+                const voices = speechSynthesis.getVoices();
+                const idVoice = voices.find(voice => voice.lang.startsWith('id-ID') || voice.lang.startsWith('id'));
+                
+                if (idVoice) {
+                    utterance.voice = idVoice;
+                    utterance.lang = 'id-ID';
+                }
+                
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function testVoiceAnnouncement() {
+            if ('speechSynthesis' in window) {
+                const message = 'Testing sistem panggilan antrian. Satu, dua, tiga. Sistem berfungsi dengan baik.';
+                const utterance = new SpeechSynthesisUtterance(message);
+                
+                const voices = speechSynthesis.getVoices();
+                const idVoice = voices.find(voice => voice.lang.startsWith('id-ID') || voice.lang.startsWith('id'));
+                
+                if (idVoice) {
+                    utterance.voice = idVoice;
+                    utterance.lang = 'id-ID';
+                }
+                
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                speechSynthesis.speak(utterance);
+                showNotification('Testing suara', 'info');
+            } else {
+                showNotification('Browser tidak mendukung voice announcement', 'error');
+            }
+        }
+
+        // Quick Actions Functions
+        async function clearCompletedQueue() {
+            try {
+                const completedQueue = queue.filter(item => item.status === 'done');
+                if (completedQueue.length === 0) {
+                    showNotification('Tidak ada antrian yang selesai', 'info');
+                    return;
+                }
+                
+                const batch = db.batch();
+                completedQueue.forEach(item => {
+                    const queueRef = db.collection('queue').doc(item.queueNumber);
+                    batch.delete(queueRef);
+                });
+                
+                await batch.commit();
+                showNotification(`${completedQueue.length} antrian selesai dihapus`, 'success');
+            } catch (error) {
+                console.error('Error clearing completed queue:', error);
+                showNotification('Gagal menghapus antrian selesai', 'error');
+            }
+        }
+
+        async function resetTodayQueue() {
+            if (!confirm('Reset antrian hari ini?')) return;
+            
+            try {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const todayQueue = queue.filter(item => {
+                    const queueDate = new Date(item.createdAt?.toDate() || item.createdAt);
+                    return queueDate >= today;
+                });
+                
+                if (todayQueue.length === 0) {
+                    showNotification('Tidak ada antrian hari ini', 'info');
+                    return;
+                }
+                
+                const batch = db.batch();
+                todayQueue.forEach(item => {
+                    const queueRef = db.collection('queue').doc(item.queueNumber);
+                    batch.delete(queueRef);
+                });
+                
+                await batch.commit();
+                showNotification('Antrian hari ini direset', 'success');
+            } catch (error) {
+                console.error('Error resetting today queue:', error);
+                showNotification('Gagal mereset antrian', 'error');
+            }
+        }
+
+        async function generateReport() {
+            exportReport();
+        }
+
+        // Event Listeners
+        loginBtn.addEventListener('click', () => {
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value;
+            
+            login(email, password);
+        });
+
+        loginPassword.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginBtn.click();
+            }
+        });
+
+        // Clear field errors when user starts typing
+        loginEmail.addEventListener('input', () => {
+            emailError.classList.add('hidden');
+            loginError.classList.add('hidden');
+        });
+
+        loginPassword.addEventListener('input', () => {
+            passwordError.classList.add('hidden');
+            loginError.classList.add('hidden');
+        });
+
+        logoutBtn.addEventListener('click', logout);
+
+        toggleSidebar.addEventListener('click', () => {
+            document.body.classList.toggle('sidebar-collapsed');
+        });
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = item.getAttribute('data-page');
+                showPage(page);
+            });
+        });
+
+        // Queue management events
+        callNextBtn.addEventListener('click', callNextQueueAdmin);
+        testVoiceBtn.addEventListener('click', testVoiceAnnouncement);
+        resetAllQueue.addEventListener('click', resetAllQueue);
+
+        // Orders management events
+        searchOrder.addEventListener('input', updateOrdersTable);
+        orderFilter.addEventListener('change', updateOrdersTable);
+
+        // Reports events
+        reportPeriod.addEventListener('change', updateReports);
+
+        // Initialize auth state
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                loginModal.classList.add('hidden');
+                mainLayout.classList.remove('hidden');
+                initializeAdmin();
+            } else {
+                currentUser = null;
+                loginModal.classList.remove('hidden');
+                mainLayout.classList.add('hidden');
+            }
+        });
+
+        // Make functions available globally
+        window.showPage = showPage;
+        window.callQueue = callQueue;
+        window.callNextQueueAdmin = callNextQueueAdmin;
+        window.markQueueAsDone = markQueueAsDone;
+        window.deleteQueue = deleteQueue;
+        window.markAllAsDone = markAllAsDone;
+        window.viewOrderDetail = viewOrderDetail;
+        window.closeOrderDetailModal = closeOrderDetailModal;
+        window.updateOrderStatus = updateOrderStatus;
+        window.deleteOrder = deleteOrder;
+        window.showAddProductModal = showAddProductModal;
+        window.editProduct = editProduct;
+        window.closeProductModal = closeProductModal;
+        window.saveProduct = saveProduct;
+        window.toggleProductAvailability = toggleProductAvailability;
+        window.testVoiceAnnouncement = testVoiceAnnouncement;
+        window.clearCompletedQueue = clearCompletedQueue;
+        window.resetTodayQueue = resetTodayQueue;
+        window.generateReport = generateReport;
+        window.exportReport = exportReport;
+    </script>
+</body>
+</html>
