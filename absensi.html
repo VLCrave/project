@@ -109,7 +109,7 @@
             height: auto;
             display: block;
             background: #000;
-            transform: scaleX(-1); /* Mirror effect */
+            transform: scaleX(-1);
         }
         
         .canvas-overlay {
@@ -211,6 +211,11 @@
             box-shadow: 0 0 10px #ff3333;
         }
         
+        .status-paused {
+            background-color: #888;
+            box-shadow: 0 0 10px #888;
+        }
+        
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -301,7 +306,7 @@
             font-weight: 600;
         }
         
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 12px 15px;
             border-radius: 8px;
@@ -311,7 +316,7 @@
             font-size: 1rem;
         }
         
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #00c6ff;
             box-shadow: 0 0 0 2px rgba(0, 198, 255, 0.2);
@@ -432,7 +437,6 @@
             }
         }
         
-        /* Animation for detected face */
         @keyframes faceDetected {
             0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
             70% { box-shadow: 0 0 0 20px rgba(0, 255, 136, 0); }
@@ -441,6 +445,12 @@
         
         .face-detected {
             animation: faceDetected 1s ease-out;
+        }
+        
+        .scan-timer {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #aaa;
         }
     </style>
 </head>
@@ -465,17 +475,21 @@
                         <span id="statusText">Memuat model AI...</span>
                     </div>
                     
+                    <div class="scan-timer" id="scanTimer" style="display: none;">
+                        <i class="fas fa-clock"></i> Scan akan berakhir dalam: <span id="timerCount">30</span> detik
+                    </div>
+                    
                     <div class="camera-controls">
                         <button class="btn btn-primary" id="startCamera">
                             <i class="fas fa-play"></i> Mulai Kamera
                         </button>
-                        <button class="btn btn-success" id="startScan">
-                            <i class="fas fa-search"></i> Mulai Scan
+                        <button class="btn btn-success" id="startScan" disabled>
+                            <i class="fas fa-search"></i> Mulai Scan (30 detik)
                         </button>
-                        <button class="btn btn-warning" id="registerFace">
+                        <button class="btn btn-warning" id="registerFace" disabled>
                             <i class="fas fa-user-plus"></i> Daftarkan Wajah
                         </button>
-                        <button class="btn btn-danger" id="stopCamera">
+                        <button class="btn btn-danger" id="stopCamera" disabled>
                             <i class="fas fa-stop"></i> Hentikan
                         </button>
                     </div>
@@ -493,7 +507,15 @@
                     </div>
                     <div class="form-group">
                         <label for="employeeDept">Departemen</label>
-                        <input type="text" id="employeeDept" placeholder="Masukkan departemen">
+                        <select id="employeeDept">
+                            <option value="">Pilih Departemen</option>
+                            <option value="IT">IT</option>
+                            <option value="HRD">HRD</option>
+                            <option value="Keuangan">Keuangan</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Produksi">Produksi</option>
+                            <option value="Operasional">Operasional</option>
+                        </select>
                     </div>
                     <div class="camera-controls">
                         <button class="btn btn-success" id="captureFace">
@@ -545,7 +567,7 @@
     <!-- Modal untuk hasil scan -->
     <div class="modal" id="resultModal">
         <div class="modal-content">
-            <h2 class="modal-title"><i class="fas fa-user-check"></i> Hasil Scan Wajah</h2>
+            <h2 class="modal-title" id="modalTitle"><i class="fas fa-user-check"></i> Hasil Scan Wajah</h2>
             <div class="modal-message" id="modalMessage">
                 <!-- Pesan hasil scan akan dimuat di sini -->
             </div>
@@ -563,17 +585,20 @@
         let registeredFaces = [];
         let attendanceRecords = [];
         let faceDescriptors = [];
+        let scanInterval = null;
+        let scanTimer = null;
+        let scanTimeout = null;
+        const SCAN_DURATION = 30; // Durasi scan dalam detik
         
         // Load models untuk face-api.js
         async function loadModels() {
             try {
                 updateStatus('Memuat model AI...', 'status-scanning');
                 
-                // Load model yang diperlukan
-                await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-                await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-                await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-                await faceapi.nets.faceExpressionNet.loadFromUri('/models');
+                // Gunakan model dari CDN
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
+                await faceapi.nets.faceRecognitionNet.loadFromUri('https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights');
                 
                 updateStatus('Model AI siap!', 'status-ready');
                 console.log('Model AI berhasil dimuat');
@@ -583,6 +608,7 @@
             } catch (error) {
                 console.error('Gagal memuat model AI:', error);
                 updateStatus('Gagal memuat model AI', 'status-error');
+                showModal('Error', 'Gagal memuat model AI. Pastikan koneksi internet Anda aktif untuk mengunduh model pertama kali.');
             }
         }
         
@@ -628,7 +654,7 @@
             statusText.textContent = text;
             
             // Reset semua kelas status
-            statusDot.classList.remove('status-ready', 'status-scanning', 'status-error');
+            statusDot.classList.remove('status-ready', 'status-scanning', 'status-error', 'status-paused');
             
             // Tambahkan kelas status baru
             if (statusClass) {
@@ -646,7 +672,7 @@
                     video: {
                         width: { ideal: 640 },
                         height: { ideal: 480 },
-                        facingMode: 'user' // Gunakan kamera depan
+                        facingMode: 'user'
                     },
                     audio: false
                 });
@@ -655,9 +681,11 @@
                 isCameraOn = true;
                 updateStatus('Kamera aktif', 'status-ready');
                 
-                // Sembunyikan tombol mulai kamera, tampilkan tombol hentikan
-                document.getElementById('startCamera').style.display = 'none';
-                document.getElementById('stopCamera').style.display = 'flex';
+                // Enable tombol lainnya
+                document.getElementById('startScan').disabled = false;
+                document.getElementById('registerFace').disabled = false;
+                document.getElementById('stopCamera').disabled = false;
+                document.getElementById('startCamera').disabled = true;
                 
                 console.log('Kamera berhasil diaktifkan');
             } catch (error) {
@@ -669,6 +697,8 @@
         
         // Hentikan kamera
         function stopCamera() {
+            stopScanning(); // Hentikan scanning jika sedang berjalan
+            
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
                 videoStream = null;
@@ -677,20 +707,29 @@
             const video = document.getElementById('videoElement');
             video.srcObject = null;
             
+            // Clear canvas
+            const canvas = document.getElementById('canvasOverlay');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
             isCameraOn = false;
-            isScanning = false;
             
             updateStatus('Kamera dihentikan', 'status-error');
             
-            // Tampilkan tombol mulai kamera, sembunyikan tombol hentikan
-            document.getElementById('startCamera').style.display = 'flex';
-            document.getElementById('stopCamera').style.display = 'none';
+            // Reset tombol
+            document.getElementById('startScan').disabled = true;
+            document.getElementById('registerFace').disabled = true;
+            document.getElementById('stopCamera').disabled = true;
+            document.getElementById('startCamera').disabled = false;
+            
+            // Sembunyikan timer
+            document.getElementById('scanTimer').style.display = 'none';
             
             console.log('Kamera dihentikan');
         }
         
         // Mulai scanning wajah
-        async function startScan() {
+        function startScan() {
             if (!isCameraOn) {
                 showModal('Peringatan', 'Silakan aktifkan kamera terlebih dahulu.');
                 return;
@@ -699,90 +738,177 @@
             isScanning = true;
             updateStatus('Scanning wajah...', 'status-scanning');
             
-            // Dapatkan elemen video dan canvas
-            const video = document.getElementById('videoElement');
-            const canvas = document.getElementById('canvasOverlay');
-            const displaySize = { width: video.width, height: video.height };
+            // Tampilkan timer
+            document.getElementById('scanTimer').style.display = 'block';
+            let timeLeft = SCAN_DURATION;
+            document.getElementById('timerCount').textContent = timeLeft;
             
-            // Sesuaikan ukuran canvas dengan video
-            faceapi.matchDimensions(canvas, displaySize);
-            
-            console.log('Memulai scanning wajah...');
-            
-            // Fungsi untuk mendeteksi wajah
-            async function detectFaces() {
-                if (!isScanning || !isCameraOn) return;
+            // Update timer setiap detik
+            scanTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timerCount').textContent = timeLeft;
                 
-                try {
-                    // Deteksi wajah dari video
-                    const detections = await faceapi.detectAllFaces(
-                        video, 
-                        new faceapi.TinyFaceDetectorOptions()
-                    ).withFaceLandmarks().withFaceDescriptors();
-                    
-                    // Bersihkan canvas
-                    const context = canvas.getContext('2d');
-                    context.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    // Gambar deteksi di canvas
-                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                    faceapi.draw.drawDetections(canvas, resizedDetections);
-                    faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
-                    
-                    // Jika ada wajah yang terdeteksi
-                    if (detections.length > 0) {
-                        const detection = detections[0];
-                        
-                        // Cek apakah wajah dikenali
-                        if (registeredFaces.length > 0) {
-                            const faceMatcher = new faceapi.FaceMatcher(faceDescriptors);
-                            const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-                            
-                            // Jika wajah dikenali
-                            if (bestMatch.distance < 0.5) {
-                                const matchedFace = registeredFaces.find(face => face.id === bestMatch.label);
-                                
-                                if (matchedFace) {
-                                    // Tandai wajah yang dikenali dengan warna hijau
-                                    const box = resizedDetections[0].detection.box;
-                                    context.strokeStyle = '#00ff88';
-                                    context.lineWidth = 3;
-                                    context.strokeRect(box.x, box.y, box.width, box.height);
-                                    
-                                    // Tambahkan nama
-                                    context.fillStyle = '#00ff88';
-                                    context.font = '18px Arial';
-                                    context.fillText(matchedFace.name, box.x, box.y > 20 ? box.y - 10 : box.y + 20);
-                                    
-                                    // Hentikan scanning sementara
-                                    isScanning = false;
-                                    
-                                    // Proses absensi
-                                    processAttendance(matchedFace);
-                                    
-                                    // Animasi deteksi wajah
-                                    document.querySelector('.video-container').classList.add('face-detected');
-                                    setTimeout(() => {
-                                        document.querySelector('.video-container').classList.remove('face-detected');
-                                    }, 1000);
-                                    
-                                    return; // Keluar dari loop scanning
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Lanjutkan scanning jika tidak ada wajah yang dikenali
-                    setTimeout(detectFaces, 500);
-                } catch (error) {
-                    console.error('Error saat scanning:', error);
-                    isScanning = false;
-                    updateStatus('Error scanning', 'status-error');
+                if (timeLeft <= 0) {
+                    stopScanning();
+                    showModal('Info', 'Waktu scanning telah habis. Klik "Mulai Scan" lagi jika ingin melanjutkan.');
                 }
+            }, 1000);
+            
+            // Set timeout untuk menghentikan scanning
+            scanTimeout = setTimeout(() => {
+                stopScanning();
+            }, SCAN_DURATION * 1000);
+            
+            // Disable tombol start scan
+            document.getElementById('startScan').disabled = true;
+            document.getElementById('stopCamera').disabled = true;
+            
+            // Mulai proses deteksi wajah
+            detectFaces();
+        }
+        
+        // Hentikan scanning
+        function stopScanning() {
+            isScanning = false;
+            
+            // Hentikan interval dan timeout
+            if (scanTimer) {
+                clearInterval(scanTimer);
+                scanTimer = null;
             }
             
-            // Mulai proses deteksi
-            detectFaces();
+            if (scanTimeout) {
+                clearTimeout(scanTimeout);
+                scanTimeout = null;
+            }
+            
+            // Hentikan interval deteksi wajah
+            if (scanInterval) {
+                clearInterval(scanInterval);
+                scanInterval = null;
+            }
+            
+            // Clear canvas
+            const canvas = document.getElementById('canvasOverlay');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update status
+            if (isCameraOn) {
+                updateStatus('Kamera aktif - Scan dihentikan', 'status-ready');
+            }
+            
+            // Sembunyikan timer
+            document.getElementById('scanTimer').style.display = 'none';
+            
+            // Enable tombol
+            document.getElementById('startScan').disabled = !isCameraOn;
+            document.getElementById('stopCamera').disabled = !isCameraOn;
+            
+            console.log('Scanning dihentikan');
+        }
+        
+        // Fungsi untuk mendeteksi wajah
+        async function detectFaces() {
+            if (!isScanning || !isCameraOn) return;
+            
+            try {
+                const video = document.getElementById('videoElement');
+                const canvas = document.getElementById('canvasOverlay');
+                
+                // Set ukuran canvas sama dengan video
+                if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                }
+                
+                // Deteksi wajah
+                const detections = await faceapi.detectAllFaces(
+                    video, 
+                    new faceapi.TinyFaceDetectorOptions()
+                ).withFaceLandmarks().withFaceDescriptors();
+                
+                // Clear canvas
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Gambar deteksi
+                const resizedDetections = faceapi.resizeResults(detections, { width: video.videoWidth, height: video.videoHeight });
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+                faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+                
+                // Jika ada wajah yang terdeteksi
+                if (detections.length > 0) {
+                    const detection = detections[0];
+                    
+                    // Cek apakah wajah dikenali
+                    if (registeredFaces.length > 0 && faceDescriptors.length > 0) {
+                        const faceMatcher = new faceapi.FaceMatcher(faceDescriptors, 0.6);
+                        const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+                        
+                        // Jika wajah dikenali
+                        if (bestMatch.distance < 0.5) {
+                            const matchedFace = registeredFaces.find(face => face.id === bestMatch.label);
+                            
+                            if (matchedFace) {
+                                // Tandai wajah yang dikenali dengan warna hijau
+                                const box = resizedDetections[0].detection.box;
+                                ctx.strokeStyle = '#00ff88';
+                                ctx.lineWidth = 3;
+                                ctx.strokeRect(box.x, box.y, box.width, box.height);
+                                
+                                // Tambahkan nama
+                                ctx.fillStyle = '#00ff88';
+                                ctx.font = '18px Arial';
+                                ctx.fillText(matchedFace.name, box.x, box.y > 20 ? box.y - 10 : box.y + 20);
+                                
+                                // Animasi
+                                document.querySelector('.video-container').classList.add('face-detected');
+                                setTimeout(() => {
+                                    document.querySelector('.video-container').classList.remove('face-detected');
+                                }, 1000);
+                                
+                                // Proses absensi
+                                processAttendance(matchedFace);
+                                
+                                // Hentikan scanning setelah berhasil mengenali
+                                stopScanning();
+                                return;
+                            }
+                        } else {
+                            // Wajah tidak dikenali
+                            const box = resizedDetections[0].detection.box;
+                            ctx.strokeStyle = '#ff3333';
+                            ctx.lineWidth = 3;
+                            ctx.strokeRect(box.x, box.y, box.width, box.height);
+                            
+                            ctx.fillStyle = '#ff3333';
+                            ctx.font = '18px Arial';
+                            ctx.fillText('Tidak Dikenali', box.x, box.y > 20 ? box.y - 10 : box.y + 20);
+                        }
+                    } else {
+                        // Tidak ada wajah terdaftar
+                        const box = resizedDetections[0].detection.box;
+                        ctx.strokeStyle = '#ffcc00';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(box.x, box.y, box.width, box.height);
+                        
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.font = '18px Arial';
+                        ctx.fillText('Tidak Terdaftar', box.x, box.y > 20 ? box.y - 10 : box.y + 20);
+                    }
+                }
+                
+                // Lanjutkan scanning jika masih aktif
+                if (isScanning) {
+                    scanInterval = setTimeout(detectFaces, 500);
+                }
+            } catch (error) {
+                console.error('Error saat scanning:', error);
+                if (isScanning) {
+                    scanInterval = setTimeout(detectFaces, 1000);
+                }
+            }
         }
         
         // Proses absensi setelah wajah dikenali
@@ -803,14 +929,25 @@
             if (todayRecords.length === 0) {
                 // Check-in
                 attendanceType = 'checkin';
-                message = `Check-in berhasil! Selamat datang ${employee.name}`;
+                message = `<strong>Check-in berhasil!</strong><br><br>
+                          <i class="fas fa-user"></i> ${employee.name}<br>
+                          <i class="fas fa-clock"></i> ${currentTime}<br>
+                          <i class="fas fa-building"></i> ${employee.department}<br><br>
+                          Selamat bekerja!`;
             } else if (todayRecords.length === 1 && todayRecords[0].type === 'checkin') {
                 // Check-out
                 attendanceType = 'checkout';
-                message = `Check-out berhasil! Selamat jalan ${employee.name}`;
+                message = `<strong>Check-out berhasil!</strong><br><br>
+                          <i class="fas fa-user"></i> ${employee.name}<br>
+                          <i class="fas fa-clock"></i> ${currentTime}<br>
+                          <i class="fas fa-building"></i> ${employee.department}<br><br>
+                          Terima kasih telah bekerja hari ini!`;
             } else {
                 // Sudah check-in dan check-out hari ini
-                message = `${employee.name}, Anda sudah melakukan check-in dan check-out hari ini.`;
+                message = `<strong>Informasi</strong><br><br>
+                          <i class="fas fa-user"></i> ${employee.name}<br>
+                          Anda sudah melakukan check-in dan check-out hari ini.<br><br>
+                          <i class="fas fa-info-circle"></i> Check-in: ${todayRecords.find(r => r.type === 'checkin').time}`;
                 attendanceType = null;
             }
             
@@ -840,34 +977,29 @@
             
             // Tampilkan modal hasil
             showModal('Absensi Berhasil', message);
-            
-            // Lanjutkan scanning setelah 3 detik
-            setTimeout(() => {
-                isScanning = true;
-                updateStatus('Scanning wajah...', 'status-scanning');
-                startScan();
-            }, 3000);
         }
         
         // Tampilkan modal
         function showModal(title, message) {
             const modal = document.getElementById('resultModal');
+            const modalTitle = document.getElementById('modalTitle');
             const modalMessage = document.getElementById('modalMessage');
             
-            modalMessage.innerHTML = `
-                <h3 style="margin-bottom: 10px; color: #00c6ff;">${title}</h3>
-                <p>${message}</p>
-            `;
+            modalTitle.innerHTML = `<i class="fas fa-user-check"></i> ${title}`;
+            modalMessage.innerHTML = message;
             
             modal.style.display = 'flex';
         }
         
-        // Tutup modal
+        // Event Listeners
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+        document.getElementById('stopCamera').addEventListener('click', stopCamera);
+        document.getElementById('startScan').addEventListener('click', startScan);
         document.getElementById('closeModal').addEventListener('click', function() {
             document.getElementById('resultModal').style.display = 'none';
         });
         
-        // Tampilkan form registrasi wajah baru
+        // Registrasi wajah
         document.getElementById('registerFace').addEventListener('click', function() {
             if (!isCameraOn) {
                 showModal('Peringatan', 'Silakan aktifkan kamera terlebih dahulu.');
@@ -877,17 +1009,15 @@
             document.getElementById('registrationSection').style.display = 'block';
         });
         
-        // Batal registrasi
         document.getElementById('cancelRegistration').addEventListener('click', function() {
             document.getElementById('registrationSection').style.display = 'none';
             resetRegistrationForm();
         });
         
-        // Ambil foto wajah untuk registrasi
         document.getElementById('captureFace').addEventListener('click', async function() {
             const name = document.getElementById('employeeName').value.trim();
             const id = document.getElementById('employeeId').value.trim();
-            const dept = document.getElementById('employeeDept').value.trim();
+            const dept = document.getElementById('employeeDept').value;
             
             if (!name || !id || !dept) {
                 showModal('Peringatan', 'Harap isi semua field terlebih dahulu.');
@@ -904,12 +1034,12 @@
                 updateStatus('Mengambil foto wajah...', 'status-scanning');
                 
                 const video = document.getElementById('videoElement');
-                const detections = await faceapi.detectSingleFace(
+                const detection = await faceapi.detectSingleFace(
                     video, 
                     new faceapi.TinyFaceDetectorOptions()
                 ).withFaceLandmarks().withFaceDescriptor();
                 
-                if (!detections) {
+                if (!detection) {
                     showModal('Peringatan', 'Tidak ada wajah yang terdeteksi. Pastikan wajah Anda terlihat jelas di kamera.');
                     updateStatus('Kamera aktif', 'status-ready');
                     return;
@@ -920,16 +1050,16 @@
                     id: id,
                     name: name,
                     department: dept,
-                    descriptor: Array.from(detections.descriptor),
+                    descriptor: Array.from(detection.descriptor),
                     registrationDate: new Date().toLocaleDateString('id-ID')
                 };
                 
                 registeredFaces.push(newFace);
                 
-                // Simpan descriptor untuk face matching
+                // Buat labeled descriptor untuk face matching
                 const labeledDescriptor = new faceapi.LabeledFaceDescriptors(
                     id, 
-                    [new Float32Array(detections.descriptor)]
+                    [new Float32Array(detection.descriptor)]
                 );
                 
                 faceDescriptors.push(labeledDescriptor);
@@ -940,12 +1070,17 @@
                 // Update tampilan
                 updateEmployeeList();
                 
-                // Reset form
+                // Reset form dan sembunyikan
                 resetRegistrationForm();
                 document.getElementById('registrationSection').style.display = 'none';
                 
                 updateStatus('Wajah berhasil didaftarkan!', 'status-ready');
-                showModal('Registrasi Berhasil', `Wajah ${name} (${id}) berhasil didaftarkan.`);
+                showModal('Registrasi Berhasil', 
+                    `<strong>Registrasi berhasil!</strong><br><br>
+                    <i class="fas fa-user"></i> ${name}<br>
+                    <i class="fas fa-id-card"></i> ${id}<br>
+                    <i class="fas fa-building"></i> ${dept}<br><br>
+                    Wajah telah berhasil didaftarkan ke sistem.`);
                 
             } catch (error) {
                 console.error('Error saat mengambil foto wajah:', error);
@@ -970,6 +1105,7 @@
                     <div class="empty-state">
                         <i class="fas fa-users-slash"></i>
                         <p>Belum ada karyawan terdaftar</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">Klik "Daftarkan Wajah" untuk menambahkan karyawan</p>
                     </div>
                 `;
                 return;
@@ -1003,6 +1139,7 @@
                     <div class="empty-state">
                         <i class="fas fa-clipboard-list"></i>
                         <p>Belum ada catatan kehadiran hari ini</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">Lakukan scan wajah untuk mencatat kehadiran</p>
                     </div>
                 `;
                 return;
@@ -1012,13 +1149,14 @@
             const today = new Date().toDateString();
             const todayRecords = attendanceRecords.filter(record => 
                 new Date(record.timestamp).toDateString() === today
-            );
+            ).slice(0, 10); // Batasi 10 record terbaru
             
             if (todayRecords.length === 0) {
                 attendanceList.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-clipboard-list"></i>
                         <p>Belum ada catatan kehadiran hari ini</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">Lakukan scan wajah untuk mencatat kehadiran</p>
                     </div>
                 `;
                 return;
@@ -1031,7 +1169,7 @@
                         <div class="attendance-name">${record.name}</div>
                         <div class="attendance-time">
                             <i class="fas fa-clock"></i> ${record.time} | 
-                            <i class="fas fa-calendar"></i> ${record.date}
+                            <i class="fas fa-calendar"></i> ${record.date.split(',')[0]}
                         </div>
                     </div>
                     <div>
@@ -1062,80 +1200,32 @@
             document.getElementById('checkoutCount').textContent = checkoutCount;
         }
         
-        // Helper function untuk mendapatkan inisial nama
+        // Helper functions
         function getInitials(name) {
             return name.split(' ').map(part => part[0]).join('').toUpperCase().substring(0, 2);
         }
         
-        // Helper function untuk generate ID
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);
         }
         
-        // Event listeners untuk tombol
-        document.getElementById('startCamera').addEventListener('click', startCamera);
-        document.getElementById('stopCamera').addEventListener('click', stopCamera);
-        document.getElementById('startScan').addEventListener('click', startScan);
-        
         // Tambahkan beberapa data contoh untuk demo
         function addSampleData() {
-            // Hanya tambahkan data contoh jika tidak ada data sebelumnya
             if (registeredFaces.length === 0) {
                 const sampleFaces = [
-                    { id: 'EMP001', name: 'Ahmad Santoso', department: 'IT', registrationDate: '1 Jan 2023' },
-                    { id: 'EMP002', name: 'Siti Rahayu', department: 'HRD', registrationDate: '15 Feb 2023' },
-                    { id: 'EMP003', name: 'Budi Prasetyo', department: 'Keuangan', registrationDate: '10 Mar 2023' },
-                    { id: 'EMP004', name: 'Maya Indah', department: 'Marketing', registrationDate: '5 Apr 2023' }
+                    { id: 'EMP001', name: 'Ahmad Santoso', department: 'IT', registrationDate: '1 Jan 2023', descriptor: [] },
+                    { id: 'EMP002', name: 'Siti Rahayu', department: 'HRD', registrationDate: '15 Feb 2023', descriptor: [] },
+                    { id: 'EMP003', name: 'Budi Prasetyo', department: 'Keuangan', registrationDate: '10 Mar 2023', descriptor: [] },
+                    { id: 'EMP004', name: 'Maya Indah', department: 'Marketing', registrationDate: '5 Apr 2023', descriptor: [] }
                 ];
                 
-                // Tambahkan descriptor kosong untuk contoh
                 sampleFaces.forEach(face => {
                     registeredFaces.push(face);
-                    
-                    // Buat descriptor acak untuk contoh (dalam implementasi nyata ini akan dari foto wajah)
-                    const randomDescriptor = new Array(128).fill(0).map(() => Math.random());
-                    const labeledDescriptor = new faceapi.LabeledFaceDescriptors(
-                        face.id, 
-                        [new Float32Array(randomDescriptor)]
-                    );
-                    
-                    faceDescriptors.push(labeledDescriptor);
                 });
-                
-                // Tambahkan contoh catatan kehadiran
-                const now = new Date();
-                const today = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                const morningTime = '08:15';
-                
-                const sampleAttendance = [
-                    { 
-                        id: generateId(), 
-                        employeeId: 'EMP001', 
-                        name: 'Ahmad Santoso', 
-                        department: 'IT',
-                        type: 'checkin', 
-                        timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 15).toISOString(),
-                        time: morningTime,
-                        date: today
-                    },
-                    { 
-                        id: generateId(), 
-                        employeeId: 'EMP002', 
-                        name: 'Siti Rahayu', 
-                        department: 'HRD',
-                        type: 'checkin', 
-                        timestamp: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 30).toISOString(),
-                        time: '08:30',
-                        date: today
-                    }
-                ];
-                
-                sampleAttendance.forEach(record => attendanceRecords.push(record));
                 
                 // Simpan dan update tampilan
                 saveData();
                 updateEmployeeList();
-                updateAttendanceList();
                 updateStats();
                 
                 console.log('Data contoh berhasil ditambahkan');
