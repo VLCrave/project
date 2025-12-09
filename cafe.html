@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLCafe - Menu & Order</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .queue-pulse { animation: queuePulse 2s infinite; }
+        @keyframes queuePulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .cart-badge { position: absolute; top: -8px; right: -8px; font-size: 0.7rem; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+        @media (min-width: 768px) { .menu-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
+        .print-only { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .invoice-print { padding: 20px !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; box-shadow: none !important; border: none !important; }
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass-card shadow-sm no-print">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-amber-700 to-amber-900 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-mug-hot text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">VLCafe</h1>
+                        <p class="text-xs text-gray-500">Coffee & Eatery</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <button id="cartBtn" class="relative">
+                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition">
+                            <i class="fas fa-shopping-bag text-gray-700"></i>
+                            <span id="cartCount" class="cart-badge bg-amber-600 text-white rounded-full">0</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 no-print">
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Menu Section -->
+            <div class="lg:col-span-2">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Menu Kami</h2>
+                    <p class="text-gray-600 mb-6">Pilih dari berbagai pilihan minuman dan makanan premium kami</p>
+                    
+                    <!-- Category Tabs -->
+                    <div class="flex space-x-2 mb-6 overflow-x-auto pb-2">
+                        <button data-category="all" class="category-tab px-4 py-2 bg-amber-700 text-white rounded-full text-sm font-medium whitespace-nowrap">Semua</button>
+                        <button data-category="coffee" class="category-tab px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap">Kopi</button>
+                        <button data-category="tea" class="category-tab px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap">Teh</button>
+                        <button data-category="food" class="category-tab px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap">Makanan</button>
+                        <button data-category="dessert" class="category-tab px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition whitespace-nowrap">Dessert</button>
+                    </div>
+                    
+                    <!-- Menu Grid -->
+                    <div class="menu-grid" id="menuGrid">
+                        <!-- Menu items akan diisi dari Firebase -->
+                        <div class="col-span-full text-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
+                            <p class="text-gray-500">Memuat menu...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Queue Display -->
+                <div class="mt-12">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Status Antrian</h2>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Current Queue -->
+                        <div class="bg-gradient-to-br from-amber-700 to-amber-800 rounded-2xl p-6 text-white queue-pulse">
+                            <p class="text-sm opacity-90 mb-2">Sedang Dipanggil</p>
+                            <p class="text-5xl font-bold mb-3" id="currentQueueNumber">-</p>
+                            <div class="inline-block px-4 py-1 bg-white/20 rounded-full text-sm font-medium">
+                                <span id="currentQueueStatus">TIDAK ADA</span>
+                            </div>
+                            <div class="mt-4 text-sm">
+                                <p>Antrian Menunggu: <span id="waitingCount">0</span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Queue List -->
+                        <div class="bg-white rounded-xl shadow p-6">
+                            <h3 class="font-medium text-gray-900 mb-4">Daftar Antrian</h3>
+                            <div class="space-y-3 max-h-64 overflow-y-auto" id="queueList">
+                                <div class="text-center py-8 text-gray-400">
+                                    <i class="fas fa-users text-3xl mb-3 opacity-30"></i>
+                                    <p>Tidak ada antrian</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Panel -->
+            <div class="lg:col-span-1">
+                <div class="sticky top-24">
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-900">Pesanan Anda</h3>
+                            <button id="clearCartBtn" class="text-sm text-red-600 hover:text-red-800 transition flex items-center">
+                                <i class="fas fa-trash-alt mr-1"></i> Kosongkan
+                            </button>
+                        </div>
+                        
+                        <!-- Order Items -->
+                        <div class="mb-6">
+                            <div class="space-y-4 max-h-80 overflow-y-auto pr-2" id="orderItems">
+                                <div class="text-center py-8 text-gray-400" id="emptyCart">
+                                    <i class="fas fa-shopping-bag text-4xl mb-3 opacity-30"></i>
+                                    <p>Keranjang Anda kosong</p>
+                                    <p class="text-sm mt-2">Tambahkan item dari menu</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Summary -->
+                        <div class="border-t border-gray-200 pt-4 mb-6">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Subtotal</span>
+                                <span class="font-medium" id="subtotal">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Pajak (10%)</span>
+                                <span class="font-medium" id="tax">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
+                                <span>Total</span>
+                                <span id="total">Rp 0</span>
+                            </div>
+                        </div>
+                        
+                        <button id="checkoutBtn" disabled class="w-full py-3 bg-amber-700 text-white rounded-lg font-medium hover:bg-amber-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                            <i class="fas fa-receipt mr-2"></i> Checkout & Ambil Antrian
+                        </button>
+                        
+                        <p class="text-xs text-gray-500 text-center mt-4">
+                            Nomor antrian akan muncul setelah checkout
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Invoice Modal -->
+    <div id="invoiceModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div class="p-6" id="invoiceContent">
+                <!-- Invoice content akan diisi oleh JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Invoice (Hidden for Print) -->
+    <div id="printInvoice" class="print-only" style="display: none;"></div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-12 no-print">
+        <div class="container mx-auto px-4 py-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-3 mb-4">
+                    <div class="w-10 h-10 bg-amber-700 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-mug-hot text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold">VLCafe</h3>
+                        <p class="text-sm text-gray-400">Coffee & Eatery</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 text-sm max-w-md mx-auto">Pengalaman ngopi premium dengan kualitas terbaik. Setiap cangkir dibuat dengan passion dan keahlian.</p>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
+                <p>&copy; 2023 VLCafe. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch (err) {
+            if (!/already exists/.test(err.message)) {
+                console.error('Firebase initialization error:', err);
+            }
+        }
+
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // App State
+        const state = {
+            cart: [],
+            menuItems: [],
+            queue: [],
+            currentQueue: null,
+            orderCounter: 0,
+            queueCounter: 0
+        };
+
+        // DOM Elements
+        const menuGrid = document.getElementById('menuGrid');
+        const orderItems = document.getElementById('orderItems');
+        const emptyCart = document.getElementById('emptyCart');
+        const cartCount = document.getElementById('cartCount');
+        const subtotalEl = document.getElementById('subtotal');
+        const taxEl = document.getElementById('tax');
+        const totalEl = document.getElementById('total');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const queueList = document.getElementById('queueList');
+        const currentQueueNumber = document.getElementById('currentQueueNumber');
+        const currentQueueStatus = document.getElementById('currentQueueStatus');
+        const waitingCount = document.getElementById('waitingCount');
+        const invoiceModal = document.getElementById('invoiceModal');
+        const invoiceContent = document.getElementById('invoiceContent');
+
+        // Utility Functions
+        function formatRupiah(amount) {
+            return 'Rp ' + amount.toLocaleString('id-ID');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        function generateOrderId() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const counter = state.orderCounter.toString().padStart(3, '0');
+            return `VL-${year}${month}${day}-${counter}`;
+        }
+
+        function generateQueueNumber() {
+            const counter = state.queueCounter.toString().padStart(3, '0');
+            return `VL-${counter}`;
+        }
+
+        // Firebase Functions
+        async function loadMenuItems() {
+            try {
+                const snapshot = await db.collection('menu_items')
+                    .where('available', '==', true)
+                    .orderBy('category')
+                    .orderBy('name')
+                    .get();
+                
+                state.menuItems = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                renderMenuItems();
+            } catch (error) {
+                console.error('Error loading menu:', error);
+                showError('Gagal memuat menu. Silakan refresh halaman.');
+            }
+        }
+
+        async function loadQueue() {
+            try {
+                const snapshot = await db.collection('queue')
+                    .where('status', 'in', ['waiting', 'called'])
+                    .orderBy('createdAt')
+                    .get();
+                
+                state.queue = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                state.currentQueue = state.queue.find(item => item.status === 'called');
+                
+                // Get counters
+                const counterSnapshot = await db.collection('counters').doc('queue').get();
+                if (counterSnapshot.exists) {
+                    state.queueCounter = counterSnapshot.data().current + 1;
+                }
+                
+                updateQueueDisplay();
+            } catch (error) {
+                console.error('Error loading queue:', error);
+            }
+        }
+
+        async function loadOrderCounter() {
+            try {
+                const counterSnapshot = await db.collection('counters').doc('orders').get();
+                if (counterSnapshot.exists) {
+                    state.orderCounter = counterSnapshot.data().current + 1;
+                }
+            } catch (error) {
+                console.error('Error loading order counter:', error);
+            }
+        }
+
+        async function updateQueueCounter() {
+            try {
+                await db.collection('counters').doc('queue').set({
+                    current: state.queueCounter,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (error) {
+                console.error('Error updating queue counter:', error);
+            }
+        }
+
+        async function updateOrderCounter() {
+            try {
+                await db.collection('counters').doc('orders').set({
+                    current: state.orderCounter,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (error) {
+                console.error('Error updating order counter:', error);
+            }
+        }
+
+        // Real-time Listeners
+        function setupRealtimeListeners() {
+            // Menu items listener
+            db.collection('menu_items')
+                .where('available', '==', true)
+                .onSnapshot((snapshot) => {
+                    state.menuItems = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    renderMenuItems();
+                }, (error) => {
+                    console.error('Menu listener error:', error);
+                });
+
+            // Queue listener
+            db.collection('queue')
+                .where('status', 'in', ['waiting', 'called'])
+                .orderBy('createdAt')
+                .onSnapshot((snapshot) => {
+                    state.queue = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    state.currentQueue = state.queue.find(item => item.status === 'called');
+                    updateQueueDisplay();
+                }, (error) => {
+                    console.error('Queue listener error:', error);
+                });
+        }
+
+        // Menu Functions
+        function renderMenuItems(category = 'all') {
+            menuGrid.innerHTML = '';
+            
+            let filteredItems = state.menuItems;
+            
+            if (category !== 'all') {
+                filteredItems = filteredItems.filter(item => item.category === category);
+            }
+            
+            if (filteredItems.length === 0) {
+                menuGrid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-400">
+                        <i class="fas fa-search text-4xl mb-3 opacity-30"></i>
+                        <p>Tidak ada item menu</p>
+                        <p class="text-sm mt-2">Coba kategori lain</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filteredItems.forEach(item => {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition cursor-pointer';
+                menuItem.innerHTML = `
+                    <div class="p-4" onclick="addToCart('${item.id}')">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-900 text-sm mb-1">${item.name}</h4>
+                                <p class="text-xs text-gray-500 line-clamp-2">${item.description || ''}</p>
+                            </div>
+                            <span class="text-xs px-2 py-1 rounded-full ${getCategoryColor(item.category)} text-white whitespace-nowrap ml-2">
+                                ${getCategoryName(item.category)}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-gray-900">${formatRupiah(item.price)}</span>
+                            <button class="add-to-cart-btn w-8 h-8 bg-amber-50 text-amber-700 rounded-full flex items-center justify-center hover:bg-amber-100 transition"
+                                    onclick="event.stopPropagation(); addToCart('${item.id}')">
+                                <i class="fas fa-plus text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                menuGrid.appendChild(menuItem);
+            });
+        }
+
+        function getCategoryName(category) {
+            const categories = {
+                'coffee': 'Kopi',
+                'tea': 'Teh',
+                'food': 'Makanan',
+                'dessert': 'Dessert'
+            };
+            return categories[category] || category;
+        }
+
+        function getCategoryColor(category) {
+            const colors = {
+                'coffee': 'bg-amber-700',
+                'tea': 'bg-emerald-600',
+                'food': 'bg-orange-600',
+                'dessert': 'bg-rose-600'
+            };
+            return colors[category] || 'bg-gray-600';
+        }
+
+        // Cart Functions
+        async function addToCart(itemId) {
+            try {
+                const itemDoc = await db.collection('menu_items').doc(itemId).get();
+                if (!itemDoc.exists) {
+                    showError('Item tidak ditemukan');
+                    return;
+                }
+                
+                const menuItem = { id: itemDoc.id, ...itemDoc.data() };
+                
+                if (!menuItem.available) {
+                    showError(`${menuItem.name} sedang tidak tersedia`);
+                    return;
+                }
+                
+                const existingItem = state.cart.find(item => item.id === itemId);
+                
+                if (existingItem) {
+                    existingItem.quantity += 1;
+                } else {
+                    state.cart.push({
+                        id: menuItem.id,
+                        name: menuItem.name,
+                        price: menuItem.price,
+                        quantity: 1
+                    });
+                }
+                
+                updateCart();
+                showSuccess(`${menuItem.name} ditambahkan ke keranjang`);
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showError('Gagal menambahkan item ke keranjang');
+            }
+        }
+
+        function removeFromCart(itemId) {
+            const itemIndex = state.cart.findIndex(item => item.id === itemId);
+            if (itemIndex !== -1) {
+                const itemName = state.cart[itemIndex].name;
+                state.cart.splice(itemIndex, 1);
+                updateCart();
+                showError(`✗ ${itemName} dihapus dari keranjang`);
+            }
+        }
+
+        function updateCartItemQuantity(itemId, change) {
+            const cartItem = state.cart.find(item => item.id === itemId);
+            if (cartItem) {
+                const newQty = cartItem.quantity + change;
+                if (newQty < 1) {
+                    removeFromCart(itemId);
+                } else {
+                    cartItem.quantity = newQty;
+                    updateCart();
+                }
+            }
+        }
+
+        function clearCart() {
+            if (state.cart.length === 0) {
+                showInfo('Keranjang sudah kosong');
+                return;
+            }
+            
+            if (confirm('Kosongkan semua item dari keranjang?')) {
+                state.cart = [];
+                updateCart();
+                showSuccess('Keranjang dikosongkan');
+            }
+        }
+
+        function updateCart() {
+            // Update cart count
+            const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+            cartCount.textContent = totalItems;
+            
+            // Enable/disable checkout button
+            checkoutBtn.disabled = totalItems === 0;
+            
+            // Show/hide empty cart message
+            if (state.cart.length === 0) {
+                emptyCart.style.display = 'block';
+                orderItems.innerHTML = `
+                    <div class="text-center py-8 text-gray-400" id="emptyCart">
+                        <i class="fas fa-shopping-bag text-4xl mb-3 opacity-30"></i>
+                        <p>Keranjang Anda kosong</p>
+                        <p class="text-sm mt-2">Tambahkan item dari menu</p>
+                    </div>
+                `;
+            } else {
+                emptyCart.style.display = 'none';
+                
+                // Render cart items
+                orderItems.innerHTML = '';
+                state.cart.forEach(item => {
+                    const orderItem = document.createElement('div');
+                    orderItem.className = 'flex justify-between items-center bg-gray-50 rounded-lg p-3';
+                    orderItem.innerHTML = `
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900 text-sm mb-1">${item.name}</h4>
+                            <p class="text-sm text-gray-600">${formatRupiah(item.price)} per item</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="updateCartItemQuantity('${item.id}', -1)" 
+                                        class="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300 transition">
+                                    <i class="fas fa-minus text-xs"></i>
+                                </button>
+                                <span class="w-8 text-center font-medium">${item.quantity}</span>
+                                <button onclick="updateCartItemQuantity('${item.id}', 1)"
+                                        class="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300 transition">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </div>
+                            <button onclick="removeFromCart('${item.id}')"
+                                    class="text-red-600 hover:text-red-800 transition">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `;
+                    orderItems.appendChild(orderItem);
+                });
+            }
+            
+            // Update order summary
+            updateOrderSummary();
+        }
+
+        function updateOrderSummary() {
+            const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * 0.1;
+            const total = subtotal + tax;
+            
+            subtotalEl.textContent = formatRupiah(subtotal);
+            taxEl.textContent = formatRupiah(tax);
+            totalEl.textContent = formatRupiah(total);
+        }
+
+        // Checkout Function
+        async function checkout() {
+            if (state.cart.length === 0) {
+                showError('Keranjang kosong. Tambahkan item terlebih dahulu.');
+                return;
+            }
+            
+            try {
+                // Generate order ID and queue number
+                const orderId = generateOrderId();
+                const queueNumber = generateQueueNumber();
+                
+                // Calculate order total
+                const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const tax = subtotal * 0.1;
+                const total = subtotal + tax;
+                
+                // Create order data
+                const orderData = {
+                    orderId: orderId,
+                    queueNumber: queueNumber,
+                    items: state.cart.map(item => ({
+                        itemId: item.id,
+                        name: item.name,
+                        quantity: item.quantity,
+                        price: item.price,
+                        total: item.price * item.quantity
+                    })),
+                    subtotal: subtotal,
+                    tax: tax,
+                    total: total,
+                    status: 'waiting',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Create queue data
+                const queueData = {
+                    queueNumber: queueNumber,
+                    orderId: orderId,
+                    status: 'waiting',
+                    items: state.cart.length,
+                    totalAmount: total,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Save to Firebase
+                await db.collection('orders').doc(orderId).set(orderData);
+                await db.collection('queue').doc(queueNumber).set(queueData);
+                
+                // Update counters
+                await updateQueueCounter();
+                await updateOrderCounter();
+                
+                // Update local state
+                state.orderCounter++;
+                state.queueCounter++;
+                
+                // Clear cart
+                state.cart = [];
+                updateCart();
+                
+                // Show invoice
+                showInvoice(orderData);
+                
+                showSuccess(`Pesanan ${orderId} dibuat! Nomor antrian: ${queueNumber}`);
+                
+            } catch (error) {
+                console.error('Checkout error:', error);
+                showError('Gagal membuat pesanan. Silakan coba lagi.');
+            }
+        }
+
+        // Queue Functions
+        function updateQueueDisplay() {
+            // Update current queue display
+            if (state.currentQueue) {
+                currentQueueNumber.textContent = state.currentQueue.queueNumber;
+                currentQueueStatus.textContent = 'DIPANGGIL';
+                currentQueueStatus.style.animation = 'queuePulse 2s infinite';
+            } else {
+                currentQueueNumber.textContent = '---';
+                currentQueueStatus.textContent = 'TIDAK ADA';
+                currentQueueStatus.style.animation = 'none';
+            }
+            
+            // Update waiting count
+            const waitingQueue = state.queue.filter(item => item.status === 'waiting');
+            waitingCount.textContent = waitingQueue.length;
+            
+            // Update queue list
+            queueList.innerHTML = '';
+            
+            if (waitingQueue.length === 0) {
+                queueList.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-users text-3xl mb-3 opacity-30"></i>
+                        <p>Tidak ada antrian menunggu</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            waitingQueue.forEach(item => {
+                const queueItem = document.createElement('div');
+                queueItem.className = 'flex justify-between items-center py-3 border-b border-gray-100 last:border-0';
+                queueItem.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-amber-50 rounded flex items-center justify-center">
+                            <i class="fas fa-clock text-amber-700"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium">${item.queueNumber}</p>
+                            <p class="text-xs text-gray-500">${item.items} items • ${formatRupiah(item.totalAmount)}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full">
+                            Menunggu
+                        </span>
+                    </div>
+                `;
+                queueList.appendChild(queueItem);
+            });
+        }
+
+        // Voice Announcement
+        function callQueueNumber(queueNumber) {
+            if ('speechSynthesis' in window) {
+                speechSynthesis.cancel();
+                
+                const numberParts = queueNumber.split('-')[1];
+                const message = `Antrian nomor ${numberParts}. Silakan menuju kasir.`;
+                
+                const utterance = new SpeechSynthesisUtterance(message);
+                
+                const voices = speechSynthesis.getVoices();
+                const idVoice = voices.find(voice => voice.lang.startsWith('id-ID') || voice.lang.startsWith('id'));
+                
+                if (idVoice) {
+                    utterance.voice = idVoice;
+                    utterance.lang = 'id-ID';
+                }
+                
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Invoice Functions
+        function showInvoice(order) {
+            invoiceContent.innerHTML = `
+                <div class="invoice-print">
+                    <!-- Invoice Header -->
+                    <div class="text-center mb-8">
+                        <div class="flex justify-center items-center mb-4">
+                            <div class="w-12 h-12 bg-amber-700 rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-mug-hot text-white text-2xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-3xl font-bold text-gray-900">VLCafe</h2>
+                                <p class="text-gray-600">Coffee & Eatery</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Invoice Info -->
+                    <div class="grid grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h3 class="font-bold text-lg mb-2">Invoice</h3>
+                            <p class="text-sm text-gray-600">No: <span class="font-medium">${order.orderId}</span></p>
+                            <p class="text-sm text-gray-600">Tanggal: <span class="font-medium">${new Date().toLocaleDateString('id-ID')}</span></p>
+                            <p class="text-sm text-gray-600">Waktu: <span class="font-medium">${new Date().toLocaleTimeString('id-ID')}</span></p>
+                        </div>
+                        <div class="text-right">
+                            <h3 class="font-bold text-lg mb-2 text-amber-700">NOMOR ANTRIAN</h3>
+                            <p class="text-4xl font-bold">${order.queueNumber}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Order Items -->
+                    <div class="mb-8">
+                        <h4 class="font-bold text-lg mb-4 border-b pb-2">Detail Pesanan</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b">
+                                        <th class="text-left py-2 font-medium">Item</th>
+                                        <th class="text-center py-2 font-medium">Qty</th>
+                                        <th class="text-right py-2 font-medium">Harga</th>
+                                        <th class="text-right py-2 font-medium">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${order.items.map(item => `
+                                        <tr class="border-b">
+                                            <td class="py-3">${item.name}</td>
+                                            <td class="py-3 text-center">${item.quantity}</td>
+                                            <td class="py-3 text-right">${formatRupiah(item.price)}</td>
+                                            <td class="py-3 text-right font-medium">${formatRupiah(item.total)}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary -->
+                    <div class="border-t pt-6">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-600">Subtotal:</span>
+                            <span class="font-medium">${formatRupiah(order.subtotal)}</span>
+                        </div>
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray-600">Pajak (10%):</span>
+                            <span class="font-medium">${formatRupiah(order.tax)}</span>
+                        </div>
+                        <div class="flex justify-between text-xl font-bold pt-4 border-t">
+                            <span>TOTAL:</span>
+                            <span class="text-amber-700">${formatRupiah(order.total)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="mt-8 pt-6 border-t text-center text-gray-500 text-sm">
+                        <p>Terima kasih atas pesanan Anda! Silakan tunggu nomor antrian dipanggil.</p>
+                        <p class="mt-2">Invoice dibuat: ${new Date().toLocaleString('id-ID')}</p>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex space-x-3 mt-8 pt-6 border-t">
+                        <button onclick="printInvoice('${order.orderId}', '${order.queueNumber}')" 
+                                class="flex-1 py-3 bg-amber-700 text-white rounded-lg font-medium hover:bg-amber-800 transition flex items-center justify-center space-x-2">
+                            <i class="fas fa-print"></i>
+                            <span>Print Invoice</span>
+                        </button>
+                        <button onclick="closeInvoiceModal()" 
+                                class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            invoiceModal.classList.remove('hidden');
+            
+            // Call queue number after 1 second
+            setTimeout(() => callQueueNumber(order.queueNumber), 1000);
+        }
+
+        function closeInvoiceModal() {
+            invoiceModal.classList.add('hidden');
+        }
+
+        function printInvoice(orderId, queueNumber) {
+            const printContent = `
+                <div style="padding: 20px; font-family: Arial, sans-serif;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="font-size: 28px; font-weight: bold; margin: 0;">VLCafe</h1>
+                        <p style="color: #666; margin: 5px 0;">Coffee & Eatery</p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">INVOICE</h3>
+                            <p style="font-size: 12px; margin: 2px 0;">No: ${orderId}</p>
+                            <p style="font-size: 12px; margin: 2px 0;">Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
+                            <p style="font-size: 12px; margin: 2px 0;">Waktu: ${new Date().toLocaleTimeString('id-ID')}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <h3 style="font-size: 16px; font-weight: bold; color: #b45309; margin-bottom: 10px;">NOMOR ANTRIAN</h3>
+                            <p style="font-size: 32px; font-weight: bold; margin: 0;">${queueNumber}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px dashed #ddd; color: #666; font-size: 12px;">
+                        <p>Terima kasih atas pesanan Anda! Silakan tunggu nomor antrian dipanggil.</p>
+                        <p style="margin-top: 10px;">Dicetak: ${new Date().toLocaleString('id-ID')}</p>
+                    </div>
+                </div>
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Invoice ${orderId}</title>
+                    <style>
+                        @media print {
+                            @page { margin: 0; }
+                            body { margin: 1.6cm; }
+                        }
+                    </style>
+                </head>
+                <body onload="window.print(); window.close();">
+                    ${printContent}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        // Notification Functions
+        function showSuccess(message) {
+            showNotification(message, 'success');
+        }
+
+        function showError(message) {
+            showNotification(message, 'error');
+        }
+
+        function showInfo(message) {
+            showNotification(message, 'info');
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg max-w-sm ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' :
+                        type === 'error' ? 'fa-exclamation-circle' :
+                        'fa-info-circle'
+                    } mr-3"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Initialize App
+        async function initApp() {
+            try {
+                // Load initial data
+                await Promise.all([
+                    loadMenuItems(),
+                    loadQueue(),
+                    loadOrderCounter()
+                ]);
+                
+                // Setup real-time listeners
+                setupRealtimeListeners();
+                
+                // Initial render
+                updateCart();
+                
+                // Event Listeners
+                document.querySelectorAll('.category-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        document.querySelectorAll('.category-tab').forEach(t => {
+                            t.classList.remove('bg-amber-700', 'text-white');
+                            t.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                        });
+                        
+                        this.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                        this.classList.add('bg-amber-700', 'text-white');
+                        
+                        const category = this.getAttribute('data-category');
+                        renderMenuItems(category);
+                    });
+                });
+                
+                document.getElementById('clearCartBtn').addEventListener('click', clearCart);
+                document.getElementById('checkoutBtn').addEventListener('click', checkout);
+                
+            } catch (error) {
+                console.error('App initialization error:', error);
+                showError('Gagal memuat aplikasi. Silakan refresh halaman.');
+            }
+        }
+
+        // Make functions available globally
+        window.addToCart = addToCart;
+        window.updateCartItemQuantity = updateCartItemQuantity;
+        window.removeFromCart = removeFromCart;
+        window.printInvoice = printInvoice;
+        window.closeInvoiceModal = closeInvoiceModal;
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
