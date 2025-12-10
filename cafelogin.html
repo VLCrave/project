@@ -83,8 +83,8 @@
         .stat-card-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
         .queue-pulse { animation: queuePulse 2s infinite; }
         @keyframes queuePulse {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
             100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
         .loader {
@@ -133,6 +133,21 @@
         .mobile-scroll {
             -webkit-overflow-scrolling: touch;
             overflow-y: auto;
+        }
+        /* Voice announcement styles */
+        .voice-active {
+            animation: voiceActive 1s infinite alternate;
+            background-color: #3b82f6 !important;
+            color: white !important;
+        }
+        @keyframes voiceActive {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+        /* Called queue highlight */
+        .queue-called {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+            color: white !important;
         }
     </style>
     <!-- Firebase SDK -->
@@ -355,7 +370,7 @@
                                 </div>
                             </div>
                             
-                            <div class="text-center p-4 md:p-8 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl mb-4 md:mb-6 queue-pulse">
+                            <div class="text-center p-4 md:p-8 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl mb-4 md:mb-6" id="currentQueueCard">
                                 <p class="text-xs md:text-sm text-amber-700 mb-2">Sedang Dipanggil</p>
                                 <p class="text-3xl md:text-5xl font-bold text-amber-900 mb-3" id="currentQueueNumber">---</p>
                                 <div class="inline-block px-3 py-1 md:px-4 md:py-1 bg-amber-200 text-amber-900 rounded-full text-xs md:text-sm font-medium">
@@ -461,8 +476,11 @@
                                         <button onclick="markAllAsDone()" class="w-full py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 active:bg-green-300 transition text-xs md:text-sm touch-manipulation">
                                             <i class="fas fa-check mr-1 md:mr-2"></i> Tandai Semua Selesai
                                         </button>
-                                        <button onclick="testVoiceAnnouncement()" class="w-full py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 active:bg-blue-300 transition text-xs md:text-sm touch-manipulation">
+                                        <button onclick="testVoiceAnnouncement()" class="w-full py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 active:bg-blue-300 transition text-xs md:text-sm touch-manipulation voice-control">
                                             <i class="fas fa-volume-up mr-1 md:mr-2"></i> Test Suara
+                                        </button>
+                                        <button onclick="toggleAutoCall()" class="w-full py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 active:bg-purple-300 transition text-xs md:text-sm touch-manipulation" id="autoCallToggle">
+                                            <i class="fas fa-robot mr-1 md:mr-2"></i> Auto Call: OFF
                                         </button>
                                     </div>
                                 </div>
@@ -834,6 +852,9 @@
         let firebaseInitialized = false;
         let unsubscribeFunctions = [];
         let currentEditingProductId = null;
+        let autoCallInterval = null;
+        let isAutoCallEnabled = false;
+        let lastCalledQueue = null;
 
         // Initialize Firebase
         function initializeFirebase() {
@@ -961,18 +982,24 @@
             }, 3000);
         }
 
-        function generateOrderId() {
-            const timestamp = Date.now();
-            const random = Math.floor(Math.random() * 1000);
-            return `ORD-${timestamp}-${random}`;
+        function getStatusText(status) {
+            const statusMap = {
+                'waiting': 'Menunggu',
+                'called': 'Dipanggil',
+                'in-progress': 'Diproses',
+                'done': 'Selesai'
+            };
+            return statusMap[status] || status;
         }
 
-        function generateQueueNumber() {
-            const now = new Date();
-            const dateStr = now.getDate().toString().padStart(2, '0') + 
-                          (now.getMonth() + 1).toString().padStart(2, '0');
-            const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-            return `Q${dateStr}${random}`;
+        function getCategoryText(category) {
+            const categoryMap = {
+                'coffee': 'Kopi',
+                'tea': 'Teh',
+                'food': 'Makanan',
+                'dessert': 'Dessert'
+            };
+            return categoryMap[category] || category;
         }
 
         // Login Error Handling
@@ -1251,10 +1278,25 @@
                 // Show welcome notification
                 showNotification(`Selamat datang, ${adminName.textContent}!`, 'success');
                 
+                // Setup event listeners for queue buttons
+                setupQueueEventListeners();
+                
             } catch (error) {
                 console.error('Initialization error:', error);
                 showNotification('Gagal memuat data', 'error');
             }
+        }
+
+        // Setup event listeners for queue management
+        function setupQueueEventListeners() {
+            // Test voice button
+            document.getElementById('testVoiceBtn').addEventListener('click', testVoiceAnnouncement);
+            
+            // Call next button
+            document.getElementById('callNextBtn').addEventListener('click', callNextQueueAdmin);
+            
+            // Reset all queue button
+            document.getElementById('resetAllQueue').addEventListener('click', resetAllQueue);
         }
 
         // Setup real-time listeners
@@ -1265,10 +1307,11 @@
             
             // Listen for queue updates
             const queueUnsub = db.collection('queue')
-                .orderBy('createdAt', 'desc')
+                .orderBy('createdAt', 'asc')
                 .onSnapshot((snapshot) => {
                     updateQueueDisplay(snapshot);
                     updateDashboardStats(snapshot);
+                    checkAutoCall();
                 });
             
             unsubscribeFunctions.push(queueUnsub);
@@ -1276,6 +1319,7 @@
             // Listen for orders updates
             const ordersUnsub = db.collection('orders')
                 .orderBy('timestamp', 'desc')
+                .limit(10)
                 .onSnapshot((snapshot) => {
                     updateOrdersDisplay(snapshot);
                     updateDashboardOrders(snapshot);
@@ -1294,10 +1338,11 @@
             unsubscribeFunctions.push(productsUnsub);
         }
 
-        // Update queue display
+        // Update queue display - PERBAIKAN BESAR DISINI
         function updateQueueDisplay(snapshot) {
             const queueTable = document.getElementById('queueTable');
             const waitingQueueList = document.getElementById('waitingQueueList');
+            const currentQueueCard = document.getElementById('currentQueueCard');
             
             if (snapshot.empty) {
                 queueTable.innerHTML = `
@@ -1315,6 +1360,13 @@
                         <p class="text-sm">Tidak ada antrian menunggu</p>
                     </div>
                 `;
+                
+                // Reset current queue display
+                document.getElementById('currentQueueNumber').textContent = '---';
+                document.getElementById('currentQueueStatus').textContent = 'TIDAK ADA';
+                document.getElementById('adminCurrentQueue').textContent = '---';
+                currentQueueCard.classList.remove('queue-pulse');
+                
                 return;
             }
             
@@ -1328,10 +1380,12 @@
                 const queue = doc.data();
                 const queueId = doc.id;
                 
+                // Find current called queue
                 if (queue.status === 'called') {
                     currentQueue = queue;
                 }
                 
+                // Build waiting queue list
                 if (queue.status === 'waiting') {
                     waitingCount++;
                     waitingQueueHTML += `
@@ -1347,22 +1401,24 @@
                     doneCount++;
                 }
                 
+                // Build queue table
+                const isCurrentQueue = queue.status === 'called';
                 queueTableHTML += `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 ${isCurrentQueue ? 'queue-called' : ''}">
                         <td class="py-3 px-2 md:px-4">
-                            <span class="font-bold text-gray-900">${queue.queueNumber}</span>
+                            <span class="font-bold text-gray-900 ${isCurrentQueue ? 'text-white' : ''}">${queue.queueNumber}</span>
                         </td>
                         <td class="py-3 px-2 md:px-4">
-                            <span class="text-sm font-mono">${queue.orderId || 'N/A'}</span>
+                            <span class="text-sm font-mono ${isCurrentQueue ? 'text-white' : ''}">${queue.orderId || 'N/A'}</span>
                         </td>
                         <td class="py-3 px-2 md:px-4">
-                            <span class="text-sm">${queue.itemsCount || 0} items</span>
+                            <span class="text-sm ${isCurrentQueue ? 'text-white' : ''}">${queue.itemsCount || 0} items</span>
                         </td>
                         <td class="py-3 px-2 md:px-4">
-                            <span class="font-medium">${formatRupiah(queue.totalAmount || 0)}</span>
+                            <span class="font-medium ${isCurrentQueue ? 'text-white' : ''}">${formatRupiah(queue.totalAmount || 0)}</span>
                         </td>
                         <td class="py-3 px-2 md:px-4">
-                            <span class="text-xs text-gray-500">${formatTime(queue.createdAt)}</span>
+                            <span class="text-xs ${isCurrentQueue ? 'text-gray-100' : 'text-gray-500'}">${formatTime(queue.createdAt)}</span>
                         </td>
                         <td class="py-3 px-2 md:px-4">
                             <span class="px-2 py-1 rounded-full text-xs font-medium ${
@@ -1376,16 +1432,16 @@
                         <td class="py-3 px-2 md:px-4">
                             <div class="flex space-x-2">
                                 ${queue.status === 'waiting' ? `
-                                    <button onclick="callQueue('${queueId}')" class="text-blue-600 hover:text-blue-800 p-1">
-                                        <i class="fas fa-forward"></i>
+                                    <button onclick="callQueue('${queueId}', '${queue.queueNumber}')" class="text-blue-600 hover:text-blue-800 p-1" title="Panggil Antrian">
+                                        <i class="fas fa-bullhorn"></i>
                                     </button>
                                 ` : ''}
                                 ${queue.status === 'called' ? `
-                                    <button onclick="markQueueAsDone('${queueId}')" class="text-green-600 hover:text-green-800 p-1">
+                                    <button onclick="markQueueAsDone('${queueId}')" class="text-green-600 hover:text-green-800 p-1" title="Tandai Selesai">
                                         <i class="fas fa-check"></i>
                                     </button>
                                 ` : ''}
-                                <button onclick="deleteQueue('${queueId}')" class="text-red-600 hover:text-red-800 p-1">
+                                <button onclick="deleteQueue('${queueId}')" class="text-red-600 hover:text-red-800 p-1" title="Hapus Antrian">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -1409,15 +1465,18 @@
             // Update queue table
             queueTable.innerHTML = queueTableHTML;
             
-            // Update current queue display
+            // Update current queue display - INI YANG PERLU DIPERBAIKI
             if (currentQueue) {
                 document.getElementById('currentQueueNumber').textContent = currentQueue.queueNumber;
                 document.getElementById('currentQueueStatus').textContent = 'SEDANG DIPANGGIL';
                 document.getElementById('adminCurrentQueue').textContent = currentQueue.queueNumber;
+                currentQueueCard.classList.add('queue-pulse');
+                lastCalledQueue = currentQueue.queueNumber;
             } else {
                 document.getElementById('currentQueueNumber').textContent = '---';
                 document.getElementById('currentQueueStatus').textContent = 'TIDAK ADA';
                 document.getElementById('adminCurrentQueue').textContent = '---';
+                currentQueueCard.classList.remove('queue-pulse');
             }
             
             // Update queue counts
@@ -1425,212 +1484,6 @@
             document.getElementById('queueDoneCount').textContent = doneCount;
             document.getElementById('queueTotalCount').textContent = snapshot.size;
             document.getElementById('waitingQueue').textContent = `Menunggu: ${waitingCount}`;
-        }
-
-        // Update orders display
-        function updateOrdersDisplay(snapshot) {
-            const ordersTable = document.getElementById('ordersTable');
-            const recentOrders = document.getElementById('recentOrders');
-            
-            if (snapshot.empty) {
-                ordersTable.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="py-8 text-center text-gray-400">
-                            <i class="fas fa-receipt text-xl md:text-2xl mb-2 opacity-30"></i>
-                            <p class="text-sm">Tidak ada data order</p>
-                        </td>
-                    </tr>
-                `;
-                
-                recentOrders.innerHTML = `
-                    <div class="text-center py-8 text-gray-400">
-                        <i class="fas fa-receipt text-xl md:text-2xl mb-2 opacity-30"></i>
-                        <p class="text-sm">Belum ada order</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let ordersTableHTML = '';
-            let recentOrdersHTML = '';
-            let todayOrders = 0;
-            let todayRevenue = 0;
-            let totalOrders = 0;
-            let totalRevenue = 0;
-            const today = new Date().toDateString();
-            
-            snapshot.forEach((doc, index) => {
-                const order = doc.data();
-                const orderId = doc.id;
-                const orderDate = order.timestamp ? order.timestamp.toDate().toDateString() : '';
-                
-                // Calculate stats
-                totalOrders++;
-                totalRevenue += order.total || 0;
-                
-                if (orderDate === today) {
-                    todayOrders++;
-                    todayRevenue += order.total || 0;
-                }
-                
-                // Orders table row
-                ordersTableHTML += `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="py-3 px-2 md:px-4">
-                            <span class="text-sm font-mono">${orderId}</span>
-                        </td>
-                        <td class="py-3 px-2 md:px-4">
-                            <span class="font-bold">${order.queueNumber || 'N/A'}</span>
-                        </td>
-                        <td class="py-3 px-2 md:px-4">
-                            <span class="text-sm">${order.items ? order.items.length : 0} items</span>
-                        </td>
-                        <td class="py-3 px-2 md:px-4">
-                            <span class="font-medium">${formatRupiah(order.total || 0)}</span>
-                        </td>
-                        <td class="py-3 px-2 md:px-4">
-                            <span class="text-xs text-gray-500">${formatTime(order.timestamp)}</span>
-                        </td>
-                        <td class="py-3 px-2 md:px-4">
-                            <span class="px-2 py-1 rounded-full text-xs font-medium ${
-                                order.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
-                                order.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                                'bg-green-100 text-green-800'
-                            }">
-                                ${getStatusText(order.status)}
-                            </span>
-                        </td>
-                        <td class="py-3 px-2 md:px-4">
-                            <div class="flex space-x-2">
-                                <button onclick="viewOrderDetail('${orderId}')" class="text-blue-600 hover:text-blue-800 p-1">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button onclick="updateOrderStatus('${orderId}')" class="text-green-600 hover:text-green-800 p-1">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="deleteOrder('${orderId}')" class="text-red-600 hover:text-red-800 p-1">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                
-                // Recent orders (only first 5 for dashboard)
-                if (index < 5) {
-                    recentOrdersHTML += `
-                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <span class="font-medium">${order.queueNumber || 'No Queue'}</span>
-                                <p class="text-xs text-gray-500">${orderId.substring(0, 8)}...</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="font-bold">${formatRupiah(order.total || 0)}</span>
-                                <p class="text-xs text-gray-500">${formatTime(order.timestamp)}</p>
-                            </div>
-                        </div>
-                    `;
-                }
-            });
-            
-            // Update orders table
-            ordersTable.innerHTML = ordersTableHTML;
-            
-            // Update recent orders
-            if (recentOrdersHTML) {
-                recentOrders.innerHTML = recentOrdersHTML;
-            }
-            
-            // Update order stats
-            document.getElementById('todayOrdersCount').textContent = todayOrders;
-            document.getElementById('todayRevenueCount').textContent = formatRupiah(todayRevenue);
-            document.getElementById('totalOrdersCount').textContent = totalOrders;
-            document.getElementById('avgOrderValue').textContent = formatRupiah(totalOrders > 0 ? totalRevenue / totalOrders : 0);
-        }
-
-        // Update products display
-        function updateProductsDisplay(snapshot) {
-            const productsGrid = document.getElementById('productsGrid');
-            
-            if (snapshot.empty) {
-                productsGrid.innerHTML = `
-                    <div class="col-span-full text-center py-12">
-                        <i class="fas fa-utensils text-4xl text-gray-300 mb-4"></i>
-                        <p class="text-gray-500">Belum ada produk</p>
-                        <button onclick="showAddProductModal()" class="mt-4 px-4 py-2 bg-amber-700 text-white rounded-lg hover:bg-amber-800">
-                            <i class="fas fa-plus mr-2"></i> Tambah Produk Pertama
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-            
-            let productsHTML = '';
-            let availableCount = 0;
-            let totalCount = 0;
-            
-            snapshot.forEach(doc => {
-                const product = doc.data();
-                const productId = doc.id;
-                totalCount++;
-                
-                if (product.available !== false) {
-                    availableCount++;
-                }
-                
-                productsHTML += `
-                    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition">
-                        <div class="p-4 md:p-6">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 class="font-bold text-gray-900 text-lg">${product.name}</h3>
-                                    <span class="inline-block px-2 py-1 text-xs font-medium rounded ${
-                                        product.category === 'coffee' ? 'bg-amber-100 text-amber-800' :
-                                        product.category === 'tea' ? 'bg-green-100 text-green-800' :
-                                        product.category === 'food' ? 'bg-red-100 text-red-800' :
-                                        'bg-purple-100 text-purple-800'
-                                    }">
-                                        ${getCategoryText(product.category)}
-                                    </span>
-                                </div>
-                                <span class="font-bold text-lg">${formatRupiah(product.price)}</span>
-                            </div>
-                            
-                            <p class="text-gray-600 text-sm mb-4">${product.description || 'Tidak ada deskripsi'}</p>
-                            
-                            <div class="flex justify-between items-center">
-                                <div class="flex items-center">
-                                    <div class="w-3 h-3 rounded-full mr-2 ${
-                                        product.available !== false ? 'bg-green-500' : 'bg-red-500'
-                                    }"></div>
-                                    <span class="text-sm ${
-                                        product.available !== false ? 'text-green-700' : 'text-red-700'
-                                    }">
-                                        ${product.available !== false ? 'Tersedia' : 'Habis'}
-                                    </span>
-                                </div>
-                                <div class="flex space-x-2">
-                                    <button onclick="editProduct('${productId}')" class="text-blue-600 hover:text-blue-800 p-2">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button onclick="toggleProductAvailability('${productId}', ${product.available !== false})" class="text-green-600 hover:text-green-800 p-2">
-                                        <i class="fas fa-power-off"></i>
-                                    </button>
-                                    <button onclick="deleteProduct('${productId}')" class="text-red-600 hover:text-red-800 p-2">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            productsGrid.innerHTML = productsHTML;
-            
-            // Update product counts
-            document.getElementById('availableProducts').textContent = `Tersedia: ${availableCount}`;
-            document.getElementById('totalProducts').textContent = totalCount;
         }
 
         // Update dashboard stats
@@ -1701,26 +1554,6 @@
             });
         }
 
-        function getStatusText(status) {
-            const statusMap = {
-                'waiting': 'Menunggu',
-                'called': 'Dipanggil',
-                'in-progress': 'Diproses',
-                'done': 'Selesai'
-            };
-            return statusMap[status] || status;
-        }
-
-        function getCategoryText(category) {
-            const categoryMap = {
-                'coffee': 'Kopi',
-                'tea': 'Teh',
-                'food': 'Makanan',
-                'dessert': 'Dessert'
-            };
-            return categoryMap[category] || category;
-        }
-
         function updateClock() {
             const now = new Date();
             currentTime.textContent = now.toLocaleTimeString('id-ID', {
@@ -1728,6 +1561,482 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
+        }
+
+        // Voice Announcement System - FIXED
+        async function announceQueueNumber(queueNumber) {
+            return new Promise((resolve) => {
+                if (!('speechSynthesis' in window) || !queueNumber) {
+                    console.warn('Browser tidak mendukung text-to-speech');
+                    resolve();
+                    return;
+                }
+                
+                // Cancel any ongoing speech
+                speechSynthesis.cancel();
+                
+                // Extract numeric part from queue number (format: QDDMMXXX)
+                const numberMatch = queueNumber.match(/\d+/g);
+                const numberParts = numberMatch ? numberMatch.join('') : queueNumber;
+                
+                // Create announcement messages
+                const messages = [
+                    `Antrian nomor ${numberParts}.`,
+                    `Silakan menuju kasir.`,
+                    `Terima kasih.`
+                ];
+                
+                let currentMessageIndex = 0;
+                
+                function speakNextMessage() {
+                    if (currentMessageIndex >= messages.length) {
+                        resolve();
+                        return;
+                    }
+                    
+                    const utterance = new SpeechSynthesisUtterance(messages[currentMessageIndex]);
+                    
+                    // Try to find Indonesian voice
+                    const voices = speechSynthesis.getVoices();
+                    const idVoice = voices.find(voice => voice.lang.startsWith('id-ID') || voice.lang.startsWith('id'));
+                    
+                    if (idVoice) {
+                        utterance.voice = idVoice;
+                        utterance.lang = 'id-ID';
+                    } else {
+                        utterance.lang = 'en-US';
+                    }
+                    
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1;
+                    utterance.volume = 1;
+                    
+                    utterance.onend = function() {
+                        currentMessageIndex++;
+                        setTimeout(speakNextMessage, 500); // Small delay between messages
+                    };
+                    
+                    utterance.onerror = function() {
+                        currentMessageIndex++;
+                        setTimeout(speakNextMessage, 500);
+                    };
+                    
+                    // Add visual feedback
+                    const voiceBtn = document.querySelector('.voice-control');
+                    if (voiceBtn) {
+                        voiceBtn.classList.add('voice-active');
+                        setTimeout(() => {
+                            voiceBtn.classList.remove('voice-active');
+                        }, 3000);
+                    }
+                    
+                    speechSynthesis.speak(utterance);
+                }
+                
+                // Wait for voices to load
+                if (speechSynthesis.getVoices().length === 0) {
+                    speechSynthesis.onvoiceschanged = function() {
+                        speakNextMessage();
+                    };
+                } else {
+                    speakNextMessage();
+                }
+            });
+        }
+
+        // Test voice announcement
+        function testVoiceAnnouncement() {
+            const testMessage = "Test suara: Sistem pengumuman antrian VLCafe berfungsi dengan baik.";
+            
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(testMessage);
+                
+                const voices = speechSynthesis.getVoices();
+                const idVoice = voices.find(voice => voice.lang.startsWith('id-ID') || voice.lang.startsWith('id'));
+                
+                if (idVoice) {
+                    utterance.voice = idVoice;
+                    utterance.lang = 'id-ID';
+                }
+                
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                // Add visual feedback
+                const voiceBtn = document.querySelector('.voice-control');
+                if (voiceBtn) {
+                    voiceBtn.classList.add('voice-active');
+                    setTimeout(() => {
+                        voiceBtn.classList.remove('voice-active');
+                    }, 3000);
+                }
+                
+                speechSynthesis.speak(utterance);
+                showNotification('Test suara berjalan...', 'success');
+            } else {
+                showNotification('Browser tidak mendukung text-to-speech', 'error');
+            }
+        }
+
+        // Queue Management Functions - FIXED LOGIC
+        async function callQueue(queueId, queueNumber) {
+            try {
+                console.log('Calling queue:', queueId, queueNumber);
+                
+                // First, check if there's already a called queue
+                const existingCalledQueue = await db.collection('queue')
+                    .where('status', '==', 'called')
+                    .limit(1)
+                    .get();
+                
+                // If there's already a called queue, mark it as done first
+                if (!existingCalledQueue.empty) {
+                    const existingQueueDoc = existingCalledQueue.docs[0];
+                    const existingQueueData = existingQueueDoc.data();
+                    
+                    // Mark old queue as done
+                    await existingQueueDoc.ref.update({
+                        status: 'done',
+                        completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        completedBy: currentUser.email
+                    });
+                    
+                    // Update corresponding order status
+                    if (existingQueueData.orderId) {
+                        await db.collection('orders').doc(existingQueueData.orderId).update({
+                            status: 'done',
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                    
+                    console.log('Marked previous queue as done:', existingQueueData.queueNumber);
+                }
+                
+                // Now update the new queue to called status
+                await db.collection('queue').doc(queueId).update({
+                    status: 'called',
+                    calledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    calledBy: currentUser.email
+                });
+                
+                // Update corresponding order status to in-progress
+                const queueDoc = await db.collection('queue').doc(queueId).get();
+                const queueData = queueDoc.data();
+                
+                if (queueData.orderId) {
+                    await db.collection('orders').doc(queueData.orderId).update({
+                        status: 'in-progress',
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                // Announce queue number
+                await announceQueueNumber(queueNumber);
+                
+                // Update last called queue
+                lastCalledQueue = queueNumber;
+                
+                showNotification(`Antrian ${queueNumber} berhasil dipanggil`, 'success');
+                
+            } catch (error) {
+                console.error('Error calling queue:', error);
+                showNotification('Gagal memanggil antrian: ' + error.message, 'error');
+            }
+        }
+
+        async function callNextQueueAdmin() {
+            try {
+                console.log('Calling next queue...');
+                
+                // Find next waiting queue (oldest first)
+                const snapshot = await db.collection('queue')
+                    .where('status', '==', 'waiting')
+                    .orderBy('createdAt')
+                    .limit(1)
+                    .get();
+                
+                if (snapshot.empty) {
+                    showNotification('Tidak ada antrian menunggu', 'info');
+                    return;
+                }
+                
+                const queueDoc = snapshot.docs[0];
+                const queueData = queueDoc.data();
+                
+                console.log('Found next queue:', queueData.queueNumber);
+                
+                // Call the queue
+                await callQueue(queueDoc.id, queueData.queueNumber);
+                
+            } catch (error) {
+                console.error('Error calling next queue:', error);
+                showNotification('Gagal memanggil antrian berikutnya: ' + error.message, 'error');
+            }
+        }
+
+        async function markQueueAsDone(queueId) {
+            try {
+                const queueDoc = await db.collection('queue').doc(queueId).get();
+                if (!queueDoc.exists) {
+                    showNotification('Antrian tidak ditemukan', 'error');
+                    return;
+                }
+                
+                const queueData = queueDoc.data();
+                
+                console.log('Marking queue as done:', queueData.queueNumber);
+                
+                // Update queue status to 'done'
+                await db.collection('queue').doc(queueId).update({
+                    status: 'done',
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    completedBy: currentUser.email
+                });
+                
+                // Update corresponding order status
+                if (queueData.orderId) {
+                    await db.collection('orders').doc(queueData.orderId).update({
+                        status: 'done',
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                showNotification(`Antrian ${queueData.queueNumber} ditandai selesai`, 'success');
+                
+                // Auto call next queue if enabled
+                if (isAutoCallEnabled) {
+                    setTimeout(() => {
+                        callNextQueueAdmin();
+                    }, 2000); // Wait 2 seconds before calling next
+                }
+                
+            } catch (error) {
+                console.error('Error marking queue as done:', error);
+                showNotification('Gagal menandai antrian: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteQueue(queueId) {
+            if (!confirm('Apakah Anda yakin ingin menghapus antrian ini?')) return;
+            
+            try {
+                const queueDoc = await db.collection('queue').doc(queueId).get();
+                if (!queueDoc.exists) {
+                    showNotification('Antrian tidak ditemukan', 'error');
+                    return;
+                }
+                
+                const queueData = queueDoc.data();
+                
+                await db.collection('queue').doc(queueId).delete();
+                
+                // Also delete corresponding order if exists
+                if (queueData.orderId) {
+                    await db.collection('orders').doc(queueData.orderId).delete();
+                }
+                
+                showNotification(`Antrian ${queueData.queueNumber} berhasil dihapus`, 'success');
+            } catch (error) {
+                console.error('Error deleting queue:', error);
+                showNotification('Gagal menghapus antrian: ' + error.message, 'error');
+            }
+        }
+
+        async function markAllAsDone() {
+            if (!confirm('Tandai semua antrian yang menunggu sebagai selesai?')) return;
+            
+            try {
+                const snapshot = await db.collection('queue')
+                    .where('status', 'in', ['waiting', 'called'])
+                    .get();
+                
+                if (snapshot.empty) {
+                    showNotification('Tidak ada antrian yang perlu ditandai selesai', 'info');
+                    return;
+                }
+                
+                const batch = db.batch();
+                const now = firebase.firestore.FieldValue.serverTimestamp();
+                
+                snapshot.forEach(doc => {
+                    const queueData = doc.data();
+                    batch.update(doc.ref, {
+                        status: 'done',
+                        completedAt: now,
+                        completedBy: currentUser.email
+                    });
+                    
+                    // Also update corresponding order
+                    if (queueData.orderId) {
+                        const orderRef = db.collection('orders').doc(queueData.orderId);
+                        batch.update(orderRef, {
+                            status: 'done',
+                            updatedAt: now,
+                            completedAt: now
+                        });
+                    }
+                });
+                
+                await batch.commit();
+                showNotification(`Semua antrian (${snapshot.size}) ditandai selesai`, 'success');
+            } catch (error) {
+                console.error('Error marking all as done:', error);
+                showNotification('Gagal menandai antrian: ' + error.message, 'error');
+            }
+        }
+
+        async function clearCompletedQueue() {
+            if (!confirm('Hapus semua antrian yang sudah selesai?')) return;
+            
+            try {
+                const snapshot = await db.collection('queue')
+                    .where('status', '==', 'done')
+                    .get();
+                
+                if (snapshot.empty) {
+                    showNotification('Tidak ada antrian selesai', 'info');
+                    return;
+                }
+                
+                const batch = db.batch();
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                showNotification(`Antrian selesai (${snapshot.size}) berhasil dihapus`, 'success');
+            } catch (error) {
+                console.error('Error clearing completed queue:', error);
+                showNotification('Gagal menghapus antrian selesai: ' + error.message, 'error');
+            }
+        }
+
+        async function resetTodayQueue() {
+            if (!confirm('Reset semua antrian hari ini? Ini akan menghapus semua antrian.')) return;
+            
+            try {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const snapshot = await db.collection('queue').get();
+                
+                const batch = db.batch();
+                let deletedCount = 0;
+                
+                snapshot.forEach(doc => {
+                    const queueDate = doc.data().createdAt.toDate();
+                    if (queueDate >= today) {
+                        batch.delete(doc.ref);
+                        deletedCount++;
+                    }
+                });
+                
+                await batch.commit();
+                showNotification(`Antrian hari ini (${deletedCount}) berhasil direset`, 'success');
+            } catch (error) {
+                console.error('Error resetting today queue:', error);
+                showNotification('Gagal reset antrian: ' + error.message, 'error');
+            }
+        }
+
+        async function resetAllQueue() {
+            if (!confirm('Reset SEMUA antrian? Ini akan menghapus semua data antrian.')) return;
+            
+            try {
+                const snapshot = await db.collection('queue').get();
+                
+                if (snapshot.empty) {
+                    showNotification('Tidak ada antrian', 'info');
+                    return;
+                }
+                
+                const batch = db.batch();
+                snapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                showNotification(`Semua antrian (${snapshot.size}) berhasil direset`, 'success');
+            } catch (error) {
+                console.error('Error resetting all queue:', error);
+                showNotification('Gagal reset antrian: ' + error.message, 'error');
+            }
+        }
+
+        // Auto Call System
+        function toggleAutoCall() {
+            isAutoCallEnabled = !isAutoCallEnabled;
+            const autoCallBtn = document.getElementById('autoCallToggle');
+            
+            if (isAutoCallEnabled) {
+                autoCallBtn.innerHTML = '<i class="fas fa-robot mr-1 md:mr-2"></i> Auto Call: ON';
+                autoCallBtn.classList.remove('bg-purple-100', 'text-purple-700');
+                autoCallBtn.classList.add('bg-green-100', 'text-green-700');
+                startAutoCall();
+                showNotification('Auto Call diaktifkan', 'success');
+            } else {
+                autoCallBtn.innerHTML = '<i class="fas fa-robot mr-1 md:mr-2"></i> Auto Call: OFF';
+                autoCallBtn.classList.remove('bg-green-100', 'text-green-700');
+                autoCallBtn.classList.add('bg-purple-100', 'text-purple-700');
+                stopAutoCall();
+                showNotification('Auto Call dimatikan', 'info');
+            }
+        }
+
+        function startAutoCall() {
+            if (autoCallInterval) {
+                clearInterval(autoCallInterval);
+            }
+            
+            autoCallInterval = setInterval(() => {
+                checkAutoCall();
+            }, 30000); // Check every 30 seconds
+        }
+
+        function stopAutoCall() {
+            if (autoCallInterval) {
+                clearInterval(autoCallInterval);
+                autoCallInterval = null;
+            }
+        }
+
+        async function checkAutoCall() {
+            if (!isAutoCallEnabled) return;
+            
+            try {
+                // Check if there's no currently called queue
+                const calledQueueSnapshot = await db.collection('queue')
+                    .where('status', '==', 'called')
+                    .limit(1)
+                    .get();
+                
+                if (calledQueueSnapshot.empty) {
+                    // Check if there are waiting queues
+                    const waitingQueueSnapshot = await db.collection('queue')
+                        .where('status', '==', 'waiting')
+                        .orderBy('createdAt')
+                        .limit(1)
+                        .get();
+                    
+                    if (!waitingQueueSnapshot.empty) {
+                        const queueDoc = waitingQueueSnapshot.docs[0];
+                        const queueData = queueDoc.data();
+                        
+                        // Check if this queue hasn't been called recently
+                        const shouldCall = !lastCalledQueue || 
+                                         lastCalledQueue !== queueData.queueNumber;
+                        
+                        if (shouldCall) {
+                            console.log('Auto calling queue:', queueData.queueNumber);
+                            await callQueue(queueDoc.id, queueData.queueNumber);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error in auto call check:', error);
+            }
         }
 
         // Product CRUD Functions
@@ -1793,7 +2102,7 @@
                 price,
                 description,
                 available,
-                updatedAt: new Date()
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             
             try {
@@ -1803,7 +2112,7 @@
                     showNotification('Produk berhasil diupdate', 'success');
                 } else {
                     // Add new product
-                    productData.createdAt = new Date();
+                    productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     await db.collection('products').add(productData);
                     showNotification('Produk berhasil ditambahkan', 'success');
                 }
@@ -1811,7 +2120,7 @@
                 closeProductModal();
             } catch (error) {
                 console.error('Error saving product:', error);
-                showNotification('Gagal menyimpan produk', 'error');
+                showNotification('Gagal menyimpan produk: ' + error.message, 'error');
             }
         }
 
@@ -1829,13 +2138,13 @@
             try {
                 await db.collection('products').doc(productId).update({
                     available: !currentStatus,
-                    updatedAt: new Date()
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
                 showNotification('Status produk berhasil diubah', 'success');
             } catch (error) {
                 console.error('Error toggling product availability:', error);
-                showNotification('Gagal mengubah status produk', 'error');
+                showNotification('Gagal mengubah status produk: ' + error.message, 'error');
             }
         }
 
@@ -1847,96 +2156,7 @@
                 showNotification('Produk berhasil dihapus', 'success');
             } catch (error) {
                 console.error('Error deleting product:', error);
-                showNotification('Gagal menghapus produk', 'error');
-            }
-        }
-
-        // Queue CRUD Functions
-        async function callQueue(queueId) {
-            try {
-                await db.collection('queue').doc(queueId).update({
-                    status: 'called',
-                    calledAt: new Date()
-                });
-                
-                // Announce queue number
-                announceQueueNumber(queueId);
-                showNotification('Antrian berhasil dipanggil', 'success');
-            } catch (error) {
-                console.error('Error calling queue:', error);
-                showNotification('Gagal memanggil antrian', 'error');
-            }
-        }
-
-        async function markQueueAsDone(queueId) {
-            try {
-                await db.collection('queue').doc(queueId).update({
-                    status: 'done',
-                    completedAt: new Date()
-                });
-                
-                showNotification('Antrian ditandai selesai', 'success');
-            } catch (error) {
-                console.error('Error marking queue as done:', error);
-                showNotification('Gagal menandai antrian', 'error');
-            }
-        }
-
-        async function deleteQueue(queueId) {
-            if (!confirm('Apakah Anda yakin ingin menghapus antrian ini?')) return;
-            
-            try {
-                await db.collection('queue').doc(queueId).delete();
-                showNotification('Antrian berhasil dihapus', 'success');
-            } catch (error) {
-                console.error('Error deleting queue:', error);
-                showNotification('Gagal menghapus antrian', 'error');
-            }
-        }
-
-        async function markAllAsDone() {
-            if (!confirm('Tandai semua antrian sebagai selesai?')) return;
-            
-            try {
-                const snapshot = await db.collection('queue')
-                    .where('status', 'in', ['waiting', 'called'])
-                    .get();
-                
-                const batch = db.batch();
-                snapshot.forEach(doc => {
-                    batch.update(doc.ref, {
-                        status: 'done',
-                        completedAt: new Date()
-                    });
-                });
-                
-                await batch.commit();
-                showNotification('Semua antrian ditandai selesai', 'success');
-            } catch (error) {
-                console.error('Error marking all as done:', error);
-                showNotification('Gagal menandai antrian', 'error');
-            }
-        }
-
-        async function callNextQueueAdmin() {
-            try {
-                // Find next waiting queue
-                const snapshot = await db.collection('queue')
-                    .where('status', '==', 'waiting')
-                    .orderBy('createdAt')
-                    .limit(1)
-                    .get();
-                
-                if (snapshot.empty) {
-                    showNotification('Tidak ada antrian menunggu', 'info');
-                    return;
-                }
-                
-                const queueDoc = snapshot.docs[0];
-                await callQueue(queueDoc.id);
-            } catch (error) {
-                console.error('Error calling next queue:', error);
-                showNotification('Gagal memanggil antrian berikutnya', 'error');
+                showNotification('Gagal menghapus produk: ' + error.message, 'error');
             }
         }
 
@@ -2014,30 +2234,49 @@
                 document.getElementById('orderDetailModal').classList.remove('hidden');
             } catch (error) {
                 console.error('Error viewing order detail:', error);
-                showNotification('Gagal memuat detail order', 'error');
+                showNotification('Gagal memuat detail order: ' + error.message, 'error');
             }
         }
 
         async function updateOrderStatus(orderId) {
-            const currentDoc = await db.collection('orders').doc(orderId).get();
-            if (!currentDoc.exists) return;
-            
-            const currentStatus = currentDoc.data().status;
-            const statusOptions = ['waiting', 'in-progress', 'done'];
-            const currentIndex = statusOptions.indexOf(currentStatus);
-            const nextIndex = (currentIndex + 1) % statusOptions.length;
-            const nextStatus = statusOptions[nextIndex];
-            
             try {
+                const currentDoc = await db.collection('orders').doc(orderId).get();
+                if (!currentDoc.exists) return;
+                
+                const currentStatus = currentDoc.data().status;
+                const statusOptions = ['waiting', 'in-progress', 'done'];
+                const currentIndex = statusOptions.indexOf(currentStatus);
+                const nextIndex = (currentIndex + 1) % statusOptions.length;
+                const nextStatus = statusOptions[nextIndex];
+                
                 await db.collection('orders').doc(orderId).update({
                     status: nextStatus,
-                    updatedAt: new Date()
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
+                
+                // If order is marked as done, also update queue
+                if (nextStatus === 'done') {
+                    const orderData = currentDoc.data();
+                    if (orderData.queueNumber) {
+                        const queueSnapshot = await db.collection('queue')
+                            .where('queueNumber', '==', orderData.queueNumber)
+                            .limit(1)
+                            .get();
+                        
+                        if (!queueSnapshot.empty) {
+                            await queueSnapshot.docs[0].ref.update({
+                                status: 'done',
+                                completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                completedBy: currentUser.email
+                            });
+                        }
+                    }
+                }
                 
                 showNotification(`Status order diubah menjadi ${getStatusText(nextStatus)}`, 'success');
             } catch (error) {
                 console.error('Error updating order status:', error);
-                showNotification('Gagal mengubah status order', 'error');
+                showNotification('Gagal mengubah status order: ' + error.message, 'error');
             }
         }
 
@@ -2049,287 +2288,32 @@
                 showNotification('Order berhasil dihapus', 'success');
             } catch (error) {
                 console.error('Error deleting order:', error);
-                showNotification('Gagal menghapus order', 'error');
+                showNotification('Gagal menghapus order: ' + error.message, 'error');
             }
         }
 
-        // Queue management functions
-        async function clearCompletedQueue() {
-            if (!confirm('Hapus semua antrian yang sudah selesai?')) return;
-            
+        // Logout
+        async function logout() {
             try {
-                const snapshot = await db.collection('queue')
-                    .where('status', '==', 'done')
-                    .get();
+                // Stop auto call
+                stopAutoCall();
                 
-                const batch = db.batch();
-                snapshot.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
+                // Unsubscribe from all listeners
+                unsubscribeFunctions.forEach(unsub => unsub());
+                unsubscribeFunctions = [];
                 
-                await batch.commit();
-                showNotification('Antrian selesai berhasil dihapus', 'success');
+                await auth.signOut();
+                currentUser = null;
+                
+                // Reset UI
+                mainLayout.classList.add('hidden');
+                loginModal.classList.remove('hidden');
+                
+                showNotification('Logout berhasil', 'info');
             } catch (error) {
-                console.error('Error clearing completed queue:', error);
-                showNotification('Gagal menghapus antrian selesai', 'error');
+                console.error('Logout error:', error);
+                showNotification('Logout gagal: ' + error.message, 'error');
             }
-        }
-
-        async function resetTodayQueue() {
-            if (!confirm('Reset semua antrian hari ini? Ini akan menghapus semua antrian.')) return;
-            
-            try {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const snapshot = await db.collection('queue').get();
-                
-                const batch = db.batch();
-                snapshot.forEach(doc => {
-                    const queueDate = doc.data().createdAt.toDate();
-                    if (queueDate >= today) {
-                        batch.delete(doc.ref);
-                    }
-                });
-                
-                await batch.commit();
-                showNotification('Antrian hari ini berhasil direset', 'success');
-            } catch (error) {
-                console.error('Error resetting today queue:', error);
-                showNotification('Gagal reset antrian', 'error');
-            }
-        }
-
-        // Test functions
-        function testVoiceAnnouncement() {
-            if ('speechSynthesis' in window) {
-                const speech = new SpeechSynthesisUtterance('Test suara: Antrian nomor 1 silakan ke kasir');
-                speech.lang = 'id-ID';
-                speech.rate = 1;
-                speech.pitch = 1;
-                speech.volume = 1;
-                window.speechSynthesis.speak(speech);
-                showNotification('Test suara berjalan', 'success');
-            } else {
-                showNotification('Browser tidak mendukung text-to-speech', 'error');
-            }
-        }
-
-        async function announceQueueNumber(queueId) {
-            try {
-                const doc = await db.collection('queue').doc(queueId).get();
-                if (!doc.exists) return;
-                
-                const queue = doc.data();
-                
-                if ('speechSynthesis' in window) {
-                    const speech = new SpeechSynthesisUtterance(
-                        `Antrian nomor ${queue.queueNumber} silakan ke kasir`
-                    );
-                    speech.lang = 'id-ID';
-                    speech.rate = 1;
-                    speech.pitch = 1;
-                    speech.volume = 1;
-                    window.speechSynthesis.speak(speech);
-                }
-            } catch (error) {
-                console.error('Error announcing queue:', error);
-            }
-        }
-
-        // Report functions
-        async function loadReportsData() {
-            try {
-                const period = document.getElementById('reportPeriod').value;
-                const now = new Date();
-                let startDate = new Date();
-                
-                switch(period) {
-                    case 'today':
-                        startDate.setHours(0, 0, 0, 0);
-                        break;
-                    case 'week':
-                        startDate.setDate(now.getDate() - 7);
-                        break;
-                    case 'month':
-                        startDate.setMonth(now.getMonth() - 1);
-                        break;
-                    case 'all':
-                        startDate = new Date(0); // Beginning of time
-                        break;
-                }
-                
-                // Load orders for period
-                const ordersSnapshot = await db.collection('orders')
-                    .where('timestamp', '>=', startDate)
-                    .orderBy('timestamp', 'desc')
-                    .get();
-                
-                // Load queue for period
-                const queueSnapshot = await db.collection('queue')
-                    .where('createdAt', '>=', startDate)
-                    .orderBy('createdAt', 'desc')
-                    .get();
-                
-                // Calculate sales summary
-                let totalOrders = 0;
-                let totalRevenue = 0;
-                const productSales = {};
-                
-                ordersSnapshot.forEach(doc => {
-                    const order = doc.data();
-                    totalOrders++;
-                    totalRevenue += order.total || 0;
-                    
-                    // Track product sales
-                    if (order.items) {
-                        order.items.forEach(item => {
-                            if (!productSales[item.name]) {
-                                productSales[item.name] = 0;
-                            }
-                            productSales[item.name] += item.quantity;
-                        });
-                    }
-                });
-                
-                // Calculate queue stats
-                let totalQueue = 0;
-                let waitingTimeTotal = 0;
-                let maxQueueNumber = 0;
-                let completedQueue = 0;
-                
-                queueSnapshot.forEach(doc => {
-                    const queue = doc.data();
-                    totalQueue++;
-                    
-                    if (queue.queueNumber) {
-                        const queueNum = parseInt(queue.queueNumber.replace('Q', '')) || 0;
-                        if (queueNum > maxQueueNumber) {
-                            maxQueueNumber = queueNum;
-                        }
-                    }
-                    
-                    if (queue.status === 'done' && queue.createdAt && queue.completedAt) {
-                        const created = queue.createdAt.toDate();
-                        const completed = queue.completedAt.toDate();
-                        const waitTime = (completed - created) / (1000 * 60); // minutes
-                        waitingTimeTotal += waitTime;
-                        completedQueue++;
-                    }
-                });
-                
-                // Find best seller
-                let bestSeller = '-';
-                let maxSales = 0;
-                for (const [product, sales] of Object.entries(productSales)) {
-                    if (sales > maxSales) {
-                        maxSales = sales;
-                        bestSeller = product;
-                    }
-                }
-                
-                // Update report UI
-                document.getElementById('reportTotalOrders').textContent = totalOrders;
-                document.getElementById('reportTotalRevenue').textContent = formatRupiah(totalRevenue);
-                document.getElementById('reportAvgOrder').textContent = formatRupiah(totalOrders > 0 ? totalRevenue / totalOrders : 0);
-                document.getElementById('reportBestSeller').textContent = bestSeller;
-                
-                document.getElementById('reportTotalQueue').textContent = totalQueue;
-                document.getElementById('reportAvgWaitTime').textContent = completedQueue > 0 ? 
-                    Math.round(waitingTimeTotal / completedQueue) + ' menit' : '0 menit';
-                document.getElementById('reportMaxQueue').textContent = maxQueueNumber;
-                document.getElementById('reportEfficiency').textContent = totalQueue > 0 ? 
-                    Math.round((completedQueue / totalQueue) * 100) + '%' : '0%';
-                
-                // Update report orders table
-                let reportOrdersHTML = '';
-                ordersSnapshot.forEach((doc, index) => {
-                    if (index >= 10) return; // Limit to 10 recent orders
-                    
-                    const order = doc.data();
-                    reportOrdersHTML += `
-                        <tr class="border-b border-gray-100">
-                            <td class="py-2">
-                                <span class="text-sm font-mono">${doc.id.substring(0, 8)}...</span>
-                            </td>
-                            <td class="py-2">
-                                <span class="text-xs text-gray-500">${formatTime(order.timestamp)}</span>
-                            </td>
-                            <td class="py-2">
-                                <span class="text-sm">${order.items ? order.items.length : 0} items</span>
-                            </td>
-                            <td class="py-2">
-                                <span class="font-medium">${formatRupiah(order.total || 0)}</span>
-                            </td>
-                            <td class="py-2">
-                                <span class="px-2 py-1 rounded-full text-xs font-medium ${
-                                    order.status === 'waiting' ? 'bg-yellow-100 text-yellow-800' :
-                                    order.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                                    'bg-green-100 text-green-800'
-                                }">
-                                    ${getStatusText(order.status)}
-                                </span>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                const reportOrdersTable = document.getElementById('reportOrdersTable');
-                if (reportOrdersHTML) {
-                    reportOrdersTable.innerHTML = reportOrdersHTML;
-                } else {
-                    reportOrdersTable.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="py-6 text-center text-gray-400">
-                                Tidak ada data order
-                            </td>
-                        </tr>
-                    `;
-                }
-                
-            } catch (error) {
-                console.error('Error loading report data:', error);
-                showNotification('Gagal memuat data laporan', 'error');
-            }
-        }
-
-        function exportReport() {
-            // Simple export to JSON
-            const period = document.getElementById('reportPeriod').value;
-            const reportData = {
-                period: period,
-                generatedAt: new Date().toISOString(),
-                salesSummary: {
-                    totalOrders: document.getElementById('reportTotalOrders').textContent,
-                    totalRevenue: document.getElementById('reportTotalRevenue').textContent,
-                    avgOrder: document.getElementById('reportAvgOrder').textContent,
-                    bestSeller: document.getElementById('reportBestSeller').textContent
-                },
-                queueStats: {
-                    totalQueue: document.getElementById('reportTotalQueue').textContent,
-                    avgWaitTime: document.getElementById('reportAvgWaitTime').textContent,
-                    maxQueue: document.getElementById('reportMaxQueue').textContent,
-                    efficiency: document.getElementById('reportEfficiency').textContent
-                }
-            };
-            
-            const dataStr = JSON.stringify(reportData, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            
-            const exportFileDefaultName = `vlcafe-report-${period}-${new Date().toISOString().split('T')[0]}.json`;
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-            
-            showNotification('Laporan berhasil diexport', 'success');
-        }
-
-        function generateReport() {
-            showPage('reports');
-            showNotification('Laporan sedang dibuat...', 'info');
-            setTimeout(loadReportsData, 1000);
         }
 
         // Page data loading
@@ -2350,28 +2334,16 @@
         }
 
         function loadReportsData() {
-            // Implemented above
-        }
-
-        // Logout
-        async function logout() {
-            try {
-                // Unsubscribe from all listeners
-                unsubscribeFunctions.forEach(unsub => unsub());
-                unsubscribeFunctions = [];
-                
-                await auth.signOut();
-                currentUser = null;
-                
-                // Reset UI
-                mainLayout.classList.add('hidden');
-                loginModal.classList.remove('hidden');
-                
-                showNotification('Logout berhasil', 'info');
-            } catch (error) {
-                console.error('Logout error:', error);
-                showNotification('Logout gagal', 'error');
-            }
+            // Basic report loading
+            document.getElementById('reportTotalOrders').textContent = '0';
+            document.getElementById('reportTotalRevenue').textContent = formatRupiah(0);
+            document.getElementById('reportAvgOrder').textContent = formatRupiah(0);
+            document.getElementById('reportBestSeller').textContent = '-';
+            
+            document.getElementById('reportTotalQueue').textContent = '0';
+            document.getElementById('reportAvgWaitTime').textContent = '0 menit';
+            document.getElementById('reportMaxQueue').textContent = '0';
+            document.getElementById('reportEfficiency').textContent = '0%';
         }
 
         // Test Firebase Connection
@@ -2397,14 +2369,14 @@
             document.getElementById('orderDetailModal').classList.add('hidden');
         }
 
-        // Initialize event listeners for report period change
-        document.getElementById('reportPeriod').addEventListener('change', loadReportsData);
-        document.getElementById('orderFilter').addEventListener('change', loadOrdersData);
-        document.getElementById('searchOrder').addEventListener('input', function(e) {
-            // Implement search functionality
-            const searchTerm = e.target.value.toLowerCase();
-            // Filter orders based on search term
-        });
+        function exportReport() {
+            showNotification('Fitur export laporan akan datang', 'info');
+        }
+
+        function generateReport() {
+            showPage('reports');
+            showNotification('Laporan sedang dibuat...', 'info');
+        }
 
         // Make functions available globally
         window.showPage = showPage;
@@ -2430,6 +2402,7 @@
         window.editProduct = editProduct;
         window.toggleProductAvailability = toggleProductAvailability;
         window.deleteProduct = deleteProduct;
+        window.toggleAutoCall = toggleAutoCall;
 
     </script>
 </body>
