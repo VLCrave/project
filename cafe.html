@@ -26,6 +26,10 @@
             body { background: white !important; color: black !important; }
             .invoice-print { padding: 20px !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; box-shadow: none !important; border: none !important; }
         }
+        .history-item { transition: all 0.3s ease; }
+        .history-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .badge-online { background: linear-gradient(135deg, #10b981, #059669); }
+        .badge-whatsapp { background: linear-gradient(135deg, #25d366, #128c7e); }
     </style>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -48,6 +52,13 @@
                 </div>
                 
                 <div class="flex items-center space-x-6">
+                    <!-- Riwayat Pesanan Button -->
+                    <button id="historyBtn" class="relative">
+                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition">
+                            <i class="fas fa-history text-gray-700"></i>
+                        </div>
+                    </button>
+                    
                     <button id="cartBtn" class="relative">
                         <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition">
                             <i class="fas fa-shopping-bag text-gray-700"></i>
@@ -103,6 +114,7 @@
                             </div>
                             <div class="mt-4 text-sm">
                                 <p>Antrian Menunggu: <span id="waitingCount">0</span></p>
+                                <p>Order Device: <span id="deviceOrdersCount">0</span></p>
                             </div>
                         </div>
                         
@@ -180,6 +192,36 @@
         </div>
     </div>
 
+    <!-- History Modal -->
+    <div id="historyModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">Riwayat Pesanan Anda</h2>
+                    <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <!-- Filter Tabs -->
+                <div class="flex space-x-2 mb-6">
+                    <button data-filter="all" class="history-filter px-4 py-2 bg-amber-700 text-white rounded-lg text-sm font-medium">Semua</button>
+                    <button data-filter="today" class="history-filter px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Hari Ini</button>
+                    <button data-filter="recent" class="history-filter px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">7 Hari Terakhir</button>
+                </div>
+                
+                <!-- History List -->
+                <div class="space-y-4" id="historyList">
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fas fa-history text-4xl mb-3 opacity-30"></i>
+                        <p>Belum ada riwayat pesanan</p>
+                        <p class="text-sm mt-2">Pesanan yang Anda buat akan muncul di sini</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Print Invoice (Hidden for Print) -->
     <div id="printInvoice" class="print-only" style="display: none;"></div>
 
@@ -236,8 +278,27 @@
             queue: [],
             currentQueue: null,
             orderCounter: 0,
-            queueCounter: 0
+            queueCounter: 0,
+            orderHistory: [],
+            deviceId: null
         };
+
+        // Generate unique device ID
+        function generateDeviceId() {
+            // Coba ambil dari localStorage dulu
+            let deviceId = localStorage.getItem('vlcafe_device_id');
+            
+            // Jika belum ada, buat baru
+            if (!deviceId) {
+                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('vlcafe_device_id', deviceId);
+            }
+            
+            return deviceId;
+        }
+
+        // Initialize device ID
+        state.deviceId = generateDeviceId();
 
         // DOM Elements
         const menuGrid = document.getElementById('menuGrid');
@@ -252,21 +313,46 @@
         const currentQueueNumber = document.getElementById('currentQueueNumber');
         const currentQueueStatus = document.getElementById('currentQueueStatus');
         const waitingCount = document.getElementById('waitingCount');
+        const deviceOrdersCount = document.getElementById('deviceOrdersCount');
         const invoiceModal = document.getElementById('invoiceModal');
         const invoiceContent = document.getElementById('invoiceContent');
+        const historyModal = document.getElementById('historyModal');
+        const historyList = document.getElementById('historyList');
 
         // Utility Functions
         function formatRupiah(amount) {
             return 'Rp ' + amount.toLocaleString('id-ID');
         }
 
-        function formatDate(dateString) {
+        function formatDateTime(dateString) {
             const date = new Date(dateString);
-            return date.toLocaleTimeString('id-ID', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: false
-            });
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (date.toDateString() === today.toDateString()) {
+                return 'Hari ini, ' + date.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                return 'Kemarin, ' + date.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+            } else {
+                return date.toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                }) + ', ' + date.toLocaleTimeString('id-ID', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
         }
 
         function generateOrderId() {
@@ -321,6 +407,9 @@
                 
                 state.currentQueue = state.queue.find(item => item.status === 'called');
                 
+                // Hitung order via device
+                updateDeviceOrdersCount();
+                
                 // Get queue counter from Firestore (sama dengan admin)
                 const counterSnapshot = await db.collection('counters').doc('queue').get();
                 if (counterSnapshot.exists) {
@@ -330,6 +419,26 @@
                 updateQueueDisplay();
             } catch (error) {
                 console.error('Error loading queue:', error);
+            }
+        }
+
+        async function loadOrderHistory() {
+            try {
+                // Load only orders from this device
+                const snapshot = await db.collection('orders')
+                    .where('deviceId', '==', state.deviceId)
+                    .orderBy('timestamp', 'desc')
+                    .limit(20)
+                    .get();
+                
+                state.orderHistory = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                renderOrderHistory('all');
+            } catch (error) {
+                console.error('Error loading order history:', error);
             }
         }
 
@@ -368,6 +477,13 @@
             }
         }
 
+        function updateDeviceOrdersCount() {
+            const deviceOrders = state.queue.filter(item => 
+                item.orderType === 'device' || item.source === 'device'
+            );
+            deviceOrdersCount.textContent = deviceOrders.length;
+        }
+
         // Real-time Listeners - DIPERBARUI UNTUK SINKRONISASI
         function setupRealtimeListeners() {
             // Products listener (sama collection dengan admin)
@@ -393,6 +509,7 @@
                         ...doc.data()
                     }));
                     state.currentQueue = state.queue.find(item => item.status === 'called');
+                    updateDeviceOrdersCount();
                     updateQueueDisplay();
                     
                     // Check if any queue is being called
@@ -403,6 +520,26 @@
                     }
                 }, (error) => {
                     console.error('Queue listener error:', error);
+                });
+
+            // Order history listener (HANYA untuk device ini)
+            db.collection('orders')
+                .where('deviceId', '==', state.deviceId)
+                .orderBy('timestamp', 'desc')
+                .limit(20)
+                .onSnapshot((snapshot) => {
+                    state.orderHistory = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    
+                    // Jika modal riwayat sedang terbuka, render ulang
+                    if (!historyModal.classList.contains('hidden')) {
+                        const activeFilter = document.querySelector('.history-filter.bg-amber-700')?.dataset.filter || 'all';
+                        renderOrderHistory(activeFilter);
+                    }
+                }, (error) => {
+                    console.error('Order history listener error:', error);
                 });
         }
 
@@ -615,7 +752,7 @@
             totalEl.textContent = formatRupiah(total);
         }
 
-        // Checkout Function - DIPERBARUI UNTUK SINKRONISASI DENGAN ADMIN
+        // Checkout Function - DIPERBARUI DENGAN DEVICE ID
         async function checkout() {
             if (state.cart.length === 0) {
                 showError('Keranjang kosong. Tambahkan item terlebih dahulu.');
@@ -632,7 +769,7 @@
                 const tax = subtotal * 0.1;
                 const total = subtotal + tax;
                 
-                // Create order data (sama structure dengan admin)
+                // Create order data dengan deviceId
                 const orderData = {
                     orderId: orderId,
                     queueNumber: queueNumber,
@@ -647,21 +784,32 @@
                     tax: tax,
                     total: total,
                     status: 'waiting',
+                    orderType: 'device',
+                    source: 'device',
+                    deviceId: state.deviceId, // Menyimpan device ID
+                    deviceInfo: {
+                        userAgent: navigator.userAgent,
+                        platform: navigator.platform,
+                        language: navigator.language
+                    },
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
-                // Create queue data (sama structure dengan admin)
+                // Create queue data
                 const queueData = {
                     queueNumber: queueNumber,
                     orderId: orderId,
                     status: 'waiting',
                     itemsCount: state.cart.reduce((sum, item) => sum + item.quantity, 0),
                     totalAmount: total,
+                    orderType: 'device',
+                    source: 'device',
+                    deviceId: state.deviceId, // Menyimpan device ID di queue juga
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
-                // Save to Firebase (sama collections dengan admin)
+                // Save to Firebase
                 await db.collection('orders').doc(orderId).set(orderData);
                 await db.collection('queue').doc(queueNumber).set(queueData);
                 
@@ -719,26 +867,150 @@
             }
             
             waitingQueue.forEach(item => {
+                const isDeviceOrder = item.orderType === 'device' || item.source === 'device';
+                const isCurrentDevice = item.deviceId === state.deviceId;
+                
                 const queueItem = document.createElement('div');
-                queueItem.className = 'flex justify-between items-center py-3 border-b border-gray-100 last:border-0';
+                queueItem.className = `flex justify-between items-center py-3 border-b border-gray-100 last:border-0 ${isCurrentDevice ? 'bg-amber-50' : ''}`;
                 queueItem.innerHTML = `
                     <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-amber-50 rounded flex items-center justify-center">
-                            <i class="fas fa-clock text-amber-700"></i>
+                        <div class="w-8 h-8 ${isCurrentDevice ? 'bg-amber-100' : 'bg-amber-50'} rounded flex items-center justify-center">
+                            <i class="fas fa-clock ${isCurrentDevice ? 'text-amber-700' : 'text-amber-600'}"></i>
                         </div>
                         <div>
-                            <p class="font-medium">${item.queueNumber}</p>
+                            <p class="font-medium ${isCurrentDevice ? 'text-amber-800' : 'text-gray-900'}">${item.queueNumber}</p>
                             <p class="text-xs text-gray-500">${item.itemsCount || 0} items • ${formatRupiah(item.totalAmount || 0)}</p>
+                            ${isDeviceOrder ? 
+                                `<span class="text-xs ${isCurrentDevice ? 'text-amber-700 font-bold' : 'text-amber-600'} font-medium">
+                                    <i class="fas fa-mobile-alt mr-1"></i>Order Device
+                                    ${isCurrentDevice ? '(Pesanan Anda)' : ''}
+                                </span>` : 
+                                ''
+                            }
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full">
+                        <span class="text-xs px-2 py-1 ${isCurrentDevice ? 'bg-amber-200 text-amber-900' : 'bg-amber-100 text-amber-800'} rounded-full">
                             Menunggu
                         </span>
                     </div>
                 `;
                 queueList.appendChild(queueItem);
             });
+        }
+
+        // Order History Functions
+        function renderOrderHistory(filter = 'all') {
+            historyList.innerHTML = '';
+            
+            let filteredHistory = state.orderHistory;
+            
+            if (filter === 'today') {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                filteredHistory = filteredHistory.filter(order => {
+                    const orderDate = new Date(order.timestamp?.seconds * 1000);
+                    return orderDate >= today;
+                });
+            } else if (filter === 'recent') {
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                weekAgo.setHours(0, 0, 0, 0);
+                filteredHistory = filteredHistory.filter(order => {
+                    const orderDate = new Date(order.timestamp?.seconds * 1000);
+                    return orderDate >= weekAgo;
+                });
+            }
+            
+            if (filteredHistory.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fas fa-history text-4xl mb-3 opacity-30"></i>
+                        <p>${filter === 'today' ? 'Belum ada pesanan hari ini' : 
+                           filter === 'recent' ? 'Belum ada pesanan 7 hari terakhir' : 
+                           'Belum ada riwayat pesanan'}</p>
+                        <p class="text-sm mt-2">Pesanan yang Anda buat akan muncul di sini</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            filteredHistory.forEach(order => {
+                const orderDate = order.timestamp?.seconds ? new Date(order.timestamp.seconds * 1000) : new Date();
+                const isDeviceOrder = order.orderType === 'device' || order.source === 'device';
+                const statusColors = {
+                    'waiting': 'bg-yellow-100 text-yellow-800',
+                    'preparing': 'bg-blue-100 text-blue-800',
+                    'ready': 'bg-green-100 text-green-800',
+                    'completed': 'bg-gray-100 text-gray-800',
+                    'cancelled': 'bg-red-100 text-red-800'
+                };
+                const statusText = {
+                    'waiting': 'Menunggu',
+                    'preparing': 'Diproses',
+                    'ready': 'Siap',
+                    'completed': 'Selesai',
+                    'cancelled': 'Dibatalkan'
+                };
+                
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item bg-white rounded-lg border border-gray-200 p-4';
+                historyItem.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-1">
+                                <h4 class="font-bold text-gray-900">${order.orderId}</h4>
+                                ${isDeviceOrder ? 
+                                    `<span class="badge-online text-xs px-2 py-1 rounded-full text-white">
+                                        <i class="fas fa-mobile-alt mr-1"></i>Device
+                                    </span>` : 
+                                    ''
+                                }
+                            </div>
+                            <p class="text-sm text-gray-500">${formatDateTime(orderDate)}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs px-2 py-1 rounded-full ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}">
+                                ${statusText[order.status] || order.status}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">Items:</p>
+                        <div class="text-sm text-gray-600">
+                            ${order.items?.map(item => 
+                                `<div class="flex justify-between">
+                                    <span>${item.name} × ${item.quantity}</span>
+                                    <span>${formatRupiah(item.total)}</span>
+                                </div>`
+                            ).join('') || '<p class="text-gray-400">Tidak ada detail item</p>'}
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center pt-3 border-t border-gray-100">
+                        <div>
+                            <p class="text-sm text-gray-500">Nomor Antrian</p>
+                            <p class="font-medium">${order.queueNumber || '-'}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Total</p>
+                            <p class="font-bold text-lg text-amber-700">${formatRupiah(order.total || 0)}</p>
+                        </div>
+                    </div>
+                `;
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+
+        function openHistoryModal() {
+            loadOrderHistory();
+            historyModal.classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            historyModal.classList.add('hidden');
         }
 
         // Voice Announcement
@@ -799,6 +1071,9 @@
                             <p class="text-sm text-gray-600">No: <span class="font-medium">${order.orderId}</span></p>
                             <p class="text-sm text-gray-600">Tanggal: <span class="font-medium">${new Date().toLocaleDateString('id-ID')}</span></p>
                             <p class="text-sm text-gray-600">Waktu: <span class="font-medium">${new Date().toLocaleTimeString('id-ID')}</span></p>
+                            <p class="text-sm text-amber-600 font-medium mt-2">
+                                <i class="fas fa-mobile-alt mr-1"></i>Order via Device
+                            </p>
                         </div>
                         <div class="text-right">
                             <h3 class="font-bold text-lg mb-2 text-amber-700">NOMOR ANTRIAN</h3>
@@ -824,8 +1099,8 @@
                                         <tr class="border-b">
                                             <td class="py-3">${item.name}</td>
                                             <td class="py-3 text-center">${item.quantity}</td>
-                                            <td class="py-3 text-right">${formatRupiah(item.price)}</td>
-                                            <td class="py-3 text-right font-medium">${formatRupiah(item.total)}</td>
+                                            <td class="py-3 text-right">${formatRupiah(item.price)}</span></td>
+                                            <td class="py-3 text-right font-medium">${formatRupiah(item.total)}</span></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -969,6 +1244,9 @@
         // Initialize App
         async function initApp() {
             try {
+                // Tampilkan device ID di console untuk debugging
+                console.log('Device ID:', state.deviceId);
+                
                 // Load initial data
                 await Promise.all([
                     loadMenuItems(),
@@ -998,8 +1276,26 @@
                     });
                 });
                 
+                // History filter listeners
+                document.querySelectorAll('.history-filter').forEach(filter => {
+                    filter.addEventListener('click', function() {
+                        document.querySelectorAll('.history-filter').forEach(f => {
+                            f.classList.remove('bg-amber-700', 'text-white');
+                            f.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                        });
+                        
+                        this.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                        this.classList.add('bg-amber-700', 'text-white');
+                        
+                        const filterType = this.getAttribute('data-filter');
+                        renderOrderHistory(filterType);
+                    });
+                });
+                
+                // Button listeners
                 document.getElementById('clearCartBtn').addEventListener('click', clearCart);
                 document.getElementById('checkoutBtn').addEventListener('click', checkout);
+                document.getElementById('historyBtn').addEventListener('click', openHistoryModal);
                 
             } catch (error) {
                 console.error('App initialization error:', error);
@@ -1013,6 +1309,7 @@
         window.removeFromCart = removeFromCart;
         window.printInvoice = printInvoice;
         window.closeInvoiceModal = closeInvoiceModal;
+        window.closeHistoryModal = closeHistoryModal;
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', initApp);
