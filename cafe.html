@@ -29,7 +29,16 @@
         .history-item { transition: all 0.3s ease; }
         .history-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
         .badge-online { background: linear-gradient(135deg, #10b981, #059669); }
-        .badge-whatsapp { background: linear-gradient(135deg, #25d366, #128c7e); }
+        .modal-overlay { background: rgba(0, 0, 0, 0.5); }
+        .modal-content { max-height: 90vh; }
+        .cart-item { transition: all 0.2s ease; }
+        .cart-item:hover { background-color: #f9fafb; }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
     </style>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -74,7 +83,7 @@
     <main class="container mx-auto px-4 py-8 no-print">
         <div class="grid lg:grid-cols-3 gap-8">
             <!-- Menu Section -->
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-3">
                 <div class="mb-8">
                     <h2 class="text-2xl font-bold text-gray-900 mb-2">Menu Kami</h2>
                     <p class="text-gray-600 mb-6">Pilih dari berbagai pilihan minuman dan makanan premium kami</p>
@@ -114,7 +123,6 @@
                             </div>
                             <div class="mt-4 text-sm">
                                 <p>Antrian Menunggu: <span id="waitingCount">0</span></p>
-                                <p>Order Device: <span id="deviceOrdersCount">0</span></p>
                             </div>
                         </div>
                         
@@ -131,57 +139,55 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Order Panel -->
-            <div class="lg:col-span-1">
-                <div class="sticky top-24">
-                    <div class="bg-white rounded-xl shadow p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-gray-900">Pesanan Anda</h3>
-                            <button id="clearCartBtn" class="text-sm text-red-600 hover:text-red-800 transition flex items-center">
-                                <i class="fas fa-trash-alt mr-1"></i> Kosongkan
-                            </button>
-                        </div>
-                        
-                        <!-- Order Items -->
-                        <div class="mb-6">
-                            <div class="space-y-4 max-h-80 overflow-y-auto pr-2" id="orderItems">
-                                <div class="text-center py-8 text-gray-400" id="emptyCart">
-                                    <i class="fas fa-shopping-bag text-4xl mb-3 opacity-30"></i>
-                                    <p>Keranjang Anda kosong</p>
-                                    <p class="text-sm mt-2">Tambahkan item dari menu</p>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Order Summary -->
-                        <div class="border-t border-gray-200 pt-4 mb-6">
-                            <div class="flex justify-between mb-2">
-                                <span class="text-gray-600">Subtotal</span>
-                                <span class="font-medium" id="subtotal">Rp 0</span>
-                            </div>
-                            <div class="flex justify-between mb-2">
-                                <span class="text-gray-600">Pajak (10%)</span>
-                                <span class="font-medium" id="tax">Rp 0</span>
-                            </div>
-                            <div class="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                                <span>Total</span>
-                                <span id="total">Rp 0</span>
-                            </div>
-                        </div>
-                        
-                        <button id="checkoutBtn" disabled class="w-full py-3 bg-amber-700 text-white rounded-lg font-medium hover:bg-amber-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
-                            <i class="fas fa-receipt mr-2"></i> Checkout & Ambil Antrian
-                        </button>
-                        
-                        <p class="text-xs text-gray-500 text-center mt-4">
-                            Nomor antrian akan muncul setelah checkout
-                        </p>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="fixed inset-0 z-50 hidden items-end md:items-center justify-center p-4 no-print">
+        <div class="modal-overlay absolute inset-0" onclick="closeCartModal()"></div>
+        <div class="bg-white rounded-t-2xl md:rounded-2xl w-full max-w-2xl modal-content relative z-10 md:max-h-[80vh]">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold text-gray-900">Keranjang Pesanan</h3>
+                    <button onclick="closeCartModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <!-- Order Items -->
+                <div class="mb-6">
+                    <div class="space-y-3 max-h-96 overflow-y-auto pr-2" id="modalOrderItems">
+                        <div class="text-center py-12 text-gray-400" id="modalEmptyCart">
+                            <i class="fas fa-shopping-bag text-4xl mb-3 opacity-30"></i>
+                            <p>Keranjang Anda kosong</p>
+                            <p class="text-sm mt-2">Tambahkan item dari menu</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Order Summary -->
+                <div class="border-t border-gray-200 pt-4 mb-6">
+                    <div class="flex justify-between text-lg font-bold pt-2">
+                        <span>Total</span>
+                        <span id="modalTotal">Rp 0</span>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button id="modalClearCartBtn" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition flex items-center justify-center">
+                        <i class="fas fa-trash-alt mr-2"></i> Kosongkan
+                    </button>
+                    <button id="modalCheckoutBtn" disabled class="flex-1 py-3 bg-amber-700 text-white rounded-lg font-medium hover:bg-amber-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <i class="fas fa-receipt mr-2"></i> Checkout
+                    </button>
+                </div>
+                
+                <p class="text-xs text-gray-500 text-center mt-4">
+                    Nomor antrian akan muncul setelah checkout
+                </p>
+            </div>
+        </div>
+    </div>
 
     <!-- Invoice Modal -->
     <div id="invoiceModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
@@ -225,6 +231,11 @@
     <!-- Print Invoice (Hidden for Print) -->
     <div id="printInvoice" class="print-only" style="display: none;"></div>
 
+    <!-- Notification Sound (hidden) -->
+    <audio id="notificationSound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/286/286-preview.mp3" type="audio/mpeg">
+    </audio>
+
     <!-- Footer -->
     <footer class="bg-gray-900 text-white mt-12 no-print">
         <div class="container mx-auto px-4 py-8">
@@ -248,7 +259,7 @@
     </footer>
 
     <script>
-        // Firebase Configuration (SAMA DENGAN ADMIN)
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
             authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
@@ -280,15 +291,14 @@
             orderCounter: 0,
             queueCounter: 0,
             orderHistory: [],
-            deviceId: null
+            deviceId: null,
+            lastCalledQueue: null // Untuk melacak antrian yang baru dipanggil
         };
 
         // Generate unique device ID
         function generateDeviceId() {
-            // Coba ambil dari localStorage dulu
             let deviceId = localStorage.getItem('vlcafe_device_id');
             
-            // Jika belum ada, buat baru
             if (!deviceId) {
                 deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('vlcafe_device_id', deviceId);
@@ -302,22 +312,24 @@
 
         // DOM Elements
         const menuGrid = document.getElementById('menuGrid');
-        const orderItems = document.getElementById('orderItems');
-        const emptyCart = document.getElementById('emptyCart');
         const cartCount = document.getElementById('cartCount');
-        const subtotalEl = document.getElementById('subtotal');
-        const taxEl = document.getElementById('tax');
-        const totalEl = document.getElementById('total');
-        const checkoutBtn = document.getElementById('checkoutBtn');
         const queueList = document.getElementById('queueList');
         const currentQueueNumber = document.getElementById('currentQueueNumber');
         const currentQueueStatus = document.getElementById('currentQueueStatus');
         const waitingCount = document.getElementById('waitingCount');
-        const deviceOrdersCount = document.getElementById('deviceOrdersCount');
         const invoiceModal = document.getElementById('invoiceModal');
         const invoiceContent = document.getElementById('invoiceContent');
         const historyModal = document.getElementById('historyModal');
         const historyList = document.getElementById('historyList');
+        const notificationSound = document.getElementById('notificationSound');
+        
+        // Cart Modal Elements
+        const cartModal = document.getElementById('cartModal');
+        const modalOrderItems = document.getElementById('modalOrderItems');
+        const modalEmptyCart = document.getElementById('modalEmptyCart');
+        const modalTotal = document.getElementById('modalTotal');
+        const modalClearCartBtn = document.getElementById('modalClearCartBtn');
+        const modalCheckoutBtn = document.getElementById('modalCheckoutBtn');
 
         // Utility Functions
         function formatRupiah(amount) {
@@ -365,14 +377,12 @@
         }
 
         function generateQueueNumber() {
-            const date = new Date();
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const counter = state.queueCounter.toString().padStart(3, '0');
-            return `Q${day}${month}${counter}`;
+            // Format: VLCxxxx (contoh: VLC0001)
+            const counter = state.queueCounter.toString().padStart(4, '0');
+            return `VLC${counter}`;
         }
 
-        // Firebase Functions - DIPERBARUI UNTUK SINKRONISASI
+        // Firebase Functions
         async function loadMenuItems() {
             try {
                 const snapshot = await db.collection('products')
@@ -407,16 +417,17 @@
                 
                 state.currentQueue = state.queue.find(item => item.status === 'called');
                 
-                // Hitung order via device
-                updateDeviceOrdersCount();
-                
-                // Get queue counter from Firestore (sama dengan admin)
+                // Get queue counter from Firestore
                 const counterSnapshot = await db.collection('counters').doc('queue').get();
                 if (counterSnapshot.exists) {
                     state.queueCounter = counterSnapshot.data().current + 1;
                 }
                 
                 updateQueueDisplay();
+                
+                // Check if current user's queue is called
+                checkUserQueueCalled();
+                
             } catch (error) {
                 console.error('Error loading queue:', error);
             }
@@ -477,16 +488,59 @@
             }
         }
 
-        function updateDeviceOrdersCount() {
-            const deviceOrders = state.queue.filter(item => 
-                item.orderType === 'device' || item.source === 'device'
-            );
-            deviceOrdersCount.textContent = deviceOrders.length;
+        // Check if current user's queue is called
+        function checkUserQueueCalled() {
+            if (!state.currentQueue) return;
+            
+            // Check if this is a new call (different from last called)
+            if (state.currentQueue.queueNumber !== state.lastCalledQueue) {
+                state.lastCalledQueue = state.currentQueue.queueNumber;
+                
+                // Check if this is the current user's queue
+                if (state.currentQueue.deviceId === state.deviceId) {
+                    // Trigger notification for current user
+                    triggerUserNotification(state.currentQueue.queueNumber);
+                }
+            }
         }
 
-        // Real-time Listeners - DIPERBARUI UNTUK SINKRONISASI
+        // Trigger notification when user's queue is called
+        function triggerUserNotification(queueNumber) {
+            // 1. Play notification sound
+            if (notificationSound) {
+                notificationSound.currentTime = 0;
+                notificationSound.play().catch(e => console.log('Audio play failed:', e));
+            }
+            
+            // 2. Trigger vibration if supported
+            if ("vibrate" in navigator) {
+                // Pattern: vibrate for 500ms, pause 200ms, vibrate 500ms
+                navigator.vibrate([500, 200, 500]);
+            }
+            
+            // 3. Show notification
+            showNotification(
+                `🎉 Nomor Antrian ${queueNumber} Anda Dipanggil!`,
+                'success',
+                10000 // Show for 10 seconds
+            );
+            
+            // 4. Announce with voice
+            announceQueueNumber(queueNumber, true);
+            
+            // 5. Shake the queue display
+            const queueDisplay = document.getElementById('currentQueueNumber');
+            if (queueDisplay) {
+                queueDisplay.classList.add('shake');
+                setTimeout(() => {
+                    queueDisplay.classList.remove('shake');
+                }, 1000);
+            }
+        }
+
+        // Real-time Listeners
         function setupRealtimeListeners() {
-            // Products listener (sama collection dengan admin)
+            // Products listener
             db.collection('products')
                 .where('available', '==', true)
                 .onSnapshot((snapshot) => {
@@ -504,20 +558,27 @@
                 .where('status', 'in', ['waiting', 'called'])
                 .orderBy('createdAt')
                 .onSnapshot((snapshot) => {
+                    const oldCurrentQueue = state.currentQueue;
+                    
                     state.queue = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     }));
+                    
                     state.currentQueue = state.queue.find(item => item.status === 'called');
-                    updateDeviceOrdersCount();
                     updateQueueDisplay();
                     
-                    // Check if any queue is being called
-                    const calledQueue = state.queue.find(item => item.status === 'called');
-                    if (calledQueue) {
-                        // Announce queue number
-                        announceQueueNumber(calledQueue.queueNumber);
+                    // Check if there's a new queue call
+                    if (state.currentQueue && state.currentQueue.queueNumber !== oldCurrentQueue?.queueNumber) {
+                        // Announce for everyone
+                        announceQueueNumber(state.currentQueue.queueNumber);
+                        
+                        // Check if this is the current user's queue
+                        if (state.currentQueue.deviceId === state.deviceId) {
+                            triggerUserNotification(state.currentQueue.queueNumber);
+                        }
                     }
+                    
                 }, (error) => {
                     console.error('Queue listener error:', error);
                 });
@@ -690,27 +751,32 @@
             const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
             cartCount.textContent = totalItems;
             
+            // Update cart modal
+            updateCartModal();
+        }
+
+        function updateCartModal() {
             // Enable/disable checkout button
-            checkoutBtn.disabled = totalItems === 0;
+            modalCheckoutBtn.disabled = state.cart.length === 0;
             
             // Show/hide empty cart message
             if (state.cart.length === 0) {
-                emptyCart.style.display = 'block';
-                orderItems.innerHTML = `
-                    <div class="text-center py-8 text-gray-400" id="emptyCart">
+                modalEmptyCart.style.display = 'block';
+                modalOrderItems.innerHTML = `
+                    <div class="text-center py-8 text-gray-400" id="modalEmptyCart">
                         <i class="fas fa-shopping-bag text-4xl mb-3 opacity-30"></i>
                         <p>Keranjang Anda kosong</p>
                         <p class="text-sm mt-2">Tambahkan item dari menu</p>
                     </div>
                 `;
             } else {
-                emptyCart.style.display = 'none';
+                modalEmptyCart.style.display = 'none';
                 
                 // Render cart items
-                orderItems.innerHTML = '';
+                modalOrderItems.innerHTML = '';
                 state.cart.forEach(item => {
                     const orderItem = document.createElement('div');
-                    orderItem.className = 'flex justify-between items-center bg-gray-50 rounded-lg p-3';
+                    orderItem.className = 'cart-item flex justify-between items-center bg-gray-50 rounded-lg p-4';
                     orderItem.innerHTML = `
                         <div class="flex-1">
                             <h4 class="font-medium text-gray-900 text-sm mb-1">${item.name}</h4>
@@ -719,13 +785,13 @@
                         <div class="flex items-center space-x-3">
                             <div class="flex items-center space-x-2">
                                 <button onclick="updateCartItemQuantity('${item.id}', -1)" 
-                                        class="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300 transition">
-                                    <i class="fas fa-minus text-xs"></i>
+                                        class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition">
+                                    <i class="fas fa-minus"></i>
                                 </button>
-                                <span class="w-8 text-center font-medium">${item.quantity}</span>
+                                <span class="w-8 text-center font-medium text-lg">${item.quantity}</span>
                                 <button onclick="updateCartItemQuantity('${item.id}', 1)"
-                                        class="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300 transition">
-                                    <i class="fas fa-plus text-xs"></i>
+                                        class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300 transition">
+                                    <i class="fas fa-plus"></i>
                                 </button>
                             </div>
                             <button onclick="removeFromCart('${item.id}')"
@@ -734,25 +800,26 @@
                             </button>
                         </div>
                     `;
-                    orderItems.appendChild(orderItem);
+                    modalOrderItems.appendChild(orderItem);
                 });
             }
             
-            // Update order summary
-            updateOrderSummary();
+            // Update order summary (TANPA PAJAK)
+            const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            modalTotal.textContent = formatRupiah(total);
         }
 
-        function updateOrderSummary() {
-            const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const tax = subtotal * 0.1;
-            const total = subtotal + tax;
-            
-            subtotalEl.textContent = formatRupiah(subtotal);
-            taxEl.textContent = formatRupiah(tax);
-            totalEl.textContent = formatRupiah(total);
+        // Cart Modal Functions
+        function openCartModal() {
+            updateCartModal();
+            cartModal.classList.remove('hidden');
         }
 
-        // Checkout Function - DIPERBARUI DENGAN DEVICE ID
+        function closeCartModal() {
+            cartModal.classList.add('hidden');
+        }
+
+        // Checkout Function (TANPA PAJAK)
         async function checkout() {
             if (state.cart.length === 0) {
                 showError('Keranjang kosong. Tambahkan item terlebih dahulu.');
@@ -764,10 +831,8 @@
                 const orderId = generateOrderId();
                 const queueNumber = generateQueueNumber();
                 
-                // Calculate order total
-                const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                const tax = subtotal * 0.1;
-                const total = subtotal + tax;
+                // Calculate order total (TANPA PAJAK)
+                const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                 
                 // Create order data dengan deviceId
                 const orderData = {
@@ -780,13 +845,12 @@
                         price: item.price,
                         total: item.price * item.quantity
                     })),
-                    subtotal: subtotal,
-                    tax: tax,
+                    subtotal: total,
                     total: total,
                     status: 'waiting',
                     orderType: 'device',
                     source: 'device',
-                    deviceId: state.deviceId, // Menyimpan device ID
+                    deviceId: state.deviceId,
                     deviceInfo: {
                         userAgent: navigator.userAgent,
                         platform: navigator.platform,
@@ -805,7 +869,7 @@
                     totalAmount: total,
                     orderType: 'device',
                     source: 'device',
-                    deviceId: state.deviceId, // Menyimpan device ID di queue juga
+                    deviceId: state.deviceId,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
@@ -821,9 +885,10 @@
                 state.orderCounter++;
                 state.queueCounter++;
                 
-                // Clear cart
+                // Clear cart and close modal
                 state.cart = [];
                 updateCart();
+                closeCartModal();
                 
                 // Show invoice
                 showInvoice(orderData);
@@ -867,7 +932,6 @@
             }
             
             waitingQueue.forEach(item => {
-                const isDeviceOrder = item.orderType === 'device' || item.source === 'device';
                 const isCurrentDevice = item.deviceId === state.deviceId;
                 
                 const queueItem = document.createElement('div');
@@ -880,10 +944,9 @@
                         <div>
                             <p class="font-medium ${isCurrentDevice ? 'text-amber-800' : 'text-gray-900'}">${item.queueNumber}</p>
                             <p class="text-xs text-gray-500">${item.itemsCount || 0} items • ${formatRupiah(item.totalAmount || 0)}</p>
-                            ${isDeviceOrder ? 
-                                `<span class="text-xs ${isCurrentDevice ? 'text-amber-700 font-bold' : 'text-amber-600'} font-medium">
-                                    <i class="fas fa-mobile-alt mr-1"></i>Order Device
-                                    ${isCurrentDevice ? '(Pesanan Anda)' : ''}
+                            ${isCurrentDevice ? 
+                                `<span class="text-xs text-amber-700 font-medium">
+                                    <i class="fas fa-user mr-1"></i>(Anda)
                                 </span>` : 
                                 ''
                             }
@@ -897,6 +960,35 @@
                 `;
                 queueList.appendChild(queueItem);
             });
+        }
+
+        // Voice Announcement
+        function announceQueueNumber(queueNumber, isUser = false) {
+            if ('speechSynthesis' in window && queueNumber) {
+                speechSynthesis.cancel();
+                
+                const message = isUser 
+                    ? `Nomor Antrian ${queueNumber} Anda sudah dipanggil. Silakan menuju kasir.`
+                    : `Antrian nomor ${queueNumber}. Silakan menuju kasir.`;
+                
+                const utterance = new SpeechSynthesisUtterance(message);
+                
+                const voices = speechSynthesis.getVoices();
+                const idVoice = voices.find(voice => voice.lang.startsWith('id-ID') || voice.lang.startsWith('id'));
+                
+                if (idVoice) {
+                    utterance.voice = idVoice;
+                    utterance.lang = 'id-ID';
+                } else {
+                    utterance.lang = 'en-US';
+                }
+                
+                utterance.rate = 0.9;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+                
+                speechSynthesis.speak(utterance);
+            }
         }
 
         // Order History Functions
@@ -961,7 +1053,7 @@
                             <div class="flex items-center space-x-2 mb-1">
                                 <h4 class="font-bold text-gray-900">${order.orderId}</h4>
                                 ${isDeviceOrder ? 
-                                    `<span class="badge-online text-xs px-2 py-1 rounded-full text-white">
+                                    `<span class="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full">
                                         <i class="fas fa-mobile-alt mr-1"></i>Device
                                     </span>` : 
                                     ''
@@ -1013,41 +1105,7 @@
             historyModal.classList.add('hidden');
         }
 
-        // Voice Announcement
-        function announceQueueNumber(queueNumber) {
-            if ('speechSynthesis' in window && queueNumber) {
-                // Cancel any ongoing speech
-                speechSynthesis.cancel();
-                
-                // Parse queue number to get just the number part
-                const numberMatch = queueNumber.match(/\d+/g);
-                const numberParts = numberMatch ? numberMatch.join('') : queueNumber;
-                
-                const message = `Antrian nomor ${numberParts}. Silakan menuju kasir.`;
-                
-                const utterance = new SpeechSynthesisUtterance(message);
-                
-                // Try to find Indonesian voice
-                const voices = speechSynthesis.getVoices();
-                const idVoice = voices.find(voice => voice.lang.startsWith('id-ID') || voice.lang.startsWith('id'));
-                
-                if (idVoice) {
-                    utterance.voice = idVoice;
-                    utterance.lang = 'id-ID';
-                } else {
-                    utterance.lang = 'en-US';
-                }
-                
-                utterance.rate = 0.9;
-                utterance.pitch = 1;
-                utterance.volume = 1;
-                
-                // Speak the announcement
-                speechSynthesis.speak(utterance);
-            }
-        }
-
-        // Invoice Functions
+        // Invoice Functions (TANPA PAJAK)
         function showInvoice(order) {
             invoiceContent.innerHTML = `
                 <div class="invoice-print">
@@ -1072,7 +1130,7 @@
                             <p class="text-sm text-gray-600">Tanggal: <span class="font-medium">${new Date().toLocaleDateString('id-ID')}</span></p>
                             <p class="text-sm text-gray-600">Waktu: <span class="font-medium">${new Date().toLocaleTimeString('id-ID')}</span></p>
                             <p class="text-sm text-amber-600 font-medium mt-2">
-                                <i class="fas fa-mobile-alt mr-1"></i>Order via Device
+                                <i class="fas fa-mobile-alt mr-1"></i>Pesan via Aplikasi
                             </p>
                         </div>
                         <div class="text-right">
@@ -1108,16 +1166,8 @@
                         </div>
                     </div>
                     
-                    <!-- Summary -->
+                    <!-- Summary (TANPA PAJAK) -->
                     <div class="border-t pt-6">
-                        <div class="flex justify-between mb-2">
-                            <span class="text-gray-600">Subtotal:</span>
-                            <span class="font-medium">${formatRupiah(order.subtotal)}</span>
-                        </div>
-                        <div class="flex justify-between mb-2">
-                            <span class="text-gray-600">Pajak (10%):</span>
-                            <span class="font-medium">${formatRupiah(order.tax)}</span>
-                        </div>
                         <div class="flex justify-between text-xl font-bold pt-4 border-t">
                             <span>TOTAL:</span>
                             <span class="text-amber-700">${formatRupiah(order.total)}</span>
@@ -1214,8 +1264,7 @@
             showNotification(message, 'info');
         }
 
-        function showNotification(message, type = 'info') {
-            // Create notification element
+        function showNotification(message, type = 'info', duration = 3000) {
             const notification = document.createElement('div');
             notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg max-w-sm ${
                 type === 'success' ? 'bg-green-500 text-white' :
@@ -1235,29 +1284,23 @@
             
             document.body.appendChild(notification);
             
-            // Remove after 3 seconds
             setTimeout(() => {
                 notification.remove();
-            }, 3000);
+            }, duration);
         }
 
         // Initialize App
         async function initApp() {
             try {
-                // Tampilkan device ID di console untuk debugging
                 console.log('Device ID:', state.deviceId);
                 
-                // Load initial data
                 await Promise.all([
                     loadMenuItems(),
                     loadQueue(),
                     loadOrderCounter()
                 ]);
                 
-                // Setup real-time listeners
                 setupRealtimeListeners();
-                
-                // Initial render
                 updateCart();
                 
                 // Event Listeners
@@ -1293,9 +1336,15 @@
                 });
                 
                 // Button listeners
-                document.getElementById('clearCartBtn').addEventListener('click', clearCart);
-                document.getElementById('checkoutBtn').addEventListener('click', checkout);
+                document.getElementById('cartBtn').addEventListener('click', openCartModal);
+                modalClearCartBtn.addEventListener('click', clearCart);
+                modalCheckoutBtn.addEventListener('click', checkout);
                 document.getElementById('historyBtn').addEventListener('click', openHistoryModal);
+                
+                // Request permission for notification
+                if ("Notification" in window) {
+                    Notification.requestPermission();
+                }
                 
             } catch (error) {
                 console.error('App initialization error:', error);
@@ -1310,6 +1359,7 @@
         window.printInvoice = printInvoice;
         window.closeInvoiceModal = closeInvoiceModal;
         window.closeHistoryModal = closeHistoryModal;
+        window.closeCartModal = closeCartModal;
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', initApp);
