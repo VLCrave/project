@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSplit - Pemecah Keuangan Otomatis</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-number::-webkit-inner-spin-button,
+        .input-number::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            background-color: #e5e7eb;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.4s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Memuat FinSplit...</h2>
+            <p class="text-gray-600 dark:text-gray-300">Menyiapkan sistem keuangan Anda</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 py-6 hidden" id="mainContainer">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                            <i class="fas fa-chart-pie text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">FinSplit</h1>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm">Pemecah Keuangan Otomatis</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Theme Toggle -->
+                    <button id="themeToggle" class="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 shadow flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    
+                    <!-- Reset Button -->
+                    <button onclick="showResetConfirm()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium shadow hover:shadow-lg transition-all">
+                        <i class="fas fa-redo-alt mr-2"></i>Reset
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Income</p>
+                            <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="totalIncome">Rp 0</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <i class="fas fa-wallet text-blue-500 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Saldo Tersisa</p>
+                            <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="remainingBalance">Rp 0</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <i class="fas fa-coins text-green-500 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Transaksi</p>
+                            <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="transactionCount">0</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                            <i class="fas fa-exchange-alt text-purple-500 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow card-hover">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Hari Ini</p>
+                            <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="todayDate">-</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                            <i class="fas fa-calendar-day text-yellow-500 text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column: Input & Breakdown -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Input Income Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl card-hover slide-in">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                            <i class="fas fa-plus text-white text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white">Input Income Harian</h2>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2">Jumlah Income</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 dark:text-gray-400">Rp</span>
+                                </div>
+                                <input type="number" 
+                                       id="incomeInput" 
+                                       placeholder="0"
+                                       class="w-full pl-12 pr-4 py-4 text-lg rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all input-number"
+                                       min="0">
+                            </div>
+                        </div>
+                        
+                        <!-- Fix Expense Setting -->
+                        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="text-gray-700 dark:text-gray-300 font-medium">Fix Expense</label>
+                                <button onclick="editFixExpense()" class="text-blue-500 hover:text-blue-600 text-sm font-medium">
+                                    <i class="fas fa-edit mr-1"></i>Edit
+                                </button>
+                            </div>
+                            <div class="bg-gray-100 dark:bg-gray-700 rounded-xl p-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600 dark:text-gray-300">Nominal Tetap</span>
+                                    <span class="text-lg font-bold text-gray-800 dark:text-white" id="fixExpenseDisplay">Rp 15.000</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="processIncome()" 
+                                class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 pulse">
+                            <i class="fas fa-calculator mr-2"></i>Pecahkan Keuangan
+                        </button>
+                        
+                        <div id="errorAlert" class="hidden p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                                <span id="errorMessage" class="text-red-700 dark:text-red-300"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breakdown Results -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl card-hover slide-in" id="breakdownCard">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
+                            <i class="fas fa-chart-bar text-white text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white">Hasil Pembagian</h2>
+                    </div>
+                    
+                    <div id="breakdownResults" class="space-y-4">
+                        <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-calculator text-4xl mb-4 opacity-50"></i>
+                            <p>Masukkan income untuk melihat hasil pembagian</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Charts & Categories -->
+            <div class="space-y-6">
+                <!-- Categories Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl card-hover slide-in">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                <i class="fas fa-folder text-white text-lg"></i>
+                            </div>
+                            <h2 class="text-xl font-bold text-gray-800 dark:text-white">Kategori</h2>
+                        </div>
+                        <button onclick="editPercentages()" class="text-blue-500 hover:text-blue-600 text-sm font-medium">
+                            <i class="fas fa-sliders-h mr-1"></i>Edit
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4" id="categoriesList">
+                        <!-- Categories will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Chart Card -->
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl card-hover slide-in">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                            <i class="fas fa-chart-pie text-white text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white">Visualisasi</h2>
+                    </div>
+                    
+                    <div class="h-64">
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-center">
+                        <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                            <button onclick="changeChartType('pie')" class="px-3 py-1 rounded-md bg-blue-500 text-white text-sm font-medium">
+                                Pie
+                            </button>
+                            <button onclick="changeChartType('bar')" class="px-3 py-1 rounded-md text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700">
+                                Bar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Transaction History -->
+        <div class="mt-8">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl card-hover">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
+                            <i class="fas fa-history text-white text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-white">Riwayat Transaksi</h2>
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400" id="historyCount">0 transaksi</div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700">
+                                <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Tanggal</th>
+                                <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Income</th>
+                                <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Fix Expense</th>
+                                <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Sisa</th>
+                                <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionHistory">
+                            <!-- Transactions will be loaded here -->
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-receipt text-3xl mb-3 opacity-50"></i>
+                                    <p>Belum ada transaksi</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+            <p>© 2024 FinSplit • Pemecah Keuangan Otomatis • Data tersimpan secara aman</p>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <!-- Edit Fix Expense Modal -->
+    <div id="fixExpenseModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Fix Expense</h3>
+                <button onclick="closeModals()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2">Nominal Fix Expense</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 dark:text-gray-400">Rp</span>
+                        </div>
+                        <input type="number" 
+                               id="fixExpenseInput" 
+                               placeholder="15000"
+                               class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all input-number">
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Jumlah tetap yang dipotong pertama dari income</p>
+                </div>
+                
+                <div class="flex gap-3 pt-4">
+                    <button onclick="closeModals()" class="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        Batal
+                    </button>
+                    <button onclick="saveFixExpense()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all">
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Percentages Modal -->
+    <div id="percentagesModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Persentase</h3>
+                <button onclick="closeModals()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4" id="percentagesForm">
+                <!-- Percentages will be generated here -->
+            </div>
+            
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-gray-700 dark:text-gray-300 font-medium">Total Persentase</span>
+                    <span class="text-lg font-bold" id="totalPercentage">100%</span>
+                </div>
+                
+                <div class="progress-bar mb-6">
+                    <div id="percentageBar" class="progress-bar-fill bg-green-500" style="width: 100%"></div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button onclick="closeModals()" class="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                        Batal
+                    </button>
+                    <button onclick="savePercentages()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all">
+                        Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Confirm Modal -->
+    <div id="resetModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white mb-2">Reset Semua Data?</h3>
+                <p class="text-gray-600 dark:text-gray-300">Semua transaksi dan saldo akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="closeModals()" class="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    Batal
+                </button>
+                <button onclick="resetAllData()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 text-white font-medium hover:from-red-600 hover:to-pink-700 transition-all">
+                    Ya, Reset Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed bottom-4 right-4 z-50 px-6 py-3 rounded-xl bg-gray-800 dark:bg-gray-900 text-white shadow-xl fade-in">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-check-circle text-green-400"></i>
+            <span id="toastMessage">Berhasil disimpan</span>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Default settings
+        const defaultSettings = {
+            fixExpense: 15000,
+            percentages: {
+                bisnisPribadi: 10,
+                tabunganMerantau: 20,
+                tabunganDarurat: 30,
+                tabunganLiburan: 20,
+                tabunganBisnis: 20
+            }
+        };
+
+        // App State
+        let deviceId = null;
+        let settings = { ...defaultSettings };
+        let transactions = [];
+        let balances = {};
+        let chart = null;
+        let chartType = 'pie';
+
+        // Initialize App
+        async function initApp() {
+            // Get or create device ID
+            deviceId = localStorage.getItem('finsplit_deviceId');
+            if (!deviceId) {
+                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('finsplit_deviceId', deviceId);
+            }
+
+            // Load settings and data
+            await loadSettings();
+            await loadTransactions();
+            await loadBalances();
+            
+            // Update UI
+            updateUI();
+            updateChart();
+            
+            // Set today's date
+            const today = new Date();
+            document.getElementById('todayDate').textContent = today.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Hide loading, show main content
+            document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('mainContainer').classList.remove('hidden');
+            
+            // Initialize theme
+            initTheme();
+        }
+
+        // Load settings from Firebase
+        async function loadSettings() {
+            try {
+                const settingsDoc = await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('settings')
+                    .doc('current')
+                    .get();
+                
+                if (settingsDoc.exists) {
+                    settings = settingsDoc.data();
+                } else {
+                    // Create default settings
+                    await db.collection('finance')
+                        .doc(deviceId)
+                        .collection('settings')
+                        .doc('current')
+                        .set(defaultSettings);
+                }
+                
+                updateSettingsUI();
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Load transactions from Firebase
+        async function loadTransactions() {
+            try {
+                const snapshot = await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('transactions')
+                    .orderBy('timestamp', 'desc')
+                    .get();
+                
+                transactions = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    transactions.push({
+                        id: doc.id,
+                        ...data
+                    });
+                });
+                
+                updateTransactionHistory();
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+            }
+        }
+
+        // Load balances from Firebase
+        async function loadBalances() {
+            try {
+                const snapshot = await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('balances')
+                    .get();
+                
+                balances = {};
+                snapshot.forEach(doc => {
+                    balances[doc.id] = doc.data().amount || 0;
+                });
+                
+                updateCategoriesUI();
+            } catch (error) {
+                console.error('Error loading balances:', error);
+            }
+        }
+
+        // Update settings UI
+        function updateSettingsUI() {
+            document.getElementById('fixExpenseDisplay').textContent = formatCurrency(settings.fixExpense);
+            
+            // Update categories list
+            const categories = [
+                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', percentage: settings.percentages.bisnisPribadi, color: 'bg-blue-500' },
+                { key: 'tabunganMerantau', label: 'Tabungan Merantau', percentage: settings.percentages.tabunganMerantau, color: 'bg-green-500' },
+                { key: 'tabunganDarurat', label: 'Tabungan Darurat', percentage: settings.percentages.tabunganDarurat, color: 'bg-yellow-500' },
+                { key: 'tabunganLiburan', label: 'Tabungan Liburan', percentage: settings.percentages.tabunganLiburan, color: 'bg-purple-500' },
+                { key: 'tabunganBisnis', label: 'Tabungan Bisnis', percentage: settings.percentages.tabunganBisnis, color: 'bg-red-500' }
+            ];
+            
+            let html = '';
+            categories.forEach(cat => {
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full ${cat.color}"></div>
+                            <span class="font-medium text-gray-700 dark:text-gray-300">${cat.label}</span>
+                        </div>
+                        <span class="font-bold text-gray-800 dark:text-white">${cat.percentage}%</span>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('categoriesList').innerHTML = html;
+        }
+
+        // Update transaction history UI
+        function updateTransactionHistory() {
+            const container = document.getElementById('transactionHistory');
+            const totalIncome = transactions.reduce((sum, t) => sum + t.income, 0);
+            
+            document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+            document.getElementById('transactionCount').textContent = transactions.length;
+            document.getElementById('historyCount').textContent = `${transactions.length} transaksi`;
+            
+            if (transactions.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-8 text-center text-gray-500 dark:text-gray-400">
+                            <i class="fas fa-receipt text-3xl mb-3 opacity-50"></i>
+                            <p>Belum ada transaksi</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            transactions.forEach(trans => {
+                const date = new Date(trans.timestamp?.toDate?.() || trans.timestamp);
+                const remaining = trans.income - trans.fixExpense;
+                
+                html += `
+                    <tr class="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-gray-800 dark:text-white">${date.toLocaleDateString('id-ID')}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">${date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-bold text-green-600 dark:text-green-400">${formatCurrency(trans.income)}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-red-600 dark:text-red-400">${formatCurrency(trans.fixExpense)}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-medium text-blue-600 dark:text-blue-400">${formatCurrency(remaining)}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <button onclick="deleteTransaction('${trans.id}')" class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-500 hover:bg-red-200 dark:hover:bg-red-800/50 flex items-center justify-center transition-colors">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // Update categories UI with balances
+        function updateCategoriesUI() {
+            const categories = [
+                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', percentage: settings.percentages.bisnisPribadi, color: 'bg-blue-500', icon: 'fas fa-briefcase' },
+                { key: 'tabunganMerantau', label: 'Tabungan Merantau', percentage: settings.percentages.tabunganMerantau, color: 'bg-green-500', icon: 'fas fa-home' },
+                { key: 'tabunganDarurat', label: 'Tabungan Darurat', percentage: settings.percentages.tabunganDarurat, color: 'bg-yellow-500', icon: 'fas fa-shield-alt' },
+                { key: 'tabunganLiburan', label: 'Tabungan Liburan', percentage: settings.percentages.tabunganLiburan, color: 'bg-purple-500', icon: 'fas fa-umbrella-beach' },
+                { key: 'tabunganBisnis', label: 'Tabungan Bisnis', percentage: settings.percentages.tabunganBisnis, color: 'bg-red-500', icon: 'fas fa-chart-line' }
+            ];
+            
+            let html = '';
+            let totalBalance = 0;
+            
+            categories.forEach(cat => {
+                const balance = balances[cat.key] || 0;
+                totalBalance += balance;
+                
+                html += `
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg ${cat.color} flex items-center justify-center">
+                                    <i class="${cat.icon} text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-700 dark:text-gray-300">${cat.label}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">${cat.percentage}% dari sisa income</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-gray-800 dark:text-white">${formatCurrency(balance)}</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill ${cat.color}" style="width: ${Math.min(100, (balance / (totalBalance || 1)) * 100)}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('categoriesList').innerHTML = html;
+            document.getElementById('remainingBalance').textContent = formatCurrency(totalBalance);
+        }
+
+        // Update chart
+        function updateChart() {
+            const ctx = document.getElementById('balanceChart').getContext('2d');
+            
+            const categories = [
+                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', color: '#3b82f6' },
+                { key: 'tabunganMerantau', label: 'Tabungan Merantau', color: '#10b981' },
+                { key: 'tabunganDarurat', label: 'Tabungan Darurat', color: '#f59e0b' },
+                { key: 'tabunganLiburan', label: 'Tabungan Liburan', color: '#8b5cf6' },
+                { key: 'tabunganBisnis', label: 'Tabungan Bisnis', color: '#ef4444' }
+            ];
+            
+            const data = {
+                labels: categories.map(c => c.label),
+                datasets: [{
+                    data: categories.map(c => balances[c.key] || 0),
+                    backgroundColor: categories.map(c => c.color),
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            };
+            
+            const config = {
+                type: chartType,
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: {
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, config);
+        }
+
+        // Process income input
+        async function processIncome() {
+            const incomeInput = document.getElementById('incomeInput');
+            const income = parseInt(incomeInput.value);
+            
+            // Reset error
+            hideError();
+            
+            // Validate input
+            if (!income || income <= 0) {
+                showError('Masukkan jumlah income yang valid');
+                return;
+            }
+            
+            if (income < settings.fixExpense) {
+                showError(`Income harus lebih besar dari fix expense (${formatCurrency(settings.fixExpense)})`);
+                return;
+            }
+            
+            // Calculate breakdown
+            const fixExpense = settings.fixExpense;
+            const remaining = income - fixExpense;
+            
+            const breakdown = {
+                bisnisPribadi: Math.round(remaining * (settings.percentages.bisnisPribadi / 100)),
+                tabunganMerantau: Math.round(remaining * (settings.percentages.tabunganMerantau / 100)),
+                tabunganDarurat: Math.round(remaining * (settings.percentages.tabunganDarurat / 100)),
+                tabunganLiburan: Math.round(remaining * (settings.percentages.tabunganLiburan / 100)),
+                tabunganBisnis: Math.round(remaining * (settings.percentages.tabunganBisnis / 100))
+            };
+            
+            // Save transaction to Firebase
+            const transactionData = {
+                income: income,
+                fixExpense: fixExpense,
+                remaining: remaining,
+                breakdown: breakdown,
+                timestamp: new Date()
+            };
+            
+            try {
+                // Save transaction
+                const transactionRef = await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('transactions')
+                    .add(transactionData);
+                
+                // Update balances
+                for (const [key, amount] of Object.entries(breakdown)) {
+                    const currentBalance = balances[key] || 0;
+                    balances[key] = currentBalance + amount;
+                    
+                    await db.collection('finance')
+                        .doc(deviceId)
+                        .collection('balances')
+                        .doc(key)
+                        .set({ amount: balances[key] });
+                }
+                
+                // Add to local transactions array
+                transactions.unshift({
+                    id: transactionRef.id,
+                    ...transactionData
+                });
+                
+                // Update UI
+                updateUI();
+                updateChart();
+                
+                // Show breakdown results
+                showBreakdownResults(income, fixExpense, remaining, breakdown);
+                
+                // Clear input
+                incomeInput.value = '';
+                
+                // Show success toast
+                showToast('Income berhasil diproses!');
+                
+            } catch (error) {
+                console.error('Error saving transaction:', error);
+                showError('Gagal menyimpan transaksi. Coba lagi.');
+            }
+        }
+
+        // Show breakdown results
+        function showBreakdownResults(income, fixExpense, remaining, breakdown) {
+            const container = document.getElementById('breakdownResults');
+            
+            let html = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4">
+                            <div class="text-sm text-green-600 dark:text-green-400 font-medium mb-1">Total Income</div>
+                            <div class="text-2xl font-bold text-gray-800 dark:text-white">${formatCurrency(income)}</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-xl p-4">
+                            <div class="text-sm text-red-600 dark:text-red-400 font-medium mb-1">Fix Expense</div>
+                            <div class="text-2xl font-bold text-gray-800 dark:text-white">${formatCurrency(fixExpense)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4">
+                        <div class="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Sisa untuk Dibagi</div>
+                        <div class="text-2xl font-bold text-gray-800 dark:text-white">${formatCurrency(remaining)}</div>
+                    </div>
+                    
+                    <div class="space-y-3 pt-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-medium">Bisnis Pribadi (${settings.percentages.bisnisPribadi}%)</span>
+                            <span class="font-bold text-gray-800 dark:text-white">${formatCurrency(breakdown.bisnisPribadi)}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-medium">Tabungan Merantau (${settings.percentages.tabunganMerantau}%)</span>
+                            <span class="font-bold text-gray-800 dark:text-white">${formatCurrency(breakdown.tabunganMerantau)}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-medium">Tabungan Darurat (${settings.percentages.tabunganDarurat}%)</span>
+                            <span class="font-bold text-gray-800 dark:text-white">${formatCurrency(breakdown.tabunganDarurat)}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-medium">Tabungan Liburan (${settings.percentages.tabunganLiburan}%)</span>
+                            <span class="font-bold text-gray-800 dark:text-white">${formatCurrency(breakdown.tabunganLiburan)}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-700 dark:text-gray-300 font-medium">Tabungan Bisnis (${settings.percentages.tabunganBisnis}%)</span>
+                            <span class="font-bold text-gray-800 dark:text-white">${formatCurrency(breakdown.tabunganBisnis)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+        // Edit fix expense
+        function editFixExpense() {
+            document.getElementById('fixExpenseInput').value = settings.fixExpense;
+            document.getElementById('fixExpenseModal').classList.remove('hidden');
+        }
+
+        // Save fix expense
+        async function saveFixExpense() {
+            const input = document.getElementById('fixExpenseInput');
+            const value = parseInt(input.value);
+            
+            if (!value || value < 0) {
+                showError('Masukkan nominal yang valid');
+                return;
+            }
+            
+            settings.fixExpense = value;
+            
+            try {
+                await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('settings')
+                    .doc('current')
+                    .update({ fixExpense: value });
+                
+                updateSettingsUI();
+                closeModals();
+                showToast('Fix expense berhasil diupdate');
+                
+            } catch (error) {
+                console.error('Error saving fix expense:', error);
+                showError('Gagal menyimpan perubahan');
+            }
+        }
+
+        // Edit percentages
+        function editPercentages() {
+            const container = document.getElementById('percentagesForm');
+            const categories = [
+                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', value: settings.percentages.bisnisPribadi },
+                { key: 'tabunganMerantau', label: 'Tabungan Merantau', value: settings.percentages.tabunganMerantau },
+                { key: 'tabunganDarurat', label: 'Tabungan Darurat', value: settings.percentages.tabunganDarurat },
+                { key: 'tabunganLiburan', label: 'Tabungan Liburan', value: settings.percentages.tabunganLiburan },
+                { key: 'tabunganBisnis', label: 'Tabungan Bisnis', value: settings.percentages.tabunganBisnis }
+            ];
+            
+            let html = '';
+            categories.forEach(cat => {
+                html += `
+                    <div>
+                        <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2">${cat.label}</label>
+                        <div class="flex items-center gap-3">
+                            <input type="range" 
+                                   min="0" 
+                                   max="100" 
+                                   value="${cat.value}"
+                                   oninput="updatePercentageInput('${cat.key}', this.value)"
+                                   class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <div class="w-20">
+                                <input type="number" 
+                                       id="percentage_${cat.key}"
+                                       value="${cat.value}"
+                                       oninput="updatePercentageRange('${cat.key}', this.value)"
+                                       class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white text-center input-number">
+                            </div>
+                            <span class="w-8 text-gray-500 dark:text-gray-400">%</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            updateTotalPercentage();
+            document.getElementById('percentagesModal').classList.remove('hidden');
+        }
+
+        // Update percentage input
+        function updatePercentageInput(key, value) {
+            document.getElementById(`percentage_${key}`).value = value;
+            updateTotalPercentage();
+        }
+
+        // Update percentage range
+        function updatePercentageRange(key, value) {
+            const numValue = parseInt(value) || 0;
+            if (numValue < 0) {
+                document.getElementById(`percentage_${key}`).value = 0;
+            } else if (numValue > 100) {
+                document.getElementById(`percentage_${key}`).value = 100;
+            }
+            updateTotalPercentage();
+        }
+
+        // Update total percentage
+        function updateTotalPercentage() {
+            const categories = ['bisnisPribadi', 'tabunganMerantau', 'tabunganDarurat', 'tabunganLiburan', 'tabunganBisnis'];
+            let total = 0;
+            
+            categories.forEach(key => {
+                const input = document.getElementById(`percentage_${key}`);
+                total += parseInt(input?.value) || 0;
+            });
+            
+            document.getElementById('totalPercentage').textContent = `${total}%`;
+            document.getElementById('percentageBar').style.width = `${Math.min(100, total)}%`;
+            
+            // Change color based on total
+            const bar = document.getElementById('percentageBar');
+            if (total === 100) {
+                bar.className = 'progress-bar-fill bg-green-500';
+            } else if (total > 100) {
+                bar.className = 'progress-bar-fill bg-red-500';
+            } else {
+                bar.className = 'progress-bar-fill bg-yellow-500';
+            }
+        }
+
+        // Save percentages
+        async function savePercentages() {
+            const categories = ['bisnisPribadi', 'tabunganMerantau', 'tabunganDarurat', 'tabunganLiburan', 'tabunganBisnis'];
+            const newPercentages = {};
+            let total = 0;
+            
+            categories.forEach(key => {
+                const input = document.getElementById(`percentage_${key}`);
+                const value = parseInt(input?.value) || 0;
+                newPercentages[key] = value;
+                total += value;
+            });
+            
+            if (total !== 100) {
+                showError('Total persentase harus tepat 100%');
+                return;
+            }
+            
+            settings.percentages = newPercentages;
+            
+            try {
+                await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('settings')
+                    .doc('current')
+                    .update({ percentages: newPercentages });
+                
+                updateSettingsUI();
+                updateCategoriesUI();
+                closeModals();
+                showToast('Persentase berhasil diupdate');
+                
+            } catch (error) {
+                console.error('Error saving percentages:', error);
+                showError('Gagal menyimpan perubahan');
+            }
+        }
+
+        // Delete transaction
+        async function deleteTransaction(id) {
+            if (!confirm('Hapus transaksi ini? Saldo akan dikurangi sesuai dengan pembagian sebelumnya.')) {
+                return;
+            }
+            
+            try {
+                // Find transaction
+                const transaction = transactions.find(t => t.id === id);
+                if (!transaction) return;
+                
+                // Remove from transactions collection
+                await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('transactions')
+                    .doc(id)
+                    .delete();
+                
+                // Update balances
+                for (const [key, amount] of Object.entries(transaction.breakdown)) {
+                    const currentBalance = balances[key] || 0;
+                    balances[key] = Math.max(0, currentBalance - amount);
+                    
+                    await db.collection('finance')
+                        .doc(deviceId)
+                        .collection('balances')
+                        .doc(key)
+                        .set({ amount: balances[key] });
+                }
+                
+                // Remove from local array
+                transactions = transactions.filter(t => t.id !== id);
+                
+                // Update UI
+                updateUI();
+                updateChart();
+                
+                showToast('Transaksi berhasil dihapus');
+                
+            } catch (error) {
+                console.error('Error deleting transaction:', error);
+                showError('Gagal menghapus transaksi');
+            }
+        }
+
+        // Reset all data
+        async function resetAllData() {
+            try {
+                // Delete all transactions
+                const transactionsSnapshot = await db.collection('finance')
+                    .doc(deviceId)
+                    .collection('transactions')
+                    .get();
+                
+                const deletePromises = transactionsSnapshot.docs.map(doc => doc.ref.delete());
+                await Promise.all(deletePromises);
+                
+                // Reset balances
+                const categories = ['bisnisPribadi', 'tabunganMerantau', 'tabunganDarurat', 'tabunganLiburan', 'tabunganBisnis'];
+                for (const key of categories) {
+                    await db.collection('finance')
+                        .doc(deviceId)
+                        .collection('balances')
+                        .doc(key)
+                        .set({ amount: 0 });
+                }
+                
+                // Reset local state
+                transactions = [];
+                balances = {};
+                
+                // Update UI
+                updateUI();
+                updateChart();
+                
+                closeModals();
+                showToast('Semua data berhasil direset');
+                
+            } catch (error) {
+                console.error('Error resetting data:', error);
+                showError('Gagal mereset data');
+            }
+        }
+
+        // Change chart type
+        function changeChartType(type) {
+            chartType = type;
+            updateChart();
+            
+            // Update button states
+            document.querySelectorAll('#balanceChart').nextElementSibling.querySelectorAll('button').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+            });
+            
+            event.target.classList.add('bg-blue-500', 'text-white');
+            event.target.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+        }
+
+        // Update all UI components
+        function updateUI() {
+            updateSettingsUI();
+            updateTransactionHistory();
+            updateCategoriesUI();
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorAlert').classList.remove('hidden');
+            
+            setTimeout(() => {
+                hideError();
+            }, 5000);
+        }
+
+        // Hide error message
+        function hideError() {
+            document.getElementById('errorAlert').classList.add('hidden');
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('#toastMessage').textContent = message;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Close all modals
+        function closeModals() {
+            document.getElementById('fixExpenseModal').classList.add('hidden');
+            document.getElementById('percentagesModal').classList.add('hidden');
+            document.getElementById('resetModal').classList.add('hidden');
+        }
+
+        // Show reset confirmation
+        function showResetConfirm() {
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+
+        // Format currency to Indonesian Rupiah
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Theme management
+        function initTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').className = 'fas fa-sun';
+            }
+            
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                icon.className = 'fas fa-moon';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                icon.className = 'fas fa-sun';
+            }
+        }
+
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
