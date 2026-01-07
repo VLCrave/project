@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rating VLCrave Delivery</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8b5cf6',
+                        secondary: '#7c3aed',
+                        accent: '#ec4899',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        error: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .star.selected { color: #fbbf24; }
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        .invoice-badge {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        .already-rated-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 font-sans">
+    <div class="max-w-xl mx-auto p-4">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-gradient-to-br from-primary to-accent shadow-lg">
+                <i class="fas fa-star text-white text-2xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-1">Rating VLCrave Delivery</h1>
+            <p class="text-gray-600 text-sm">Bagikan pengalaman Anda</p>
+        </header>
+
+        <main class="space-y-6">
+            <!-- WhatsApp Banner -->
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold mb-1">Gabung Grup WhatsApp</h3>
+                        <p class="text-white/90 text-sm">Info promo dan update terbaru</p>
+                    </div>
+                    <button onclick="joinWhatsApp()" class="bg-white text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        <i class="fab fa-whatsapp mr-1"></i>Gabung
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-3"></div>
+                <p class="text-gray-600">Memuat data...</p>
+            </div>
+
+            <!-- Invoice Section -->
+            <div id="invoiceSection" class="hidden">
+                <!-- Invoice Info -->
+                <div class="bg-white rounded-xl p-5 mb-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                <i class="fas fa-receipt text-primary"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-800 font-bold text-lg" id="invoiceNumber">-</p>
+                                <p class="text-gray-600 text-sm" id="invoiceDate">-</p>
+                            </div>
+                        </div>
+                        <div id="invoiceBadge" class="px-3 py-1 invoice-badge text-white rounded-full text-sm font-medium">
+                            <span id="invoiceStatus">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <p class="text-gray-600 text-sm mb-1">Total Pesanan</p>
+                            <p class="text-xl font-bold text-primary" id="invoiceTotal">-</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-gray-600 text-sm mb-1">Items</p>
+                            <p class="text-xl font-bold text-gray-800" id="invoiceItems">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Already Rated Warning -->
+                <div id="alreadyRatedAlert" class="hidden bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 mb-4 text-white">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-check-circle text-xl"></i>
+                        <div>
+                            <p class="font-bold">Rating Sudah Diberikan</p>
+                            <p class="text-white/90 text-sm">Invoice ini sudah mendapatkan rating. Terima kasih!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rating Form -->
+                <div id="ratingForm" class="hidden bg-white rounded-xl p-5 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Beri Rating Anda</h3>
+                    
+                    <!-- Stars -->
+                    <div class="text-center mb-6">
+                        <div class="flex justify-center gap-1 mb-3">
+                            <span class="star text-4xl cursor-pointer text-gray-200 hover:text-yellow-300" data-value="1">★</span>
+                            <span class="star text-4xl cursor-pointer text-gray-200 hover:text-yellow-300" data-value="2">★</span>
+                            <span class="star text-4xl cursor-pointer text-gray-200 hover:text-yellow-300" data-value="3">★</span>
+                            <span class="star text-4xl cursor-pointer text-gray-200 hover:text-yellow-300" data-value="4">★</span>
+                            <span class="star text-4xl cursor-pointer text-gray-200 hover:text-yellow-300" data-value="5">★</span>
+                        </div>
+                        <p id="ratingText" class="text-gray-600">Pilih rating 1-5 bintang</p>
+                    </div>
+
+                    <!-- Quick Comments -->
+                    <div class="mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fas fa-comment-dots text-accent"></i>
+                            <p class="text-sm text-gray-700">Pilih komentar cepat:</p>
+                        </div>
+                        
+                        <div class="flex gap-2 overflow-x-auto pb-2">
+                            <button class="quick-comment-btn px-3 py-2 bg-purple-50 text-gray-700 rounded-lg whitespace-nowrap" 
+                                    data-text="Pesanan tepat waktu">
+                                <i class="fas fa-clock text-purple-600 mr-1"></i> Tepat Waktu
+                            </button>
+                            <button class="quick-comment-btn px-3 py-2 bg-purple-50 text-gray-700 rounded-lg whitespace-nowrap"
+                                    data-text="Pengiriman cepat dan aman">
+                                <i class="fas fa-bolt text-purple-600 mr-1"></i> Cepat & Aman
+                            </button>
+                            <button class="quick-comment-btn px-3 py-2 bg-blue-50 text-gray-700 rounded-lg whitespace-nowrap"
+                                    data-text="Makanan masih hangat dan enak">
+                                <i class="fas fa-utensils text-blue-600 mr-1"></i> Makanan Enak
+                            </button>
+                            <button class="quick-comment-btn px-3 py-2 bg-green-50 text-gray-700 rounded-lg whitespace-nowrap"
+                                    data-text="Kurir ramah dan profesional">
+                                <i class="fas fa-user-check text-green-600 mr-1"></i> Kurir Ramah
+                            </button>
+                            <button class="quick-comment-btn px-3 py-2 bg-pink-50 text-gray-700 rounded-lg whitespace-nowrap"
+                                    data-text="Pengalaman memuaskan">
+                                <i class="fas fa-heart text-pink-600 mr-1"></i> Memuaskan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Comment Input -->
+                    <div class="mb-6">
+                        <textarea id="reviewComment" rows="2"
+                            class="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                            placeholder="Tambahkan komentar (opsional)..."
+                            maxlength="150"></textarea>
+                        <div class="flex justify-between mt-1">
+                            <p id="charCount" class="text-xs text-gray-500">0/150</p>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button id="submitRatingBtn" class="btn-primary w-full text-white py-3 rounded-lg font-medium">
+                        <i class="fas fa-paper-plane mr-2"></i>Kirim Rating
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div id="statsSection" class="bg-white rounded-xl p-5 shadow-sm">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-chart-bar text-primary"></i>
+                    <h3 class="font-bold text-gray-800">Statistik Rating</h3>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <div class="text-center p-3 bg-purple-50 rounded-lg">
+                        <p class="text-2xl font-bold text-primary mb-1" id="totalRatings">0</p>
+                        <p class="text-gray-600 text-xs">Total Rating</p>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <p class="text-2xl font-bold text-success mb-1" id="avgRating">0.0</p>
+                        <p class="text-gray-600 text-xs">Rata-rata</p>
+                    </div>
+                </div>
+
+                <!-- Recent Reviews -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-sm text-gray-700">Rating Terbaru</p>
+                        <button id="refreshBtn" class="text-primary text-sm">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="reviewsContainer" class="space-y-3 max-h-64 overflow-y-auto pr-2"></div>
+                    
+                    <div id="emptyReviews" class="text-center py-4">
+                        <i class="fas fa-comment text-gray-300 text-xl mb-2"></i>
+                        <p class="text-gray-500 text-sm">Belum ada rating</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Modal -->
+            <div id="successModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-xl p-6 max-w-sm w-full text-center">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-success to-green-400 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-check text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Terima Kasih!</h3>
+                    <p class="text-gray-600 text-sm mb-4">Rating Anda telah berhasil dikirim.</p>
+                    <button onclick="closeModal()" class="btn-primary w-full text-white py-2 rounded-lg">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="mt-8 text-center text-gray-500 text-sm">
+            <p>© 2024 VLCrave Delivery • 1 invoice = 1 rating</p>
+        </footer>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA1kevuJ9mRJ8le8uPXin11uUqJ6sOLopY",
+            authDomain: "vlcrave-whatsapp-order.firebaseapp.com",
+            projectId: "vlcrave-whatsapp-order",
+            storageBucket: "vlcrave-whatsapp-order.firebasestorage.app",
+            messagingSenderId: "796602954067",
+            appId: "1:796602954067:web:e10a110ae904decdc471a6",
+            measurementId: "G-XLWNDN39ZD"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // WhatsApp Group Link - GANTI DENGAN LINK GRUP WHATSAPP ANDA
+        const WHATSAPP_GROUP_LINK = "https://chat.whatsapp.com/XXXXXXXXXXXX";
+
+        // Get invoice from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const invoiceFromUrl = urlParams.get('id');
+        const invoiceNumber = invoiceFromUrl ? invoiceFromUrl.trim().toUpperCase() : null;
+
+        // State variables
+        let currentInvoice = null;
+        let selectedRating = 0;
+        let selectedQuickComment = null;
+        let invoiceAlreadyRated = false;
+        let allReviews = [];
+
+        // Join WhatsApp Group
+        function joinWhatsApp() {
+            // Buka link WhatsApp di tab baru
+            window.open(WHATSAPP_GROUP_LINK, '_blank');
+            
+            // Tidak ada konfirmasi, tidak ada status, langsung redirect saja
+            // Tidak perlu menyimpan status di localStorage
+        }
+
+        // Format currency
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            return dateString;
+        }
+
+        // Initialize App
+        async function initApp() {
+            hideLoading();
+            
+            // Always show stats section
+            document.getElementById('statsSection').classList.remove('hidden');
+            
+            // Load stats and reviews (always)
+            await loadReviewsData();
+            
+            // If invoice exists in URL, load it
+            if (invoiceNumber && /^VLC-\d{4}$/.test(invoiceNumber)) {
+                await loadInvoiceData();
+            }
+            
+            // Show invoice section if we have invoice data
+            if (currentInvoice) {
+                document.getElementById('invoiceSection').classList.remove('hidden');
+            }
+        }
+
+        // Load invoice data
+        async function loadInvoiceData() {
+            try {
+                const invoiceQuery = await db.collection('invoices')
+                    .where('invoiceNumber', '==', invoiceNumber)
+                    .get();
+
+                if (invoiceQuery.empty) return;
+
+                invoiceQuery.forEach(doc => {
+                    currentInvoice = { id: doc.id, ...doc.data() };
+                });
+
+                const reviewQuery = await db.collection('public_ratings')
+                    .where('invoiceNumber', '==', invoiceNumber)
+                    .get();
+
+                invoiceAlreadyRated = !reviewQuery.empty;
+                showInvoiceDetails();
+
+            } catch (error) {
+                console.error('Error loading invoice:', error);
+            }
+        }
+
+        // Show invoice details
+        function showInvoiceDetails() {
+            if (!currentInvoice) return;
+            
+            document.getElementById('invoiceNumber').textContent = currentInvoice.invoiceNumber;
+            document.getElementById('invoiceDate').textContent = formatDate(currentInvoice.date);
+            
+            const statusText = currentInvoice.status === 'completed' ? 'Selesai' : currentInvoice.status;
+            document.getElementById('invoiceStatus').textContent = statusText;
+            
+            const badge = document.getElementById('invoiceBadge');
+            if (invoiceAlreadyRated) {
+                badge.className = 'px-3 py-1 already-rated-badge text-white rounded-full text-sm font-medium';
+                document.getElementById('invoiceStatus').textContent = 'Sudah Dinilai';
+            }
+            
+            document.getElementById('invoiceTotal').textContent = formatRupiah(currentInvoice.total);
+            
+            const itemCount = currentInvoice.products ? currentInvoice.products.length : 0;
+            document.getElementById('invoiceItems').textContent = itemCount;
+            
+            if (invoiceAlreadyRated) {
+                document.getElementById('alreadyRatedAlert').classList.remove('hidden');
+                document.getElementById('ratingForm').classList.add('hidden');
+            } else {
+                document.getElementById('alreadyRatedAlert').classList.add('hidden');
+                document.getElementById('ratingForm').classList.remove('hidden');
+            }
+        }
+
+        // Load reviews data
+        async function loadReviewsData() {
+            try {
+                const snapshot = await db.collection('public_ratings')
+                    .orderBy('createdAt', 'desc')
+                    .limit(10)
+                    .get();
+                
+                allReviews = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    allReviews.push({
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate?.() || new Date()
+                    });
+                });
+                
+                updateStats();
+                displayReviews();
+                
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            if (allReviews.length === 0) {
+                document.getElementById('totalRatings').textContent = '0';
+                document.getElementById('avgRating').textContent = '0.0';
+                return;
+            }
+            
+            document.getElementById('totalRatings').textContent = allReviews.length.toLocaleString();
+            
+            const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
+            const avgRating = (totalRating / allReviews.length).toFixed(1);
+            document.getElementById('avgRating').textContent = avgRating;
+        }
+
+        // Display reviews
+        function displayReviews() {
+            const container = document.getElementById('reviewsContainer');
+            const emptyEl = document.getElementById('emptyReviews');
+            
+            if (allReviews.length === 0) {
+                emptyEl.classList.remove('hidden');
+                container.innerHTML = '';
+                return;
+            }
+            
+            emptyEl.classList.add('hidden');
+            container.innerHTML = '';
+            
+            allReviews.forEach(review => {
+                const date = new Date(review.createdAt);
+                const timeAgo = getTimeAgo(date);
+                
+                const reviewEl = document.createElement('div');
+                reviewEl.className = 'bg-gray-50 p-3 rounded-lg';
+                
+                reviewEl.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                <i class="fas fa-receipt text-primary text-xs"></i>
+                            </div>
+                            <span class="text-sm font-medium text-gray-800">${review.invoiceNumber}</span>
+                        </div>
+                        <span class="text-xs text-gray-500">${timeAgo}</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-1 mb-2">
+                        ${Array(review.rating).fill().map(() => '<i class="fas fa-star text-yellow-500 text-xs"></i>').join('')}
+                        ${Array(5 - review.rating).fill().map(() => '<i class="far fa-star text-gray-300 text-xs"></i>').join('')}
+                        <span class="ml-2 text-sm font-medium text-gray-700">${review.rating}.0</span>
+                    </div>
+                    
+                    ${review.comment ? `
+                        <p class="text-sm text-gray-700">"${review.comment}"</p>
+                    ` : ''}
+                `;
+                
+                container.appendChild(reviewEl);
+            });
+        }
+
+        // Get time ago
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            if (seconds < 60) return 'baru saja';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m lalu`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}j lalu`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)}h lalu`;
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        }
+
+        // Handle quick comment selection
+        function handleQuickComment(button, commentText) {
+            document.querySelectorAll('.quick-comment-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            button.classList.add('selected');
+            selectedQuickComment = commentText;
+            
+            const textarea = document.getElementById('reviewComment');
+            textarea.value = commentText;
+            document.getElementById('charCount').textContent = `${commentText.length}/150`;
+        }
+
+        // Submit rating
+        async function submitRating() {
+            if (selectedRating === 0) {
+                showToast('Pilih rating terlebih dahulu', 'error');
+                return;
+            }
+
+            if (!currentInvoice) {
+                showToast('Invoice tidak valid', 'error');
+                return;
+            }
+
+            if (invoiceAlreadyRated) {
+                showToast('Invoice ini sudah mendapatkan rating', 'error');
+                return;
+            }
+
+            const comment = document.getElementById('reviewComment').value.trim();
+            const btn = document.getElementById('submitRatingBtn');
+            
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Mengirim...';
+
+            try {
+                const ratingData = {
+                    invoiceNumber: currentInvoice.invoiceNumber,
+                    rating: selectedRating,
+                    comment: comment || null,
+                    isQuickComment: selectedQuickComment === comment,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    invoiceData: {
+                        total: currentInvoice.total,
+                        date: currentInvoice.date,
+                        products: currentInvoice.products
+                    }
+                };
+
+                await db.collection('public_ratings').add(ratingData);
+                
+                invoiceAlreadyRated = true;
+                showInvoiceDetails();
+                showSuccessModal();
+                
+                await loadReviewsData();
+
+            } catch (error) {
+                console.error('Error submitting rating:', error);
+                showToast('Gagal mengirim rating', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Show success modal
+        function showSuccessModal() {
+            document.getElementById('successModal').classList.remove('hidden');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+
+        // Show toast
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white text-sm font-medium ${
+                type === 'error' ? 'bg-red-500' : 'bg-primary'
+            }`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Hide loading
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize app
+            initApp();
+
+            // Rating stars
+            document.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', function() {
+                    selectedRating = parseInt(this.dataset.value);
+                    
+                    const ratingTexts = ['Buruk', 'Cukup', 'Baik', 'Sangat Baik', 'Luar Biasa'];
+                    
+                    document.querySelectorAll('.star').forEach(s => {
+                        const value = parseInt(s.dataset.value);
+                        if (value <= selectedRating) {
+                            s.classList.add('selected');
+                            s.style.color = '#fbbf24';
+                        } else {
+                            s.classList.remove('selected');
+                            s.style.color = '#e5e7eb';
+                        }
+                    });
+                    
+                    document.getElementById('ratingText').textContent = `${selectedRating}/5 - ${ratingTexts[selectedRating-1]}`;
+                });
+            });
+
+            // Quick comment buttons
+            document.querySelectorAll('.quick-comment-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const commentText = this.getAttribute('data-text');
+                    handleQuickComment(this, commentText);
+                });
+            });
+
+            // Character count
+            document.getElementById('reviewComment').addEventListener('input', function() {
+                document.getElementById('charCount').textContent = `${this.value.length}/150`;
+                
+                if (selectedQuickComment !== this.value) {
+                    selectedQuickComment = null;
+                    document.querySelectorAll('.quick-comment-btn').forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                }
+            });
+
+            // Submit rating
+            document.getElementById('submitRatingBtn').addEventListener('click', submitRating);
+
+            // Refresh button
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                loadReviewsData();
+            });
+
+            // Real-time updates
+            db.collection('public_ratings').onSnapshot(loadReviewsData);
+        });
+    </script>
+</body>
+</html>
