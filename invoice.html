@@ -1337,7 +1337,7 @@
                 }
             },
 
-            // Share invoice dengan pesan khusus
+            // Share invoice dengan pesan khusus dan permintaan review
             async shareInvoice(id, invoiceNumber, paymentMethod, total) {
                 const invoice = this.invoices.find(inv => inv.id === id);
                 if (!invoice) {
@@ -1346,6 +1346,9 @@
                 }
 
                 try {
+                    // URL untuk review
+                    const reviewUrl = `https://vlcrave.github.io/project/reviews.html?id=${invoiceNumber}`;
+                    
                     let shareText = '';
                     
                     if (paymentMethod === 'bca') {
@@ -1358,12 +1361,18 @@ BCA
 a/n VICKY SATRIA LINDY
 Nominal : ${this.formatCurrency(total)}
 
+Sambil menunggu pengantaran, Anda bisa memberikan review pada layanan kami:
+${reviewUrl}
+
 Terima kasih telah mempercayai VLCrave Express!`;
                     } else {
                         shareText = `✅ Pesanan anda telah selesai dan akan segera menuju alamat anda
 
 Silahkan bayar sesuai nominal dibawah secara Tunai/Cash
 Nominal : ${this.formatCurrency(total)}
+
+Sambil menunggu pengantaran, Anda bisa memberikan review pada layanan kami:
+${reviewUrl}
 
 Terima kasih telah mempercayai VLCrave Express!`;
                     }
@@ -1394,7 +1403,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 }
             },
 
-            // Method untuk share di iOS - dengan gambar invoice
+            // Method untuk share di iOS - dengan gambar invoice dan permintaan review
             async shareInvoiceIOS() {
                 try {
                     if (!this.currentInvoiceData) {
@@ -1403,6 +1412,8 @@ Terima kasih telah mempercayai VLCrave Express!`;
                     }
 
                     const data = this.currentInvoiceData;
+                    // URL untuk review
+                    const reviewUrl = `https://vlcrave.github.io/project/reviews.html?id=${data.invoiceNumber}`;
 
                     // Buat container struk dengan styling lengkap
                     const receiptContainer = document.createElement('div');
@@ -1455,24 +1466,28 @@ Terima kasih telah mempercayai VLCrave Express!`;
                     const blob = await response.blob();
                     const file = new File([blob], `invoice-${data.invoiceNumber}.png`, { type: 'image/png' });
 
-                    // 🧾 Buat pesan berdasarkan metode pembayaran yang SESUAI
+                    // 🧾 Buat pesan berdasarkan metode pembayaran yang SESUAI dengan permintaan review
                     let paymentText = '';
                     
                     // Gunakan paymentMethod dari data invoice yang sebenarnya
                     if (data.paymentMethod === 'bca') {
                         paymentText = 
-                            `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
+                            `✅ Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
                             `💳 Metode: Transfer BCA\n` +
                             `🏦 Tujuan: BCA 6455106421 a/n VICKY SATRIA LINDY\n` +
                             `💰 Nominal: ${this.formatCurrency(data.total)}\n\n` +
+                            `Sambil menunggu pengantaran, Anda bisa memberikan review pada layanan kami:\n` +
+                            `${reviewUrl}\n\n` +
                             `Silakan transfer terlebih dahulu sebelum pengiriman.\n\n` +
                             `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
                     } else {
                         // Default untuk tunai
                         paymentText = 
-                            `Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
+                            `✅ Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
                             `💵 Metode: Tunai\n` +
                             `Silakan siapkan uang sebesar ${this.formatCurrency(data.total)} untuk pembayaran saat barang diterima.\n\n` +
+                            `Sambil menunggu pengantaran, Anda bisa memberikan review pada layanan kami:\n` +
+                            `${reviewUrl}\n\n` +
                             `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
                     }
 
