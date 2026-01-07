@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FinSplit - Pemecah Keuangan Otomatis</title>
+    <title>VLSplit - Sistem Pembagian Keuangan</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -18,7 +18,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         :root {
-            --primary: #3b82f6;
+            --primary: #7c3aed;
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
@@ -86,18 +86,18 @@
         }
         
         @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(124, 58, 237, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0); }
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+<body class="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
     <!-- Loading Screen -->
     <div id="loadingScreen" class="fixed inset-0 bg-white dark:bg-gray-900 z-50 flex items-center justify-center">
         <div class="text-center">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Memuat FinSplit...</h2>
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mb-4"></div>
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Memuat VLSplit...</h2>
             <p class="text-gray-600 dark:text-gray-300">Menyiapkan sistem keuangan Anda</p>
         </div>
     </div>
@@ -109,12 +109,12 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <div class="flex items-center gap-3 mb-2">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg">
                             <i class="fas fa-chart-pie text-white text-xl"></i>
                         </div>
                         <div>
-                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">FinSplit</h1>
-                            <p class="text-gray-600 dark:text-gray-300 text-sm">Pemecah Keuangan Otomatis</p>
+                            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">VLSplit</h1>
+                            <p class="text-gray-600 dark:text-gray-300 text-sm">Sistem Pembagian Keuangan</p>
                         </div>
                     </div>
                 </div>
@@ -140,8 +140,8 @@
                             <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Income</p>
                             <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="totalIncome">Rp 0</p>
                         </div>
-                        <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <i class="fas fa-wallet text-blue-500 text-lg"></i>
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                            <i class="fas fa-wallet text-purple-500 text-lg"></i>
                         </div>
                     </div>
                 </div>
@@ -149,8 +149,8 @@
                 <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow card-hover">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Saldo Tersisa</p>
-                            <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="remainingBalance">Rp 0</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Saldo</p>
+                            <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="totalBalance">Rp 0</p>
                         </div>
                         <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                             <i class="fas fa-coins text-green-500 text-lg"></i>
@@ -164,8 +164,8 @@
                             <p class="text-gray-500 dark:text-gray-400 text-sm font-medium">Transaksi</p>
                             <p class="text-2xl font-bold text-gray-800 dark:text-white mt-1" id="transactionCount">0</p>
                         </div>
-                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <i class="fas fa-exchange-alt text-purple-500 text-lg"></i>
+                        <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                            <i class="fas fa-exchange-alt text-indigo-500 text-lg"></i>
                         </div>
                     </div>
                 </div>
@@ -190,7 +190,7 @@
                 <!-- Input Income Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl card-hover slide-in">
                     <div class="flex items-center gap-3 mb-6">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-500 flex items-center justify-center">
                             <i class="fas fa-plus text-white text-lg"></i>
                         </div>
                         <h2 class="text-xl font-bold text-gray-800 dark:text-white">Input Income Harian</h2>
@@ -206,7 +206,7 @@
                                 <input type="number" 
                                        id="incomeInput" 
                                        placeholder="0"
-                                       class="w-full pl-12 pr-4 py-4 text-lg rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all input-number"
+                                       class="w-full pl-12 pr-4 py-4 text-lg rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all input-number"
                                        min="0">
                             </div>
                         </div>
@@ -214,21 +214,22 @@
                         <!-- Fix Expense Setting -->
                         <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
                             <div class="flex justify-between items-center mb-3">
-                                <label class="text-gray-700 dark:text-gray-300 font-medium">Fix Expense</label>
-                                <button onclick="editFixExpense()" class="text-blue-500 hover:text-blue-600 text-sm font-medium">
+                                <label class="text-gray-700 dark:text-gray-300 font-medium">Alokasi Tetap (Fix Allocation)</label>
+                                <button onclick="editFixAllocation()" class="text-purple-500 hover:text-purple-600 text-sm font-medium">
                                     <i class="fas fa-edit mr-1"></i>Edit
                                 </button>
                             </div>
                             <div class="bg-gray-100 dark:bg-gray-700 rounded-xl p-4">
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600 dark:text-gray-300">Nominal Tetap</span>
-                                    <span class="text-lg font-bold text-gray-800 dark:text-white" id="fixExpenseDisplay">Rp 15.000</span>
+                                    <span class="text-lg font-bold text-gray-800 dark:text-white" id="fixAllocationDisplay">Rp 15.000</span>
                                 </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Alokasi tetap yang dipisahkan pertama dari income</p>
                             </div>
                         </div>
                         
                         <button onclick="processIncome()" 
-                                class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 pulse">
+                                class="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 pulse">
                             <i class="fas fa-calculator mr-2"></i>Pecahkan Keuangan
                         </button>
                         
@@ -259,24 +260,24 @@
                 </div>
             </div>
 
-            <!-- Right Column: Charts & Categories -->
+            <!-- Right Column: Charts & Balances -->
             <div class="space-y-6">
-                <!-- Categories Card -->
+                <!-- Total Saldo Section -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl card-hover slide-in">
                     <div class="flex items-center justify-between mb-6">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                <i class="fas fa-folder text-white text-lg"></i>
+                                <i class="fas fa-piggy-bank text-white text-lg"></i>
                             </div>
-                            <h2 class="text-xl font-bold text-gray-800 dark:text-white">Kategori</h2>
+                            <h2 class="text-xl font-bold text-gray-800 dark:text-white">Total Saldo</h2>
                         </div>
-                        <button onclick="editPercentages()" class="text-blue-500 hover:text-blue-600 text-sm font-medium">
-                            <i class="fas fa-sliders-h mr-1"></i>Edit
+                        <button onclick="refreshBalances()" class="text-purple-500 hover:text-purple-600 text-sm font-medium">
+                            <i class="fas fa-sync-alt mr-1"></i>Refresh
                         </button>
                     </div>
                     
-                    <div class="space-y-4" id="categoriesList">
-                        <!-- Categories will be loaded here -->
+                    <div class="space-y-4" id="balancesList">
+                        <!-- Balances will be loaded here -->
                     </div>
                 </div>
 
@@ -295,7 +296,7 @@
                     
                     <div class="mt-4 flex justify-center">
                         <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1">
-                            <button onclick="changeChartType('pie')" class="px-3 py-1 rounded-md bg-blue-500 text-white text-sm font-medium">
+                            <button onclick="changeChartType('pie')" class="px-3 py-1 rounded-md bg-purple-500 text-white text-sm font-medium">
                                 Pie
                             </button>
                             <button onclick="changeChartType('bar')" class="px-3 py-1 rounded-md text-gray-600 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -326,7 +327,7 @@
                             <tr class="border-b border-gray-200 dark:border-gray-700">
                                 <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Tanggal</th>
                                 <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Income</th>
-                                <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Fix Expense</th>
+                                <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Alokasi Tetap</th>
                                 <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Sisa</th>
                                 <th class="py-3 px-4 text-left text-gray-600 dark:text-gray-400 font-medium">Aksi</th>
                             </tr>
@@ -346,16 +347,16 @@
         </div>
 
         <footer class="mt-8 text-center text-gray-500 dark:text-gray-400 text-sm">
-            <p>© 2024 FinSplit • Pemecah Keuangan Otomatis • Data tersimpan secara aman</p>
+            <p>© 2024 VLSplit • Sistem Pembagian Keuangan • Data tersimpan secara aman</p>
         </footer>
     </div>
 
     <!-- Modals -->
-    <!-- Edit Fix Expense Modal -->
-    <div id="fixExpenseModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <!-- Edit Fix Allocation Modal -->
+    <div id="fixAllocationModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-2xl fade-in">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Fix Expense</h3>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Edit Alokasi Tetap</h3>
                 <button onclick="closeModals()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i class="fas fa-times text-lg"></i>
                 </button>
@@ -363,24 +364,24 @@
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2">Nominal Fix Expense</label>
+                    <label class="block text-gray-700 dark:text-gray-300 font-medium mb-2">Nominal Alokasi Tetap</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <span class="text-gray-500 dark:text-gray-400">Rp</span>
                         </div>
                         <input type="number" 
-                               id="fixExpenseInput" 
+                               id="fixAllocationInput" 
                                placeholder="15000"
-                               class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all input-number">
+                               class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all input-number">
                     </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Jumlah tetap yang dipotong pertama dari income</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Jumlah tetap yang dipisahkan pertama dari income</p>
                 </div>
                 
                 <div class="flex gap-3 pt-4">
                     <button onclick="closeModals()" class="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         Batal
                     </button>
-                    <button onclick="saveFixExpense()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all">
+                    <button onclick="saveFixAllocation()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium hover:from-purple-700 hover:to-indigo-700 transition-all">
                         Simpan
                     </button>
                 </div>
@@ -416,7 +417,7 @@
                     <button onclick="closeModals()" class="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         Batal
                     </button>
-                    <button onclick="savePercentages()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all">
+                    <button onclick="savePercentages()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium hover:from-purple-700 hover:to-indigo-700 transition-all">
                         Simpan
                     </button>
                 </div>
@@ -472,7 +473,7 @@
 
         // Default settings
         const defaultSettings = {
-            fixExpense: 15000,
+            fixAllocation: 15000,
             percentages: {
                 bisnisPribadi: 10,
                 tabunganMerantau: 20,
@@ -493,10 +494,10 @@
         // Initialize App
         async function initApp() {
             // Get or create device ID
-            deviceId = localStorage.getItem('finsplit_deviceId');
+            deviceId = localStorage.getItem('vlsplit_deviceId');
             if (!deviceId) {
                 deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('finsplit_deviceId', deviceId);
+                localStorage.setItem('vlsplit_deviceId', deviceId);
             }
 
             // Load settings and data
@@ -507,6 +508,7 @@
             // Update UI
             updateUI();
             updateChart();
+            updateBalancesUI();
             
             // Set today's date
             const today = new Date();
@@ -588,7 +590,7 @@
                     balances[doc.id] = doc.data().amount || 0;
                 });
                 
-                updateCategoriesUI();
+                updateBalancesUI();
             } catch (error) {
                 console.error('Error loading balances:', error);
             }
@@ -596,31 +598,53 @@
 
         // Update settings UI
         function updateSettingsUI() {
-            document.getElementById('fixExpenseDisplay').textContent = formatCurrency(settings.fixExpense);
-            
-            // Update categories list
+            document.getElementById('fixAllocationDisplay').textContent = formatCurrency(settings.fixAllocation);
+        }
+
+        // Update balances UI
+        function updateBalancesUI() {
+            const container = document.getElementById('balancesList');
             const categories = [
-                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', percentage: settings.percentages.bisnisPribadi, color: 'bg-blue-500' },
-                { key: 'tabunganMerantau', label: 'Tabungan Merantau', percentage: settings.percentages.tabunganMerantau, color: 'bg-green-500' },
-                { key: 'tabunganDarurat', label: 'Tabungan Darurat', percentage: settings.percentages.tabunganDarurat, color: 'bg-yellow-500' },
-                { key: 'tabunganLiburan', label: 'Tabungan Liburan', percentage: settings.percentages.tabunganLiburan, color: 'bg-purple-500' },
-                { key: 'tabunganBisnis', label: 'Tabungan Bisnis', percentage: settings.percentages.tabunganBisnis, color: 'bg-red-500' }
+                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', percentage: settings.percentages.bisnisPribadi, color: 'bg-purple-500', icon: 'fas fa-briefcase' },
+                { key: 'tabunganMerantau', label: 'Tabungan Merantau', percentage: settings.percentages.tabunganMerantau, color: 'bg-green-500', icon: 'fas fa-home' },
+                { key: 'tabunganDarurat', label: 'Tabungan Darurat', percentage: settings.percentages.tabunganDarurat, color: 'bg-yellow-500', icon: 'fas fa-shield-alt' },
+                { key: 'tabunganLiburan', label: 'Tabungan Liburan', percentage: settings.percentages.tabunganLiburan, color: 'bg-blue-500', icon: 'fas fa-umbrella-beach' },
+                { key: 'tabunganBisnis', label: 'Tabungan Bisnis', percentage: settings.percentages.tabunganBisnis, color: 'bg-red-500', icon: 'fas fa-chart-line' }
             ];
             
             let html = '';
+            let totalBalance = 0;
+            
             categories.forEach(cat => {
+                const balance = balances[cat.key] || 0;
+                totalBalance += balance;
+                
                 html += `
-                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full ${cat.color}"></div>
-                            <span class="font-medium text-gray-700 dark:text-gray-300">${cat.label}</span>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg ${cat.color} flex items-center justify-center">
+                                    <i class="${cat.icon} text-white text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-700 dark:text-gray-300">${cat.label}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">${cat.percentage}% dari sisa income</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-lg text-gray-800 dark:text-white">${formatCurrency(balance)}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Saldo</div>
+                            </div>
                         </div>
-                        <span class="font-bold text-gray-800 dark:text-white">${cat.percentage}%</span>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill ${cat.color}" style="width: ${Math.min(100, (balance / (totalBalance || 1)) * 100)}%"></div>
+                        </div>
                     </div>
                 `;
             });
             
-            document.getElementById('categoriesList').innerHTML = html;
+            container.innerHTML = html;
+            document.getElementById('totalBalance').textContent = formatCurrency(totalBalance);
         }
 
         // Update transaction history UI
@@ -647,7 +671,7 @@
             let html = '';
             transactions.forEach(trans => {
                 const date = new Date(trans.timestamp?.toDate?.() || trans.timestamp);
-                const remaining = trans.income - trans.fixExpense;
+                const remaining = trans.income - trans.fixAllocation;
                 
                 html += `
                     <tr class="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -659,7 +683,7 @@
                             <div class="font-bold text-green-600 dark:text-green-400">${formatCurrency(trans.income)}</div>
                         </td>
                         <td class="py-3 px-4">
-                            <div class="font-medium text-red-600 dark:text-red-400">${formatCurrency(trans.fixExpense)}</div>
+                            <div class="font-medium text-purple-600 dark:text-purple-400">${formatCurrency(trans.fixAllocation)}</div>
                         </td>
                         <td class="py-3 px-4">
                             <div class="font-medium text-blue-600 dark:text-blue-400">${formatCurrency(remaining)}</div>
@@ -676,57 +700,15 @@
             container.innerHTML = html;
         }
 
-        // Update categories UI with balances
-        function updateCategoriesUI() {
-            const categories = [
-                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', percentage: settings.percentages.bisnisPribadi, color: 'bg-blue-500', icon: 'fas fa-briefcase' },
-                { key: 'tabunganMerantau', label: 'Tabungan Merantau', percentage: settings.percentages.tabunganMerantau, color: 'bg-green-500', icon: 'fas fa-home' },
-                { key: 'tabunganDarurat', label: 'Tabungan Darurat', percentage: settings.percentages.tabunganDarurat, color: 'bg-yellow-500', icon: 'fas fa-shield-alt' },
-                { key: 'tabunganLiburan', label: 'Tabungan Liburan', percentage: settings.percentages.tabunganLiburan, color: 'bg-purple-500', icon: 'fas fa-umbrella-beach' },
-                { key: 'tabunganBisnis', label: 'Tabungan Bisnis', percentage: settings.percentages.tabunganBisnis, color: 'bg-red-500', icon: 'fas fa-chart-line' }
-            ];
-            
-            let html = '';
-            let totalBalance = 0;
-            
-            categories.forEach(cat => {
-                const balance = balances[cat.key] || 0;
-                totalBalance += balance;
-                
-                html += `
-                    <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg ${cat.color} flex items-center justify-center">
-                                    <i class="${cat.icon} text-white text-sm"></i>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-gray-700 dark:text-gray-300">${cat.label}</div>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">${cat.percentage}% dari sisa income</div>
-                                </div>
-                            </div>
-                            <div class="font-bold text-gray-800 dark:text-white">${formatCurrency(balance)}</div>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill ${cat.color}" style="width: ${Math.min(100, (balance / (totalBalance || 1)) * 100)}%"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            document.getElementById('categoriesList').innerHTML = html;
-            document.getElementById('remainingBalance').textContent = formatCurrency(totalBalance);
-        }
-
         // Update chart
         function updateChart() {
             const ctx = document.getElementById('balanceChart').getContext('2d');
             
             const categories = [
-                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', color: '#3b82f6' },
+                { key: 'bisnisPribadi', label: 'Bisnis Pribadi', color: '#8b5cf6' },
                 { key: 'tabunganMerantau', label: 'Tabungan Merantau', color: '#10b981' },
                 { key: 'tabunganDarurat', label: 'Tabungan Darurat', color: '#f59e0b' },
-                { key: 'tabunganLiburan', label: 'Tabungan Liburan', color: '#8b5cf6' },
+                { key: 'tabunganLiburan', label: 'Tabungan Liburan', color: '#3b82f6' },
                 { key: 'tabunganBisnis', label: 'Tabungan Bisnis', color: '#ef4444' }
             ];
             
@@ -793,27 +775,35 @@
                 return;
             }
             
-            if (income < settings.fixExpense) {
-                showError(`Income harus lebih besar dari fix expense (${formatCurrency(settings.fixExpense)})`);
+            if (income < settings.fixAllocation) {
+                showError(`Income harus lebih besar dari alokasi tetap (${formatCurrency(settings.fixAllocation)})`);
                 return;
             }
             
-            // Calculate breakdown
-            const fixExpense = settings.fixExpense;
-            const remaining = income - fixExpense;
+            // Calculate breakdown - make all amounts even
+            const fixAllocation = Math.round(settings.fixAllocation);
+            const remaining = income - fixAllocation;
             
+            // Calculate breakdown and make sure all amounts are even
             const breakdown = {
-                bisnisPribadi: Math.round(remaining * (settings.percentages.bisnisPribadi / 100)),
-                tabunganMerantau: Math.round(remaining * (settings.percentages.tabunganMerantau / 100)),
-                tabunganDarurat: Math.round(remaining * (settings.percentages.tabunganDarurat / 100)),
-                tabunganLiburan: Math.round(remaining * (settings.percentages.tabunganLiburan / 100)),
-                tabunganBisnis: Math.round(remaining * (settings.percentages.tabunganBisnis / 100))
+                bisnisPribadi: makeEven(Math.round(remaining * (settings.percentages.bisnisPribadi / 100))),
+                tabunganMerantau: makeEven(Math.round(remaining * (settings.percentages.tabunganMerantau / 100))),
+                tabunganDarurat: makeEven(Math.round(remaining * (settings.percentages.tabunganDarurat / 100))),
+                tabunganLiburan: makeEven(Math.round(remaining * (settings.percentages.tabunganLiburan / 100))),
+                tabunganBisnis: makeEven(Math.round(remaining * (settings.percentages.tabunganBisnis / 100)))
             };
+            
+            // Adjust if there's any rounding difference
+            const totalBreakdown = Object.values(breakdown).reduce((a, b) => a + b, 0);
+            if (totalBreakdown !== remaining) {
+                breakdown.tabunganBisnis += (remaining - totalBreakdown);
+                breakdown.tabunganBisnis = makeEven(breakdown.tabunganBisnis);
+            }
             
             // Save transaction to Firebase
             const transactionData = {
                 income: income,
-                fixExpense: fixExpense,
+                fixAllocation: fixAllocation,
                 remaining: remaining,
                 breakdown: breakdown,
                 timestamp: new Date()
@@ -847,9 +837,10 @@
                 // Update UI
                 updateUI();
                 updateChart();
+                updateBalancesUI();
                 
                 // Show breakdown results
-                showBreakdownResults(income, fixExpense, remaining, breakdown);
+                showBreakdownResults(income, fixAllocation, remaining, breakdown);
                 
                 // Clear input
                 incomeInput.value = '';
@@ -863,8 +854,13 @@
             }
         }
 
+        // Make amount even (remove odd numbers)
+        function makeEven(amount) {
+            return Math.round(amount / 100) * 100; // Round to nearest 100
+        }
+
         // Show breakdown results
-        function showBreakdownResults(income, fixExpense, remaining, breakdown) {
+        function showBreakdownResults(income, fixAllocation, remaining, breakdown) {
             const container = document.getElementById('breakdownResults');
             
             let html = `
@@ -874,9 +870,9 @@
                             <div class="text-sm text-green-600 dark:text-green-400 font-medium mb-1">Total Income</div>
                             <div class="text-2xl font-bold text-gray-800 dark:text-white">${formatCurrency(income)}</div>
                         </div>
-                        <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 rounded-xl p-4">
-                            <div class="text-sm text-red-600 dark:text-red-400 font-medium mb-1">Fix Expense</div>
-                            <div class="text-2xl font-bold text-gray-800 dark:text-white">${formatCurrency(fixExpense)}</div>
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4">
+                            <div class="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">Alokasi Tetap</div>
+                            <div class="text-2xl font-bold text-gray-800 dark:text-white">${formatCurrency(fixAllocation)}</div>
                         </div>
                     </div>
                     
@@ -913,15 +909,15 @@
             container.innerHTML = html;
         }
 
-        // Edit fix expense
-        function editFixExpense() {
-            document.getElementById('fixExpenseInput').value = settings.fixExpense;
-            document.getElementById('fixExpenseModal').classList.remove('hidden');
+        // Edit fix allocation
+        function editFixAllocation() {
+            document.getElementById('fixAllocationInput').value = settings.fixAllocation;
+            document.getElementById('fixAllocationModal').classList.remove('hidden');
         }
 
-        // Save fix expense
-        async function saveFixExpense() {
-            const input = document.getElementById('fixExpenseInput');
+        // Save fix allocation
+        async function saveFixAllocation() {
+            const input = document.getElementById('fixAllocationInput');
             const value = parseInt(input.value);
             
             if (!value || value < 0) {
@@ -929,21 +925,21 @@
                 return;
             }
             
-            settings.fixExpense = value;
+            settings.fixAllocation = makeEven(value);
             
             try {
                 await db.collection('finance')
                     .doc(deviceId)
                     .collection('settings')
                     .doc('current')
-                    .update({ fixExpense: value });
+                    .update({ fixAllocation: settings.fixAllocation });
                 
                 updateSettingsUI();
                 closeModals();
-                showToast('Fix expense berhasil diupdate');
+                showToast('Alokasi tetap berhasil diupdate');
                 
             } catch (error) {
-                console.error('Error saving fix expense:', error);
+                console.error('Error saving fix allocation:', error);
                 showError('Gagal menyimpan perubahan');
             }
         }
@@ -1058,7 +1054,7 @@
                     .update({ percentages: newPercentages });
                 
                 updateSettingsUI();
-                updateCategoriesUI();
+                updateBalancesUI();
                 closeModals();
                 showToast('Persentase berhasil diupdate');
                 
@@ -1104,6 +1100,7 @@
                 // Update UI
                 updateUI();
                 updateChart();
+                updateBalancesUI();
                 
                 showToast('Transaksi berhasil dihapus');
                 
@@ -1142,6 +1139,7 @@
                 // Update UI
                 updateUI();
                 updateChart();
+                updateBalancesUI();
                 
                 closeModals();
                 showToast('Semua data berhasil direset');
@@ -1159,19 +1157,25 @@
             
             // Update button states
             document.querySelectorAll('#balanceChart').nextElementSibling.querySelectorAll('button').forEach(btn => {
-                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.remove('bg-purple-500', 'text-white');
                 btn.classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
             });
             
-            event.target.classList.add('bg-blue-500', 'text-white');
+            event.target.classList.add('bg-purple-500', 'text-white');
             event.target.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+        }
+
+        // Refresh balances
+        function refreshBalances() {
+            loadBalances();
+            showToast('Saldo diperbarui');
         }
 
         // Update all UI components
         function updateUI() {
             updateSettingsUI();
             updateTransactionHistory();
-            updateCategoriesUI();
+            updateBalancesUI();
         }
 
         // Show error message
@@ -1202,7 +1206,7 @@
 
         // Close all modals
         function closeModals() {
-            document.getElementById('fixExpenseModal').classList.add('hidden');
+            document.getElementById('fixAllocationModal').classList.add('hidden');
             document.getElementById('percentagesModal').classList.add('hidden');
             document.getElementById('resetModal').classList.add('hidden');
         }
