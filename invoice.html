@@ -1297,8 +1297,8 @@
                             </button>
                             <button onclick="app.shareInvoiceIOS()" 
                                     class="flex-1 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-medium text-sm shadow-lg">
-                                <i class="fab fa-apple mr-1"></i>
-                                Bagikan iOS
+                                <i class="fas fa-share-alt mr-1"></i>
+                                Bagikan
                             </button>
                             <button onclick="app.downloadAsPNG()" 
                                     class="btn-orange-gradient flex-1 px-4 py-3 flex items-center justify-center gap-2">
@@ -1403,7 +1403,7 @@ Terima kasih telah mempercayai VLCrave Express!`;
                 }
             },
 
-            // Method untuk share di iOS - dengan gambar invoice dan permintaan review
+            // FIXED: Method untuk share di Android & iOS - bisa mengirim gambar DAN teks
             async shareInvoiceIOS() {
                 try {
                     if (!this.currentInvoiceData) {
@@ -1412,10 +1412,8 @@ Terima kasih telah mempercayai VLCrave Express!`;
                     }
 
                     const data = this.currentInvoiceData;
-                    // URL untuk review
-                    const reviewUrl = `https://vlcrave.github.io/project/reviews.html?id=${data.invoiceNumber}`;
-
-                    // Buat container struk dengan styling lengkap
+                    
+                    // 1. Buat container struk
                     const receiptContainer = document.createElement('div');
                     receiptContainer.id = 'invoice-receipt-container';
                     receiptContainer.style.cssText = `
@@ -1439,15 +1437,16 @@ Terima kasih telah mempercayai VLCrave Express!`;
                         overflow: hidden;
                     `;
 
-                    // HTML content untuk receipt
+                    // 2. HTML content untuk receipt (dioptimalkan untuk dibaca)
                     receiptContainer.innerHTML = this.generateReceiptHTML(data);
                     document.body.appendChild(receiptContainer);
 
+                    // 3. Tunggu render
                     await new Promise(resolve => setTimeout(resolve, 300));
 
-                    // Konversi struk ke canvas
+                    // 4. Konversi ke canvas dengan optimasi
                     const canvas = await html2canvas(receiptContainer, {
-                        scale: 3,
+                        scale: 2,
                         useCORS: true,
                         logging: false,
                         backgroundColor: '#ffffff',
@@ -1458,70 +1457,132 @@ Terima kasih telah mempercayai VLCrave Express!`;
                         allowTaint: false,
                         removeContainer: true,
                         foreignObjectRendering: false,
-                        imageTimeout: 10000
+                        imageTimeout: 5000,
+                        onclone: (clonedDoc) => {
+                            // Pastikan semua elemen terlihat
+                            const container = clonedDoc.getElementById('invoice-receipt-container');
+                            if (container) {
+                                container.style.opacity = '1';
+                                container.style.visibility = 'visible';
+                            }
+                        }
                     });
 
-                    const pngData = canvas.toDataURL('image/png', 1.0);
+                    // 5. Konversi ke blob
+                    const pngData = canvas.toDataURL('image/png', 0.9);
                     const response = await fetch(pngData);
                     const blob = await response.blob();
-                    const file = new File([blob], `invoice-${data.invoiceNumber}.png`, { type: 'image/png' });
-
-                    // 🧾 Buat pesan berdasarkan metode pembayaran yang SESUAI dengan permintaan review
-                    let paymentText = '';
                     
-                    // Gunakan paymentMethod dari data invoice yang sebenarnya
-                    if (data.paymentMethod === 'bca') {
-                        paymentText = 
-                            `✅ Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
-                            `💳 Metode: Transfer BCA\n` +
-                            `🏦 Tujuan: BCA 6455106421 a/n VICKY SATRIA LINDY\n` +
-                            `💰 Nominal: ${this.formatCurrency(data.total)}\n\n` +
-                            `Sambil menunggu pengantaran, Anda bisa memberikan review pada layanan kami:\n` +
-                            `${reviewUrl}\n\n` +
-                            `Silakan transfer terlebih dahulu sebelum pengiriman.\n\n` +
-                            `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
-                    } else {
-                        // Default untuk tunai
-                        paymentText = 
-                            `✅ Pesanan anda telah selesai dan akan segera diantarkan ke rumah anda.\n\n` +
-                            `💵 Metode: Tunai\n` +
-                            `Silakan siapkan uang sebesar ${this.formatCurrency(data.total)} untuk pembayaran saat barang diterima.\n\n` +
-                            `Sambil menunggu pengantaran, Anda bisa memberikan review pada layanan kami:\n` +
-                            `${reviewUrl}\n\n` +
-                            `Terima kasih telah menggunakan layanan VLCrave Express 🙌`;
-                    }
-
-                    // Cek apakah Web Share API dengan files tersedia
-                    if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
-                        throw new Error('Fitur share dengan gambar tidak didukung di browser ini');
-                    }
-
-                    // Kirim via Web Share API (iOS) dengan GAMBAR + TEKS
-                    await navigator.share({
-                        files: [file],
-                        title: `Invoice ${data.invoiceNumber} - VLCrave Express`,
-                        text: paymentText
+                    // 6. Buat teks yang OPTIMIZED untuk share (MAKSIMAL 300 KARAKTER)
+                    let shareText = this.generateOptimizedShareText(data);
+                    
+                    // 7. Buat file object
+                    const file = new File([blob], `invoice-${data.invoiceNumber}.png`, { 
+                        type: 'image/png',
+                        lastModified: Date.now()
                     });
 
-                    this.showNotification('✅ Invoice berhasil dibagikan dengan gambar!', 'success');
+                    // 8. DETEKSI BROWSER & PLATFORM
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                    
+                    // 9. STRATEGI SHARE BERDASARKAN PLATFORM
+                    
+                    // Strategi A: Untuk iOS/Safari - teks sangat pendek
+                    if (isIOS || isSafari) {
+                        const safariText = `Invoice ${data.invoiceNumber} - ${this.formatCurrency(data.total)}`;
+                        
+                        try {
+                            // Coba dengan gambar dan teks pendek
+                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                await navigator.share({
+                                    files: [file],
+                                    title: 'Invoice VLCrave',
+                                    text: safariText // Teks sangat pendek untuk iOS
+                                });
+                            } else {
+                                throw new Error('Cannot share files');
+                            }
+                        } catch (safariError) {
+                            // Fallback untuk iOS: share teks saja dulu
+                            await navigator.share({
+                                title: `Invoice ${data.invoiceNumber}`,
+                                text: shareText
+                            });
+                        }
+                    }
+                    // Strategi B: Untuk Android/Chrome - teks lengkap
+                    else {
+                        // Gunakan teks lengkap untuk Android
+                        try {
+                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                await navigator.share({
+                                    files: [file],
+                                    title: `Invoice ${data.invoiceNumber}`,
+                                    text: shareText // Teks lengkap untuk Android
+                                });
+                            } else {
+                                // Fallback: share teks saja
+                                await navigator.share({
+                                    title: `Invoice ${data.invoiceNumber}`,
+                                    text: shareText
+                                });
+                            }
+                        } catch (androidError) {
+                            console.error('Android share error:', androidError);
+                            // Final fallback: copy to clipboard
+                            this.copyToClipboard(shareText);
+                            this.showNotification('✅ Pesan disalin ke clipboard', 'info');
+                        }
+                    }
 
-                    // Cleanup
-                    this.cleanupReceiptContainer();
+                    this.showNotification('✅ Invoice berhasil dibagikan!', 'success');
 
                 } catch (error) {
                     console.error('Error in shareInvoiceIOS:', error);
                     
-                    // Cleanup jika error
+                    // Cleanup
                     this.cleanupReceiptContainer();
                     
-                    // Tampilkan pesan error saja
+                    // Error handling yang lebih spesifik
                     if (error.name === 'AbortError') {
-                        this.showNotification('❌ Share dibatalkan oleh user', 'error');
-                    } else if (error.message.includes('tidak didukung')) {
-                        this.showNotification('❌ Browser tidak mendukung share dengan gambar', 'error');
+                        this.showNotification('❌ Share dibatalkan', 'error');
+                    } else if (error.name === 'TypeError') {
+                        this.showNotification('❌ Browser tidak mendukung fitur share', 'error');
+                    } else if (error.message.includes('permission') || error.message.includes('denied')) {
+                        this.showNotification('❌ Izin share ditolak', 'error');
                     } else {
-                        this.showNotification('❌ Gagal membagikan invoice: ' + error.message, 'error');
+                        // Fallback ke share biasa tanpa gambar
+                        await this.shareInvoice(
+                            this.currentInvoiceData.id, 
+                            this.currentInvoiceData.invoiceNumber, 
+                            this.currentInvoiceData.paymentMethod, 
+                            this.currentInvoiceData.total
+                        );
                     }
+                } finally {
+                    // Cleanup
+                    this.cleanupReceiptContainer();
+                }
+            },
+
+            // Method untuk generate teks share yang OPTIMIZED (maksimal 300 karakter)
+            generateOptimizedShareText(data) {
+                const reviewUrl = `https://vlcrave.github.io/project/review.html?id=${data.invoiceNumber}`;
+                const totalFormatted = this.formatCurrency(data.total);
+                
+                if (data.paymentMethod === 'bca') {
+                    return `✅ Invoice ${data.invoiceNumber}\n` +
+                           `Total: ${totalFormatted}\n` +
+                           `BCA: 6455106421 a/n VICKY SATRIA LINDY\n` +
+                           `Review: ${reviewUrl}\n` +
+                           `Terima kasih!`;
+                } else {
+                    return `✅ Invoice ${data.invoiceNumber}\n` +
+                           `Total: ${totalFormatted}\n` +
+                           `Bayar tunai saat terima barang\n` +
+                           `Review: ${reviewUrl}\n` +
+                           `Terima kasih!`;
                 }
             },
 
